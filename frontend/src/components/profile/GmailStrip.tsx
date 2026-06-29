@@ -1,9 +1,19 @@
 import { EnvelopeIcon } from '@heroicons/react/24/outline'
+import { disconnectGmail, OAUTH_BASE } from '../../api/profile'
 import { useProfile } from '../../context/ProfileContext'
 import { Button } from '../ui/Button'
 
 export function GmailStrip() {
-  const { profile, toggleGmail } = useProfile()
+  const { profile, refreshProfile } = useProfile()
+
+  const handleConnect = () => {
+    window.location.href = `${OAUTH_BASE}/auth/google`
+  }
+
+  const handleDisconnect = async () => {
+    await disconnectGmail()
+    await refreshProfile()
+  }
 
   return (
     <section className="rounded-lg border border-border bg-surface p-6 shadow-sm">
@@ -24,8 +34,11 @@ export function GmailStrip() {
             )}
           </div>
         </div>
-        {/* Wire to GET /auth/google when backend is available */}
-        <Button variant="secondary" onClick={toggleGmail} className="w-full sm:w-auto">
+        <Button
+          variant="secondary"
+          className="w-full sm:w-auto"
+          onClick={profile.gmailConnected ? () => void handleDisconnect() : handleConnect}
+        >
           {profile.gmailConnected ? 'Disconnect' : 'Connect Gmail'}
         </Button>
       </div>

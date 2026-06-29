@@ -36,8 +36,8 @@ export function WelcomePage() {
     },
     {
       key: 'skills',
-      title: 'Add skills',
-      description: 'List your tech stack (minimum 3 skills).',
+      title: 'Skills from CV',
+      description: 'Auto-extracted from your CV (minimum 3 skills).',
       done: gate.hasMinSkills,
       icon: CodeBracketIcon,
     },

@@ -6,11 +6,12 @@ const DOCX_MIME =
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 
 export function CvUpload() {
-  const { profile, setCv } = useProfile()
+  const { profile, uploadCv } = useProfile()
   const inputRef = useRef<HTMLInputElement>(null)
   const [error, setError] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
 
-  const handleFile = (file: File | undefined) => {
+  const handleFile = async (file: File | undefined) => {
     if (!file) return
     const isDocx =
       file.name.toLowerCase().endsWith('.docx') || file.type === DOCX_MIME
@@ -19,13 +20,22 @@ export function CvUpload() {
       return
     }
     setError(null)
-    setCv(file.name, file.size)
+    setUploading(true)
+    try {
+      await uploadCv(file)
+    } catch {
+      setError('Upload failed. Please try again.')
+    } finally {
+      setUploading(false)
+    }
   }
 
   const onDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault()
-    handleFile(event.dataTransfer.files[0])
+    void handleFile(event.dataTransfer.files[0])
   }
+
+  const isPending = profile.skillsExtractionStatus === 'pending' || uploading
 
   return (
     <section className="rounded-lg border border-border bg-surface p-6 shadow-sm">
@@ -37,22 +47,35 @@ export function CvUpload() {
       <div
         role="button"
         tabIndex={0}
-        onClick={() => inputRef.current?.click()}
+        onClick={() => !isPending && inputRef.current?.click()}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault()
-            inputRef.current?.click()
+            if (!isPending) inputRef.current?.click()
           }
         }}
         onDragOver={(e) => e.preventDefault()}
         onDrop={onDrop}
-        className="flex min-h-32 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-border bg-background px-4 py-8 text-center transition-colors duration-200 hover:border-primary/40 hover:bg-chip-bg/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        className={`flex min-h-32 flex-col items-center justify-center rounded-lg border-2 border-dashed border-border bg-background px-4 py-8 text-center transition-colors duration-200 ${
+          isPending
+            ? 'cursor-wait opacity-60'
+            : 'cursor-pointer hover:border-primary/40 hover:bg-chip-bg/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary'
+        }`}
       >
-        <ArrowUpTrayIcon className="mb-2 h-10 w-10 text-text-secondary" aria-hidden="true" />
-        <p className="text-sm text-text-secondary">
-          Drag and drop or click to upload your CV
-        </p>
-        <p className="mt-1 text-xs text-text-secondary">.docx only</p>
+        {isPending ? (
+          <>
+            <span className="mb-2 inline-block h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            <p className="text-sm text-text-secondary">Uploading and extracting skills…</p>
+          </>
+        ) : (
+          <>
+            <ArrowUpTrayIcon className="mb-2 h-10 w-10 text-text-secondary" aria-hidden="true" />
+            <p className="text-sm text-text-secondary">
+              Drag and drop or click to upload your CV
+            </p>
+            <p className="mt-1 text-xs text-text-secondary">.docx only</p>
+          </>
+        )}
       </div>
 
       <input
@@ -60,7 +83,8 @@ export function CvUpload() {
         type="file"
         accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         className="sr-only"
-        onChange={(e) => handleFile(e.target.files?.[0])}
+        disabled={isPending}
+        onChange={(e) => void handleFile(e.target.files?.[0])}
       />
 
       {error ? <p className="mt-2 text-sm text-error">{error}</p> : null}
@@ -73,7 +97,8 @@ export function CvUpload() {
           </div>
           <button
             type="button"
-            className="cursor-pointer text-sm font-semibold text-primary transition-colors duration-200 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            disabled={isPending}
+            className="cursor-pointer text-sm font-semibold text-primary transition-colors duration-200 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
             onClick={() => inputRef.current?.click()}
           >
             Re-upload

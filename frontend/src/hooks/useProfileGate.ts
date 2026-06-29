@@ -12,7 +12,8 @@ export interface ProfileGate {
 
 export function evaluateProfileGate(profile: Profile): ProfileGate {
   const hasCv = Boolean(profile.cvFilename)
-  const hasMinSkills = profile.skills.length >= 3
+  const hasMinSkills =
+    profile.skills.length >= 3 && profile.skillsExtractionStatus === 'ready'
   const hasProject = profile.projects.length >= 1
   const requiredComplete = [hasCv, hasMinSkills, hasProject].filter(Boolean).length
 

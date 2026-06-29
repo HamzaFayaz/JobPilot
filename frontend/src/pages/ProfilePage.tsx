@@ -1,17 +1,29 @@
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
+import { useEffect } from 'react'
 import { CvUpload } from '../components/profile/CvUpload'
-import { GitHubComingSoon } from '../components/profile/GitHubComingSoon'
+import { GitHubImport } from '../components/profile/GitHubImport'
 import { GmailStrip } from '../components/profile/GmailStrip'
 import { ProjectsList } from '../components/profile/ProjectsList'
 import { RolesInput } from '../components/profile/RolesInput'
-import { SkillsInput } from '../components/profile/SkillsInput'
+import { SkillsFromCv } from '../components/profile/SkillsFromCv'
 import { Button } from '../components/ui/Button'
 import { ProgressBar } from '../components/ui/ProgressBar'
 import { useProfile } from '../context/ProfileContext'
 
 export function ProfilePage() {
-  const { gate } = useProfile()
+  const { gate, refreshProfile } = useProfile()
+  const [searchParams] = useSearchParams()
   const completeness = Math.round((gate.requiredComplete / gate.requiredTotal) * 100)
+
+  useEffect(() => {
+    if (
+      searchParams.get('gmail') === 'connected' ||
+      searchParams.get('github') === 'connected'
+    ) {
+      void refreshProfile()
+      window.history.replaceState({}, '', '/profile')
+    }
+  }, [searchParams, refreshProfile])
 
   return (
     <div className="space-y-6">
@@ -36,9 +48,9 @@ export function ProfilePage() {
       </section>
 
       <CvUpload />
-      <SkillsInput />
+      <SkillsFromCv />
       <RolesInput />
-      <GitHubComingSoon />
+      <GitHubImport />
       <ProjectsList />
       <GmailStrip />
 
