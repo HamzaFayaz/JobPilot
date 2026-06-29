@@ -43,8 +43,8 @@ export function WelcomePage() {
     },
     {
       key: 'projects',
-      title: 'Add projects',
-      description: 'Add projects manually to showcase your work.',
+      title: 'Projects ready',
+      description: 'Import from GitHub on Profile or add in Settings (minimum 1).',
       done: gate.hasProject,
       icon: RocketLaunchIcon,
     },

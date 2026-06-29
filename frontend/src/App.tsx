@@ -3,6 +3,7 @@ import { AppShell } from './components/shell/AppShell'
 import { ProfileProvider } from './context/ProfileContext'
 import { ProfilePage } from './pages/ProfilePage'
 import { SearchPage } from './pages/SearchPage'
+import { SettingsPage } from './pages/SettingsPage'
 import { WelcomePage } from './pages/WelcomePage'
 
 export default function App() {
@@ -13,6 +14,7 @@ export default function App() {
           <Route element={<AppShell />}>
             <Route index element={<WelcomePage />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="settings" element={<SettingsPage />} />
             <Route path="search" element={<SearchPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>

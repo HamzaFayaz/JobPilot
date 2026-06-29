@@ -36,7 +36,7 @@ const navItems: NavItem[] = [
     icon: DocumentTextIcon,
     disabled: true,
   },
-  { key: 'settings', label: 'Settings', icon: Cog6ToothIcon, disabled: true },
+  { key: 'settings', label: 'Settings', to: '/settings', icon: Cog6ToothIcon },
 ]
 
 export function Sidebar({ onNavigate, className = '' }: SidebarProps) {
