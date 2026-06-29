@@ -7,161 +7,143 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { loadProfile, saveProfile } from '../api/profile'
+import {
+  getProfile,
+  updateProfile as apiUpdateProfile,
+  uploadCv as apiUploadCv,
+} from '../api/profile'
 import { useProfileGate } from '../hooks/useProfileGate'
-import type { Profile, Project } from '../types/profile'
+import { EMPTY_PROFILE, type Profile, type Project } from '../types/profile'
 
 interface ProfileContextValue {
   profile: Profile
+  loading: boolean
+  error: string | null
   gate: ReturnType<typeof useProfileGate>
-  setProfile: (profile: Profile) => void
-  updateProfile: (patch: Partial<Profile>) => void
-  setCv: (filename: string, size: number) => void
-  addSkill: (skill: string) => void
-  removeSkill: (skill: string) => void
+  refreshProfile: () => Promise<void>
+  updateProfile: (patch: Partial<Profile>) => Promise<void>
+  uploadCv: (file: File) => Promise<void>
   addRole: (role: string) => void
   removeRole: (role: string) => void
   addProject: (project: Omit<Project, 'id'>) => void
   updateProject: (id: string, patch: Partial<Omit<Project, 'id'>>) => void
   removeProject: (id: string) => void
-  toggleGmail: () => void
 }
 
 const ProfileContext = createContext<ProfileContextValue | null>(null)
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
-  const [profile, setProfileState] = useState<Profile>(() => loadProfile())
+  const [profile, setProfile] = useState<Profile>(EMPTY_PROFILE)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const gate = useProfileGate(profile)
 
-  const persist = useCallback((next: Profile) => {
-    setProfileState(saveProfile(next))
+  const refreshProfile = useCallback(async () => {
+    try {
+      setError(null)
+      const data = await getProfile()
+      setProfile(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load profile')
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
-  const setProfile = useCallback(
-    (next: Profile) => {
-      persist(next)
-    },
-    [persist],
-  )
+  useEffect(() => {
+    void refreshProfile()
+  }, [refreshProfile])
+
+  const persistPatch = useCallback(async (patch: Partial<Profile>) => {
+    const next = await apiUpdateProfile(patch)
+    setProfile(next)
+  }, [])
 
   const updateProfile = useCallback(
-    (patch: Partial<Profile>) => {
-      persist({ ...profile, ...patch })
+    async (patch: Partial<Profile>) => {
+      await persistPatch(patch)
     },
-    [persist, profile],
+    [persistPatch],
   )
 
-  const setCv = useCallback(
-    (filename: string, size: number) => {
-      updateProfile({ cvFilename: filename, cvFileMeta: { size } })
-    },
-    [updateProfile],
-  )
-
-  const addSkill = useCallback(
-    (skill: string) => {
-      const trimmed = skill.trim()
-      if (!trimmed || profile.skills.includes(trimmed)) return
-      updateProfile({ skills: [...profile.skills, trimmed] })
-    },
-    [profile.skills, updateProfile],
-  )
-
-  const removeSkill = useCallback(
-    (skill: string) => {
-      updateProfile({ skills: profile.skills.filter((s) => s !== skill) })
-    },
-    [profile.skills, updateProfile],
-  )
+  const uploadCv = useCallback(async (file: File) => {
+    setProfile((p) => ({ ...p, skillsExtractionStatus: 'pending' }))
+    const next = await apiUploadCv(file)
+    setProfile(next)
+  }, [])
 
   const addRole = useCallback(
     (role: string) => {
       const trimmed = role.trim()
       if (!trimmed || profile.targetRoles.includes(trimmed)) return
-      updateProfile({ targetRoles: [...profile.targetRoles, trimmed] })
+      void persistPatch({ targetRoles: [...profile.targetRoles, trimmed] })
     },
-    [profile.targetRoles, updateProfile],
+    [profile.targetRoles, persistPatch],
   )
 
   const removeRole = useCallback(
     (role: string) => {
-      updateProfile({ targetRoles: profile.targetRoles.filter((r) => r !== role) })
+      void persistPatch({
+        targetRoles: profile.targetRoles.filter((r) => r !== role),
+      })
     },
-    [profile.targetRoles, updateProfile],
+    [profile.targetRoles, persistPatch],
   )
 
   const addProject = useCallback(
     (project: Omit<Project, 'id'>) => {
-      const entry: Project = { ...project, id: crypto.randomUUID() }
-      updateProfile({ projects: [...profile.projects, entry] })
+      const entry: Project = { ...project, id: crypto.randomUUID(), source: 'manual' }
+      void persistPatch({ projects: [...profile.projects, entry] })
     },
-    [profile.projects, updateProfile],
+    [profile.projects, persistPatch],
   )
 
   const updateProject = useCallback(
     (id: string, patch: Partial<Omit<Project, 'id'>>) => {
-      updateProfile({
+      void persistPatch({
         projects: profile.projects.map((p) => (p.id === id ? { ...p, ...patch } : p)),
       })
     },
-    [profile.projects, updateProfile],
+    [profile.projects, persistPatch],
   )
 
   const removeProject = useCallback(
     (id: string) => {
-      updateProfile({ projects: profile.projects.filter((p) => p.id !== id) })
+      void persistPatch({
+        projects: profile.projects.filter((p) => p.id !== id),
+      })
     },
-    [profile.projects, updateProfile],
+    [profile.projects, persistPatch],
   )
-
-  const toggleGmail = useCallback(() => {
-    if (profile.gmailConnected) {
-      updateProfile({ gmailConnected: false, gmailEmail: null })
-    } else {
-      updateProfile({ gmailConnected: true, gmailEmail: 'you@gmail.com' })
-    }
-  }, [profile.gmailConnected, updateProfile])
-
-  useEffect(() => {
-    const onStorage = (event: StorageEvent) => {
-      if (event.key === 'jobpilot-profile') {
-        setProfileState(loadProfile())
-      }
-    }
-    window.addEventListener('storage', onStorage)
-    return () => window.removeEventListener('storage', onStorage)
-  }, [])
 
   const value = useMemo(
     () => ({
       profile,
+      loading,
+      error,
       gate,
-      setProfile,
+      refreshProfile,
       updateProfile,
-      setCv,
-      addSkill,
-      removeSkill,
+      uploadCv,
       addRole,
       removeRole,
       addProject,
       updateProject,
       removeProject,
-      toggleGmail,
     }),
     [
       profile,
+      loading,
+      error,
       gate,
-      setProfile,
+      refreshProfile,
       updateProfile,
-      setCv,
-      addSkill,
-      removeSkill,
+      uploadCv,
       addRole,
       removeRole,
       addProject,
       updateProject,
       removeProject,
-      toggleGmail,
     ],
   )
 
