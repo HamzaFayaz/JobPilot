@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DevCopilot AI - Job Search</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "disabled": "#CBD5E1",
+                        "on-background": "#191c1e",
+                        "hitl-text": "#92400E",
+                        "surface": "#f7f9fb",
+                        "primary-container": "#008378",
+                        "on-primary": "#ffffff",
+                        "on-surface": "#191c1e",
+                        "on-secondary-fixed-variant": "#173bab",
+                        "primary": "#00685f",
+                        "on-error": "#ffffff",
+                        "hitl-bg": "#FEF3C7",
+                        "inverse-primary": "#6bd8cb",
+                        "outline": "#6d7a77",
+                        "inverse-on-surface": "#eff1f3",
+                        "secondary-container": "#708cfd",
+                        "surface-variant": "#e0e3e5",
+                        "secondary": "#3755c3",
+                        "surface-tint": "#006a61",
+                        "secondary-fixed": "#dde1ff",
+                        "surface-container-low": "#f2f4f6",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-fixed": "#dae2fd",
+                        "success": "#16A34A",
+                        "on-surface-variant": "#3d4947",
+                        "outline-variant": "#bcc9c6",
+                        "surface-container-high": "#e6e8ea",
+                        "background": "#f7f9fb",
+                        "surface-container-highest": "#e0e3e5",
+                        "chip-bg": "#CCFBF1",
+                        "surface-container": "#eceef0",
+                        "tertiary-fixed-dim": "#bec6e0",
+                        "tertiary-container": "#6c748b",
+                        "secondary-fixed-dim": "#b8c4ff",
+                        "text-primary": "#0F172A",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-fixed-variant": "#3f465c",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed": "#00201d",
+                        "primary-fixed-dim": "#6bd8cb",
+                        "on-secondary-fixed": "#001453",
+                        "tertiary": "#545c72",
+                        "surface-bright": "#f7f9fb",
+                        "primary-fixed": "#89f5e7",
+                        "on-primary-container": "#f4fffc",
+                        "sidebar-bg": "#0F172A",
+                        "error": "#DC2626",
+                        "warning": "#D97706",
+                        "surface-dim": "#d8dadc",
+                        "on-tertiary-fixed": "#131b2e",
+                        "on-tertiary-container": "#fefcff",
+                        "on-primary-fixed-variant": "#005049",
+                        "on-error-container": "#93000a",
+                        "border": "#E2E8F0",
+                        "text-secondary": "#64748B",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-container": "#00217a",
+                        "inverse-surface": "#2d3133"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-page": "32px",
+                        "gutter": "24px",
+                        "stack-lg": "24px",
+                        "sidebar-width": "240px",
+                        "content-max-width": "960px",
+                        "stack-sm": "8px",
+                        "stack-md": "16px"
+                    },
+                    "fontFamily": {
+                        "label-h4": ["Inter"],
+                        "body-default": ["Inter"],
+                        "headline-h3": ["Inter"],
+                        "headline-h2": ["Inter"],
+                        "headline-h1": ["Inter"],
+                        "caption": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-h4": ["16px", {"lineHeight": "24px", "fontWeight": "600"}],
+                        "body-default": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "headline-h3": ["18px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "headline-h2": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "headline-h1": ["32px", {"lineHeight": "40px", "fontWeight": "700"}],
+                        "caption": ["12px", {"lineHeight": "16px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8FAFC;
+        }
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 24px;
+        }
+        @media (min-width: 1024px) {
+            .bento-span-2 {
+                grid-column: span 2;
+            }
+        }
+    </style>
+</head>
+<body class="flex min-h-screen">
+<!-- SideNavBar (Mandatory Shell) -->
+<aside class="fixed left-0 top-0 h-full w-[240px] flex flex-col py-gutter bg-sidebar-bg z-50">
+<div class="px-6 mb-10">
+<h1 class="text-headline-h3 font-headline-h3 font-bold text-primary-fixed">DevCopilot AI</h1>
+<p class="font-caption text-caption text-text-secondary">AI Job Assistant</p>
+</div>
+<nav class="flex-1 flex flex-col gap-1">
+<a class="flex items-center gap-3 px-4 py-3 text-text-secondary hover:text-on-tertiary-fixed transition-colors hover:bg-primary/5" href="#">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+<span class="font-label-h4 text-label-h4">Profile</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-primary-fixed font-bold border-l-4 border-primary-container bg-primary/10 active:scale-[0.98] transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="search" style="font-variation-settings: 'FILL' 1;">search</span>
+<span class="font-label-h4 text-label-h4">Search</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-text-secondary hover:text-on-tertiary-fixed transition-colors hover:bg-primary/5" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span class="font-label-h4 text-label-h4">Applications</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-text-secondary hover:text-on-tertiary-fixed transition-colors hover:bg-primary/5" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-h4 text-label-h4">Settings</span>
+</a>
+</nav>
+<div class="px-4 mt-auto">
+<button class="w-full flex items-center justify-center gap-2 py-3 bg-primary text-on-primary rounded-lg font-label-h4 text-label-h4 hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+                New Application
+            </button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 ml-[240px] flex flex-col">
+<!-- TopAppBar (Mandatory Shell) -->
+<header class="flex justify-between items-center w-full h-16 px-gutter sticky top-0 bg-surface border-b border-border z-40">
+<h2 class="text-headline-h3 font-headline-h3 font-black text-primary">Search</h2>
+<div class="flex items-center gap-6">
+<div class="relative hidden md:block">
+<input class="w-64 pl-10 pr-4 py-2 bg-background border border-border rounded-lg text-body-default font-body-default focus:ring-2 focus:ring-primary focus:border-transparent outline-none" placeholder="Search jobs, skills, or companies..." type="text"/>
+<span class="material-symbols-outlined absolute left-3 top-2.5 text-text-secondary" data-icon="search">search</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-text-secondary hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-text-secondary hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</button>
+<div class="h-8 w-8 rounded-full overflow-hidden border border-border">
+<img class="w-full h-full object-cover" data-alt="Headshot of a modern software developer in a professional yet relaxed environment, neutral background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBbEOMLRBvomBk2DzFrfZ0FapOhd8N879_8GDIF6o3fX_Jm0Xvh_03UL0e6Ox7214N27jZrS4WKGEzVOk_0u2wXyRNVVjeo0BvsYi-ZnycxrG4WRvMsng2V8rCbcT_tngb8pjngS9R_lytzVQkxrI2rbEDf_E8eInV54bQB7RuVZ2c8qsfJkeMhqfiO_-eYVQMbCuZrdRz9jKK5nw88yHGey5meHdQa2arx483rNIiPb5LP7WPLb4DrHwQiRT9_H1O32fssIzV2UE3f"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Canvas Area -->
+<section class="p-margin-page flex flex-col items-center">
+<!-- HITL Banner -->
+<div class="w-full max-w-[960px] mb-stack-lg bg-hitl-bg border border-warning/20 rounded-lg p-4 flex items-center gap-3">
+<span class="material-symbols-outlined text-hitl-text" data-icon="verified_user">verified_user</span>
+<p class="text-hitl-text font-label-h4 text-label-h4">Human-in-the-loop: You approve before anything is sent.</p>
+</div>
+<div class="w-full max-w-[960px]">
+<!-- Results Header -->
+<div class="flex justify-between items-end mb-stack-lg">
+<div>
+<h3 class="font-headline-h2 text-headline-h2 text-text-primary">Matches for you</h3>
+<p class="font-body-default text-body-default text-text-secondary">Based on your Profile and recent Applications</p>
+</div>
+<div class="flex items-center gap-stack-sm">
+<span class="text-caption font-caption text-text-secondary">Sort by:</span>
+<button class="flex items-center gap-1 font-label-h4 text-label-h4 text-text-primary border border-border bg-white px-3 py-1.5 rounded-lg">
+                            Relevance
+                            <span class="material-symbols-outlined text-caption" data-icon="expand_more">expand_more</span>
+</button>
+</div>
+</div>
+<!-- Bento Grid Content -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+<!-- Application Card 1 -->
+<div class="lg:col-span-2 bg-white border border-border rounded-lg p-stack-lg shadow-sm hover:shadow-md transition-shadow group">
+<div class="flex justify-between items-start mb-4">
+<div class="flex gap-4">
+<div class="w-12 h-12 rounded-lg bg-surface-variant flex items-center justify-center font-bold text-primary">AC</div>
+<div>
+<h4 class="font-headline-h3 text-headline-h3 text-text-primary group-hover:text-primary transition-colors">Senior Software Engineer</h4>
+<p class="font-body-default text-body-default text-text-secondary">Acme Corp • Remote</p>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<div class="px-3 py-1 rounded-full bg-success/10 text-success font-bold text-headline-h3">94%</div>
+<span class="text-caption font-caption text-text-secondary mt-1">Match Score</span>
+</div>
+</div>
+<div class="flex flex-wrap gap-2 mb-6">
+<span class="px-2 py-1 bg-chip-bg text-primary rounded-lg text-caption font-label-h4">React</span>
+<span class="px-2 py-1 bg-chip-bg text-primary rounded-lg text-caption font-label-h4">Node.js</span>
+<span class="px-2 py-1 bg-chip-bg text-primary rounded-lg text-caption font-label-h4">AWS Architecture</span>
+<span class="px-2 py-1 bg-chip-bg text-primary rounded-lg text-caption font-label-h4">+3 more</span>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-border">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-success text-[18px]" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="text-body-default font-body-default text-text-primary">Tailored CV ready</span>
+</div>
+<button class="bg-primary text-on-primary px-6 py-2 rounded-lg font-label-h4 text-label-h4 hover:opacity-90 transition-opacity">Review &amp; Apply</button>
+</div>
+</div>
+<!-- AI Insights Small Card -->
+<div class="bg-primary-container text-on-primary-container rounded-lg p-stack-lg flex flex-col justify-between relative overflow-hidden">
+<div class="relative z-10">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-[20px]" data-icon="bolt" style="font-variation-settings: 'FILL' 1;">bolt</span>
+<span class="font-label-h4 text-label-h4 uppercase tracking-wider opacity-80">AI Suggestion</span>
+</div>
+<p class="font-headline-h3 text-headline-h3 leading-tight mb-4">Your CV is missing 'Terraform' which is highly valued for these roles.</p>
+</div>
+<button class="relative z-10 bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 text-white py-2 rounded-lg font-label-h4 text-label-h4 transition-all">
+                            Add to Skills
+                        </button>
+<!-- Decorative element -->
+<div class="absolute -bottom-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-3xl"></div>
+</div>
+<!-- Application Card 2 -->
+<div class="bg-white border border-border rounded-lg p-stack-lg shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 rounded bg-surface-container-high flex items-center justify-center font-bold text-secondary">GL</div>
+<span class="px-2 py-1 rounded bg-secondary-container/20 text-secondary font-label-h4 text-caption">Applied 2d ago</span>
+</div>
+<h4 class="font-label-h4 text-label-h4 text-text-primary">Frontend Architect</h4>
+<p class="font-body-default text-body-default text-text-secondary mb-4">Global Labs • On-site</p>
+<div class="flex items-center gap-2 mb-6">
+<div class="w-full bg-surface-container h-1.5 rounded-full overflow-hidden">
+<div class="bg-success h-full w-[65%]"></div>
+</div>
+<span class="text-caption font-caption text-text-secondary whitespace-nowrap">Status: Screening</span>
+</div>
+</div>
+<button class="w-full border border-primary text-primary py-2 rounded-lg font-label-h4 text-label-h4 hover:bg-primary/5 transition-colors">
+                            View Details
+                        </button>
+</div>
+<!-- Application Card 3 -->
+<div class="bg-white border border-border rounded-lg p-stack-lg shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 rounded bg-surface-container-high flex items-center justify-center font-bold text-tertiary">SP</div>
+<div class="px-3 py-1 rounded-full bg-amber-100 text-warning font-bold text-[14px]">62%</div>
+</div>
+<h4 class="font-label-h4 text-label-h4 text-text-primary">Full Stack Dev</h4>
+<p class="font-body-default text-body-default text-text-secondary mb-4">Spark Tech • Hybrid</p>
+<div class="p-3 bg-surface border border-dashed border-border rounded-lg mb-6">
+<p class="text-caption font-caption text-text-secondary italic">"Requires 5+ years experience. You currently have 3 listed."</p>
+</div>
+</div>
+<button class="w-full border border-disabled text-disabled cursor-not-allowed py-2 rounded-lg font-label-h4 text-label-h4">
+                            Low Match
+                        </button>
+</div>
+<!-- Application Card 4 -->
+<div class="bg-white border border-border rounded-lg p-stack-lg shadow-sm flex flex-col justify-between">
+<div>
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 rounded bg-surface-container-high flex items-center justify-center font-bold text-primary">NT</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-success text-[16px]" data-icon="verified">verified</span>
+<span class="text-caption font-caption text-text-secondary">Verified</span>
+</div>
+</div>
+<h4 class="font-label-h4 text-label-h4 text-text-primary">Staff Engineer</h4>
+<p class="font-body-default text-body-default text-text-secondary mb-4">Netvantage • Remote</p>
+<div class="flex items-center gap-2 mb-6">
+<div class="px-2 py-0.5 bg-success/10 text-success text-[10px] font-bold rounded uppercase">Active Hiring</div>
+<div class="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-bold rounded uppercase">High Salary</div>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary py-2 rounded-lg font-label-h4 text-label-h4 hover:opacity-90 transition-opacity">
+                            AI Personalize
+                        </button>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Floating Action Button (FAB) - Suppressed on Search per Shell logic, but included if needed for "Quick Search" -->
+<!-- Determined unnecessary for this specific focused search results page -->
+<script>
+        // Micro-interaction for cards
+        document.querySelectorAll('.group').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-2px)';
+            });
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0px)';
+            });
+        });
+
+        // Simple Search Filter Toggle Simulation
+        const filterBtn = document.querySelector('button.flex.items-center.gap-1');
+        if(filterBtn) {
+            filterBtn.addEventListener('click', () => {
+                filterBtn.classList.toggle('bg-primary/5');
+            });
+        }
+    </script>
+</body></html>

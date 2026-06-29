@@ -1,0 +1,9 @@
+﻿{
+    "title":  "JobPilot Profile Setup",
+    "files":  [
+                  "screenshot.png",
+                  "screen.html"
+              ],
+    "slug":  "02-profile",
+    "route":  "/profile"
+}

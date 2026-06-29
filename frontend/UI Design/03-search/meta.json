@@ -1,0 +1,9 @@
+﻿{
+    "title":  "JobPilot New Search",
+    "files":  [
+                  "screenshot.png",
+                  "screen.html"
+              ],
+    "slug":  "03-search",
+    "route":  "/search"
+}

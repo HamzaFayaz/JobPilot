@@ -1,0 +1,9 @@
+﻿{
+    "title":  "Job Results List",
+    "files":  [
+                  "screenshot.png",
+                  "screen.html"
+              ],
+    "slug":  "05-job-list",
+    "route":  "/runs/:runId/jobs"
+}

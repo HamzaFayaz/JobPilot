@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DevCopilot AI - Getting Started</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface": "#191c1e",
+                        "sidebar-bg": "#0F172A",
+                        "tertiary": "#545c72",
+                        "on-tertiary": "#ffffff",
+                        "primary-container": "#008378",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-fixed-dim": "#6bd8cb",
+                        "primary": "#00685f",
+                        "error": "#DC2626",
+                        "on-tertiary-fixed": "#131b2e",
+                        "chip-bg": "#CCFBF1",
+                        "surface-tint": "#006a61",
+                        "surface-container": "#eceef0",
+                        "disabled": "#CBD5E1",
+                        "secondary-fixed-dim": "#b8c4ff",
+                        "on-surface-variant": "#3d4947",
+                        "inverse-surface": "#2d3133",
+                        "surface-variant": "#e0e3e5",
+                        "border": "#E2E8F0",
+                        "warning": "#D97706",
+                        "on-tertiary-fixed-variant": "#3f465c",
+                        "outline": "#6d7a77",
+                        "success": "#16A34A",
+                        "background": "#f7f9fb",
+                        "text-secondary": "#64748B",
+                        "on-primary-fixed-variant": "#005049",
+                        "tertiary-fixed-dim": "#bec6e0",
+                        "primary-fixed": "#89f5e7",
+                        "inverse-primary": "#6bd8cb",
+                        "surface": "#f7f9fb",
+                        "on-secondary-fixed-variant": "#173bab",
+                        "surface-container-low": "#f2f4f6",
+                        "on-error": "#ffffff",
+                        "surface-dim": "#d8dadc",
+                        "tertiary-fixed": "#dae2fd",
+                        "hitl-text": "#92400E",
+                        "surface-bright": "#f7f9fb",
+                        "outline-variant": "#bcc9c6",
+                        "hitl-bg": "#FEF3C7",
+                        "secondary": "#3755c3",
+                        "on-primary-fixed": "#00201d",
+                        "on-primary-container": "#f4fffc",
+                        "secondary-container": "#708cfd",
+                        "secondary-fixed": "#dde1ff",
+                        "on-primary": "#ffffff",
+                        "tertiary-container": "#6c748b",
+                        "text-primary": "#0F172A",
+                        "on-secondary-container": "#00217a",
+                        "inverse-on-surface": "#eff1f3",
+                        "surface-container-highest": "#e0e3e5",
+                        "surface-container-high": "#e6e8ea",
+                        "on-background": "#191c1e",
+                        "error-container": "#ffdad6",
+                        "on-secondary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-container": "#fefcff",
+                        "on-secondary-fixed": "#001453"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "24px",
+                        "stack-sm": "8px",
+                        "sidebar-width": "240px",
+                        "margin-page": "32px",
+                        "stack-lg": "24px",
+                        "stack-md": "16px",
+                        "content-max-width": "960px"
+                    },
+                    "fontFamily": {
+                        "headline-h2": ["Inter"],
+                        "headline-h1": ["Inter"],
+                        "body-default": ["Inter"],
+                        "caption": ["Inter"],
+                        "label-h4": ["Inter"],
+                        "headline-h3": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-h2": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "headline-h1": ["32px", {"lineHeight": "40px", "fontWeight": "700"}],
+                        "body-default": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "caption": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                        "label-h4": ["16px", {"lineHeight": "24px", "fontWeight": "600"}],
+                        "headline-h3": ["18px", {"lineHeight": "28px", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .sidebar-active { border-left: 4px solid #008378; background-color: rgba(0, 131, 120, 0.1); color: #89f5e7; font-weight: 700; }
+        .sidebar-item { transition: all 0.2s ease; }
+    </style>
+</head>
+<body class="flex min-h-screen">
+<!-- Side Navigation Shell -->
+<aside class="fixed left-0 top-0 h-full w-[240px] bg-sidebar-bg flex flex-col py-6 z-50">
+<div class="px-6 mb-10">
+<h1 class="text-headline-h3 font-headline-h3 font-bold text-primary-fixed">DevCopilot AI</h1>
+<p class="text-caption text-text-secondary mt-1">AI Job Assistant</p>
+</div>
+<nav class="flex-grow">
+<!-- Active: Profile -->
+<a class="flex items-center gap-3 px-6 py-3 text-primary-fixed font-bold border-l-4 border-primary-container bg-primary/10 sidebar-item" href="#">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+<span class="font-label-h4 text-label-h4">Profile</span>
+</a>
+<!-- Disabled: Search -->
+<div class="flex items-center gap-3 px-6 py-3 text-disabled opacity-40 cursor-not-allowed sidebar-item">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+<span class="font-label-h4 text-label-h4">Search</span>
+</div>
+<!-- Disabled: Applications -->
+<div class="flex items-center gap-3 px-6 py-3 text-disabled opacity-40 cursor-not-allowed sidebar-item">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span class="font-label-h4 text-label-h4">Applications</span>
+</div>
+<!-- Normal: Settings -->
+<a class="flex items-center gap-3 px-6 py-3 text-text-secondary hover:text-on-tertiary-fixed hover:bg-primary/5 transition-colors sidebar-item" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-h4 text-label-h4">Settings</span>
+</a>
+</nav>
+<div class="px-6 mt-auto">
+<button class="w-full bg-primary-container text-on-primary-container py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-[20px]" data-icon="add">add</span>
+                New Application
+            </button>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-[240px] flex-grow flex flex-col items-center py-16 px-gutter">
+<div class="w-full max-w-[960px] flex flex-col items-center">
+<!-- Hero Header -->
+<header class="text-center mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+<div class="mb-6 flex justify-center">
+<div class="w-16 h-16 bg-primary-container rounded-xl flex items-center justify-center shadow-lg">
+<span class="material-symbols-outlined text-white text-4xl" data-icon="smart_toy">smart_toy</span>
+</div>
+</div>
+<h1 class="font-headline-h1 text-headline-h1 text-text-primary mb-4 tracking-tight">Your AI job application copilot</h1>
+<p class="font-body-default text-headline-h3 text-text-secondary max-w-2xl mx-auto">
+                    Your browser-based assistant for finding developer roles with human approval before anything is sent.
+                </p>
+</header>
+<!-- HITL Banner Integration -->
+<div class="w-full mb-8 bg-hitl-bg border border-[#FDE68A] rounded-lg p-4 flex items-center gap-4 text-hitl-text animate-pulse">
+<span class="material-symbols-outlined text-warning" data-icon="verified_user">verified_user</span>
+<p class="font-body-default text-label-h4 font-semibold">HITL Control: You approve every cover letter and email before the AI hits send.</p>
+</div>
+<!-- Onboarding Card / Checklist -->
+<section class="w-full bg-white rounded-lg border border-border p-stack-lg shadow-sm">
+<div class="flex items-center justify-between mb-8">
+<div>
+<h2 class="font-headline-h2 text-headline-h2 text-text-primary">Getting Started</h2>
+<p class="text-text-secondary font-body-default">Complete these steps to unlock the application automator.</p>
+</div>
+<div class="text-right">
+<span class="text-primary font-bold text-headline-h3">0%</span>
+<div class="w-32 h-2 bg-surface-container rounded-full mt-2 overflow-hidden">
+<div class="w-0 h-full bg-primary-container transition-all duration-1000 ease-out" id="progress-bar"></div>
+</div>
+</div>
+</div>
+<!-- Checklist Rows -->
+<div class="space-y-4">
+<!-- Row 1 -->
+<div class="flex items-center gap-4 p-4 rounded-lg border border-border hover:border-primary/30 hover:bg-primary/5 transition-all cursor-pointer group">
+<div class="w-6 h-6 border-2 border-disabled rounded-full flex items-center justify-center group-hover:border-primary"></div>
+<div class="flex-grow">
+<h4 class="font-label-h4 text-label-h4 text-text-primary">Upload CV</h4>
+<p class="text-caption text-text-secondary">PDF or Word format preferred for AI parsing.</p>
+</div>
+<span class="material-symbols-outlined text-text-secondary" data-icon="upload_file">upload_file</span>
+</div>
+<!-- Row 2 -->
+<div class="flex items-center gap-4 p-4 rounded-lg border border-border hover:border-primary/30 hover:bg-primary/5 transition-all cursor-pointer group">
+<div class="w-6 h-6 border-2 border-disabled rounded-full flex items-center justify-center group-hover:border-primary"></div>
+<div class="flex-grow">
+<h4 class="font-label-h4 text-label-h4 text-text-primary">Add skills</h4>
+<p class="text-caption text-text-secondary">List your tech stack and proficiency levels.</p>
+</div>
+<span class="material-symbols-outlined text-text-secondary" data-icon="code">code</span>
+</div>
+<!-- Row 3 -->
+<div class="flex items-center gap-4 p-4 rounded-lg border border-border hover:border-primary/30 hover:bg-primary/5 transition-all cursor-pointer group">
+<div class="w-6 h-6 border-2 border-disabled rounded-full flex items-center justify-center group-hover:border-primary"></div>
+<div class="flex-grow">
+<h4 class="font-label-h4 text-label-h4 text-text-primary">Add projects</h4>
+<p class="text-caption text-text-secondary">Sync from GitHub or add manually.</p>
+</div>
+<span class="material-symbols-outlined text-text-secondary" data-icon="reorder">reorder</span>
+</div>
+<!-- Row 4 (Optional) -->
+<div class="flex items-center gap-4 p-4 rounded-lg border border-border hover:border-primary/30 hover:bg-primary/5 transition-all cursor-pointer group">
+<div class="w-6 h-6 border-2 border-disabled rounded-full flex items-center justify-center group-hover:border-primary"></div>
+<div class="flex-grow flex items-center gap-2">
+<h4 class="font-label-h4 text-label-h4 text-text-primary">Connect Gmail</h4>
+<span class="px-2 py-0.5 bg-surface-container text-text-secondary text-[10px] uppercase font-bold rounded tracking-wider">Optional</span>
+</div>
+<span class="material-symbols-outlined text-text-secondary" data-icon="mail">mail</span>
+</div>
+</div>
+<!-- Footer Card Action -->
+<div class="mt-10 pt-8 border-t border-border flex items-center justify-between">
+<p class="font-body-default text-text-secondary">
+<span class="font-bold text-text-primary">0 of 3</span> required steps completed
+                    </p>
+<button class="bg-[#0D9488] text-white px-8 py-3 rounded-lg font-bold hover:brightness-110 active:scale-95 transition-all shadow-md">
+                        Set up your profile
+                    </button>
+</div>
+</section>
+<!-- Secondary Content / Info -->
+<div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+<div class="p-6 rounded-lg bg-white border border-border flex flex-col items-center text-center">
+<span class="material-symbols-outlined text-primary mb-3" data-icon="lock">lock</span>
+<h5 class="font-label-h4 text-label-h4 mb-2">Privacy First</h5>
+<p class="text-caption text-text-secondary">Your data is only used to personalize your job search and draft applications.</p>
+</div>
+<div class="p-6 rounded-lg bg-white border border-border flex flex-col items-center text-center">
+<span class="material-symbols-outlined text-primary mb-3" data-icon="bolt">bolt</span>
+<h5 class="font-label-h4 text-label-h4 mb-2">Speed + Quality</h5>
+<p class="text-caption text-text-secondary">AI handles the tedious drafting; you handle the final personal touches.</p>
+</div>
+<div class="p-6 rounded-lg bg-white border border-border flex flex-col items-center text-center">
+<span class="material-symbols-outlined text-primary mb-3" data-icon="handshake">handshake</span>
+<h5 class="font-label-h4 text-label-h4 mb-2">Human Centric</h5>
+<p class="text-caption text-text-secondary">Built to empower developers, not to spam hiring managers.</p>
+</div>
+</div>
+</div>
+</main>
+<script>
+        // Simple interaction for the progress bar on load
+        window.addEventListener('DOMContentLoaded', () => {
+            const bar = document.getElementById('progress-bar');
+            setTimeout(() => {
+                // Just a visual hint that the bar works
+                // bar.style.width = '10%'; 
+            }, 500);
+        });
+
+        // Hover effect script for the cards to show professional polish
+        const checklistItems = document.querySelectorAll('.group');
+        checklistItems.forEach(item => {
+            item.addEventListener('mouseenter', () => {
+                const icon = item.querySelector('.material-symbols-outlined');
+                if (icon) icon.style.transform = 'translateX(4px)';
+            });
+            item.addEventListener('mouseleave', () => {
+                const icon = item.querySelector('.material-symbols-outlined');
+                if (icon) icon.style.transform = 'translateX(0px)';
+            });
+        });
+    </script>
+</body></html>

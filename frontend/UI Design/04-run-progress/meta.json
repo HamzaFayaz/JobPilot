@@ -1,0 +1,9 @@
+﻿{
+    "title":  "JobPilot Run In Progress",
+    "files":  [
+                  "screenshot.png",
+                  "screen.html"
+              ],
+    "slug":  "04-run-progress",
+    "route":  "/runs/:runId"
+}

@@ -1,0 +1,9 @@
+﻿{
+    "title":  "Job Detail HITL Review",
+    "files":  [
+                  "screenshot.png",
+                  "screen.html"
+              ],
+    "slug":  "06-job-detail",
+    "route":  "/jobs/:id"
+}

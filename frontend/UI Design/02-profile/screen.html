@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Profile Setup | DevCopilot AI</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8FAFC;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #E2E8F0;
+            border-radius: 10px;
+        }
+    </style>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                "primary": "#00685f",
+                "tertiary-container": "#6c748b",
+                "primary-fixed": "#89f5e7",
+                "primary-fixed-dim": "#6bd8cb",
+                "on-secondary-fixed": "#001453",
+                "hitl-text": "#92400E",
+                "inverse-primary": "#6bd8cb",
+                "surface": "#f7f9fb",
+                "on-background": "#191c1e",
+                "on-primary": "#ffffff",
+                "surface-container-high": "#e6e8ea",
+                "on-error-container": "#93000a",
+                "inverse-surface": "#2d3133",
+                "on-error": "#ffffff",
+                "background": "#f7f9fb",
+                "on-secondary-fixed-variant": "#173bab",
+                "error-container": "#ffdad6",
+                "surface-bright": "#f7f9fb",
+                "border": "#E2E8F0",
+                "outline": "#6d7a77",
+                "surface-dim": "#d8dadc",
+                "secondary": "#3755c3",
+                "text-primary": "#0F172A",
+                "hitl-bg": "#FEF3C7",
+                "surface-container": "#eceef0",
+                "text-secondary": "#64748B",
+                "secondary-fixed": "#dde1ff",
+                "on-primary-fixed": "#00201d",
+                "surface-variant": "#e0e3e5",
+                "on-surface": "#191c1e",
+                "tertiary": "#545c72",
+                "surface-container-highest": "#e0e3e5",
+                "on-secondary-container": "#00217a",
+                "secondary-container": "#708cfd",
+                "inverse-on-surface": "#eff1f3",
+                "surface-container-lowest": "#ffffff",
+                "secondary-fixed-dim": "#b8c4ff",
+                "on-primary-container": "#f4fffc",
+                "chip-bg": "#CCFBF1",
+                "disabled": "#CBD5E1",
+                "tertiary-fixed-dim": "#bec6e0",
+                "primary-container": "#008378",
+                "on-tertiary-fixed-variant": "#3f465c",
+                "on-surface-variant": "#3d4947",
+                "warning": "#D97706",
+                "on-tertiary-container": "#fefcff",
+                "on-primary-fixed-variant": "#005049",
+                "surface-tint": "#006a61",
+                "sidebar-bg": "#0F172A",
+                "tertiary-fixed": "#dae2fd",
+                "outline-variant": "#bcc9c6",
+                "surface-container-low": "#f2f4f6",
+                "on-tertiary": "#ffffff",
+                "on-secondary": "#ffffff",
+                "success": "#16A34A",
+                "error": "#DC2626",
+                "on-tertiary-fixed": "#131b2e"
+            },
+            "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "8px",
+                "xl": "0.75rem",
+                "full": "9999px"
+            },
+            "spacing": {
+                "gutter": "24px",
+                "margin-page": "32px",
+                "stack-lg": "24px",
+                "content-max-width": "960px",
+                "sidebar-width": "240px",
+                "stack-sm": "8px",
+                "stack-md": "16px"
+            },
+            "fontFamily": {
+                "label-h4": ["Inter"],
+                "headline-h1": ["Inter"],
+                "body-default": ["Inter"],
+                "headline-h3": ["Inter"],
+                "headline-h2": ["Inter"],
+                "caption": ["Inter"]
+            },
+            "fontSize": {
+                "label-h4": ["16px", {"lineHeight": "24px", "fontWeight": "600"}],
+                "headline-h1": ["32px", {"lineHeight": "40px", "fontWeight": "700"}],
+                "body-default": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                "headline-h3": ["18px", {"lineHeight": "28px", "fontWeight": "600"}],
+                "headline-h2": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                "caption": ["12px", {"lineHeight": "16px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+</head>
+<body class="bg-surface text-on-surface min-h-screen flex">
+<!-- Fixed Left Sidebar -->
+<aside class="fixed left-0 top-0 h-full w-[240px] flex flex-col py-6 bg-sidebar-bg z-50">
+<div class="px-6 mb-10">
+<h1 class="text-headline-h3 font-headline-h3 font-bold text-primary-fixed">DevCopilot AI</h1>
+<p class="text-caption text-text-secondary mt-1">AI Job Assistant</p>
+</div>
+<nav class="flex-1 px-2 space-y-1">
+<!-- Active State -->
+<a class="flex items-center gap-3 px-4 py-3 text-primary-fixed font-bold border-l-4 border-primary-container bg-primary/10 transition-transform duration-200 scale-[0.98]" href="#">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+<span class="font-label-h4 text-label-h4">Profile</span>
+</a>
+<!-- Inactive States -->
+<a class="flex items-center gap-3 px-4 py-3 text-text-secondary hover:text-primary-fixed-dim hover:bg-primary/5 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+<span class="font-label-h4 text-label-h4">Search</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-text-secondary hover:text-primary-fixed-dim hover:bg-primary/5 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span class="font-label-h4 text-label-h4">Applications</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-text-secondary hover:text-primary-fixed-dim hover:bg-primary/5 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-h4 text-label-h4">Settings</span>
+</a>
+</nav>
+<div class="px-4 mt-auto">
+<button class="w-full py-3 bg-primary-container text-on-primary-container rounded-lg font-label-h4 text-label-h4 flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+                New Application
+            </button>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-[240px] flex-1 flex flex-col min-h-screen">
+<!-- Top Sticky Header Area (Internal Shell Logic) -->
+<header class="sticky top-0 w-full h-16 px-gutter flex justify-between items-center bg-surface border-b border-border z-40">
+<div class="flex items-center gap-4">
+<h2 class="font-headline-h2 text-headline-h2 text-primary font-black">Profile Setup</h2>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative">
+<span class="material-symbols-outlined text-text-secondary hover:text-primary cursor-pointer transition-colors" data-icon="notifications">notifications</span>
+</div>
+<span class="material-symbols-outlined text-text-secondary hover:text-primary cursor-pointer transition-colors" data-icon="help_outline">help_outline</span>
+<div class="w-8 h-8 rounded-full bg-primary-container/20 overflow-hidden border border-border">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a software engineer in a minimalist studio setting, clean high-key lighting, modern tech professional aesthetic with a soft blue and teal background palette." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBuH95JThb8CJWh6atsEl_pIKTGPQ-f2uF5VL94sq07JhY1IHe3r1LZuCLasmOkxFw0l_x2Z15vT5f5dticmqqBG6uKu9SEmpLQYdkcNc6UnRAGNXdFP6gZo1btzu_aZR9qPznjD0n-7pQZf-16IrDSIcaWw5zG-vhYK7jfMB1g-OSOujFmIjaB-3whYYl_oAfo_puygmYC0dfx4ligPzngy5rDbvLd5_meXVIaB5gvy4nLU8LAmyrmDZ1YVig0NQTGwhdQFy26Xi4K"/>
+</div>
+</div>
+</header>
+<!-- Centered Content Container -->
+<div class="flex-1 w-full max-w-[960px] mx-auto py-margin-page px-gutter space-y-stack-lg">
+<!-- HITL Banner -->
+<div class="bg-hitl-bg border border-warning/20 rounded-lg p-4 flex items-center gap-3">
+<span class="material-symbols-outlined text-warning" data-icon="shield_person">shield_person</span>
+<p class="text-hitl-text font-body-default text-body-default">You approve before anything is sent. DevCopilot acts as your assistant, not your replacement.</p>
+</div>
+<!-- Progress Header -->
+<section class="space-y-2">
+<div class="flex justify-between items-end">
+<h3 class="font-label-h4 text-label-h4 text-text-primary">Profile completeness</h3>
+<span class="text-primary font-bold">80%</span>
+</div>
+<div class="w-full h-2 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full" style="width: 80%"></div>
+</div>
+</section>
+<!-- CV Section Card -->
+<section class="bg-surface-container-lowest border border-border rounded-lg p-stack-lg shadow-sm">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-primary" data-icon="article">article</span>
+<h3 class="font-label-h4 text-label-h4 text-text-primary">CV &amp; Resume</h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-stack-lg">
+<div class="space-y-4">
+<div class="border-2 border-dashed border-border rounded-lg p-stack-lg flex flex-col items-center justify-center text-center bg-surface-container-low hover:bg-surface-container-high transition-colors cursor-pointer group">
+<span class="material-symbols-outlined text-text-secondary text-4xl mb-2 group-hover:text-primary transition-colors" data-icon="cloud_upload">cloud_upload</span>
+<p class="font-body-default text-body-default text-text-secondary">Drag and drop or click to upload</p>
+</div>
+<div class="flex items-center justify-between p-3 bg-primary/5 rounded-lg border border-primary/20">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary" data-icon="picture_as_pdf">picture_as_pdf</span>
+<span class="text-body-default text-text-primary font-medium">resume_hamza.pdf</span>
+</div>
+<button class="text-primary hover:underline text-body-default font-semibold">Re-upload</button>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-border rounded-lg p-4 h-48 overflow-hidden relative">
+<div class="absolute top-0 right-0 p-2 bg-surface-container-lowest/80 backdrop-blur-sm z-10">
+<span class="text-caption text-text-secondary uppercase tracking-wider font-bold">Preview</span>
+</div>
+<div class="text-caption text-text-secondary font-mono space-y-2 opacity-60">
+<p>HAMZA BIN TALAL</p>
+<p>Senior Fullstack Engineer</p>
+<p>EXPERIENCE:</p>
+<p>- Led development of high-throughput trading platforms...</p>
+<p>- Built scalable microservices using FastAPI and Docker...</p>
+<p>- Architected real-time data pipelines for LLM integration...</p>
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-transparent to-transparent"></div>
+</div>
+</div>
+</section>
+<!-- Skills Section Card -->
+<section class="bg-surface-container-lowest border border-border rounded-lg p-stack-lg shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="psychology">psychology</span>
+<h3 class="font-label-h4 text-label-h4 text-text-primary">Skills &amp; Technologies</h3>
+</div>
+</div>
+<div class="flex flex-wrap gap-2 p-3 bg-surface border border-border rounded-lg focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+<span class="inline-flex items-center gap-1 px-3 py-1 bg-chip-bg text-primary rounded-full text-body-default font-medium">Python <button class="material-symbols-outlined text-xs leading-none" data-icon="close">close</button></span>
+<span class="inline-flex items-center gap-1 px-3 py-1 bg-chip-bg text-primary rounded-full text-body-default font-medium">React <button class="material-symbols-outlined text-xs leading-none" data-icon="close">close</button></span>
+<span class="inline-flex items-center gap-1 px-3 py-1 bg-chip-bg text-primary rounded-full text-body-default font-medium">FastAPI <button class="material-symbols-outlined text-xs leading-none" data-icon="close">close</button></span>
+<span class="inline-flex items-center gap-1 px-3 py-1 bg-chip-bg text-primary rounded-full text-body-default font-medium">TypeScript <button class="material-symbols-outlined text-xs leading-none" data-icon="close">close</button></span>
+<span class="inline-flex items-center gap-1 px-3 py-1 bg-chip-bg text-primary rounded-full text-body-default font-medium">Docker <button class="material-symbols-outlined text-xs leading-none" data-icon="close">close</button></span>
+<span class="inline-flex items-center gap-1 px-3 py-1 bg-chip-bg text-primary rounded-full text-body-default font-medium">PostgreSQL <button class="material-symbols-outlined text-xs leading-none" data-icon="close">close</button></span>
+<span class="inline-flex items-center gap-1 px-3 py-1 bg-chip-bg text-primary rounded-full text-body-default font-medium">LangChain <button class="material-symbols-outlined text-xs leading-none" data-icon="close">close</button></span>
+<span class="inline-flex items-center gap-1 px-3 py-1 bg-chip-bg text-primary rounded-full text-body-default font-medium">AWS <button class="material-symbols-outlined text-xs leading-none" data-icon="close">close</button></span>
+<input class="flex-1 bg-transparent border-none outline-none focus:ring-0 min-w-[120px] text-body-default" placeholder="Add more..." type="text"/>
+</div>
+</section>
+<!-- Projects Section Card -->
+<section class="bg-surface-container-lowest border border-border rounded-lg p-stack-lg shadow-sm">
+<div class="flex items-center justify-between mb-6">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="code">code</span>
+<h3 class="font-label-h4 text-label-h4 text-text-primary">Featured Projects</h3>
+</div>
+</div>
+<div class="space-y-8">
+<!-- Project 1 -->
+<div class="p-4 border border-border rounded-lg space-y-4 bg-surface-container-low/30">
+<div class="flex justify-between items-start">
+<div class="flex-1 space-y-1">
+<label class="font-label-h4 text-label-h4 text-text-primary block">Project Name</label>
+<input class="w-full p-2 border border-border rounded-lg bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-body-default" type="text" value="JobPilot"/>
+</div>
+<button class="ml-4 text-error font-medium text-body-default flex items-center gap-1 hover:underline">
+<span class="material-symbols-outlined text-sm" data-icon="delete">delete</span>
+                                Remove
+                            </button>
+</div>
+<div class="space-y-1">
+<label class="font-label-h4 text-label-h4 text-text-primary block">Description</label>
+<textarea class="w-full p-2 border border-border rounded-lg bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-body-default" rows="3">AI-driven autonomous job application agent that scouts roles, optimizes resumes, and manages communications for developers.</textarea>
+</div>
+</div>
+<!-- Project 2 -->
+<div class="p-4 border border-border rounded-lg space-y-4 bg-surface-container-low/30">
+<div class="flex justify-between items-start">
+<div class="flex-1 space-y-1">
+<label class="font-label-h4 text-label-h4 text-text-primary block">Project Name</label>
+<input class="w-full p-2 border border-border rounded-lg bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-body-default" type="text" value="E-commerce API"/>
+</div>
+<button class="ml-4 text-error font-medium text-body-default flex items-center gap-1 hover:underline">
+<span class="material-symbols-outlined text-sm" data-icon="delete">delete</span>
+                                Remove
+                            </button>
+</div>
+<div class="space-y-1">
+<label class="font-label-h4 text-label-h4 text-text-primary block">Description</label>
+<textarea class="w-full p-2 border border-border rounded-lg bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-body-default" rows="3">High-performance RESTful API built with FastAPI and PostgreSQL, featuring Redis caching and Stripe integration for seamless checkout.</textarea>
+</div>
+</div>
+</div>
+<button class="mt-6 w-full py-3 border border-dashed border-primary/40 text-primary font-bold rounded-lg flex items-center justify-center gap-2 hover:bg-primary/5 transition-all">
+<span class="material-symbols-outlined" data-icon="add_circle">add_circle</span>
+                    Add project
+                </button>
+</section>
+<!-- Gmail Strip Card -->
+<section class="bg-surface-container-lowest border border-border rounded-lg p-6 shadow-sm flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 flex items-center justify-center bg-surface-container rounded-lg">
+<svg fill="none" height="24" viewbox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
+<path d="M22.5 12C22.5 11.19 22.42 10.42 22.28 9.68H12V14.07H17.89C17.64 15.42 16.88 16.57 15.74 17.33V20.17H19.22C21.25 18.29 22.5 15.41 22.5 12Z" fill="#4285F4"></path>
+<path d="M12 22.68C14.88 22.68 17.3 21.73 19.22 20.17L15.74 17.33C14.78 17.97 13.51 18.36 12 18.36C9.22 18.36 6.86 16.48 6.02 13.94H2.43V16.73C4.2 20.24 7.81 22.68 12 22.68Z" fill="#34A853"></path>
+<path d="M6.02 13.94C5.8 13.27 5.68 12.56 5.68 11.82C5.68 11.08 5.8 10.37 6.02 9.7V6.91H2.43C1.69 8.39 1.27 10.06 1.27 11.82C1.27 13.58 1.69 15.25 2.43 16.73L6.02 13.94Z" fill="#FBBC05"></path>
+<path d="M12 5.28C13.57 5.28 14.97 5.82 16.08 6.88L19.3 3.66C17.3 1.8 14.88 0.68 12 0.68C7.81 0.68 4.2 3.12 2.43 6.63L6.02 9.42C6.86 6.88 9.22 5.28 12 5.28Z" fill="#EA4335"></path>
+</svg>
+</div>
+<div>
+<h4 class="font-label-h4 text-label-h4 text-text-primary">Email &amp; Calendar Connection</h4>
+<div class="flex items-center gap-2 mt-1">
+<span class="inline-block w-2 h-2 rounded-full bg-text-secondary"></span>
+<span class="text-caption text-text-secondary font-medium">Not connected</span>
+</div>
+</div>
+</div>
+<button class="px-6 py-2 border border-border text-text-primary font-bold rounded-lg flex items-center gap-2 hover:bg-surface-container-low transition-all">
+                    Connect Gmail
+                </button>
+</section>
+<!-- Footer Actions -->
+<footer class="flex items-center justify-end gap-4 py-8">
+<button class="px-6 py-3 text-text-secondary hover:text-text-primary font-bold transition-colors">
+                    Save profile
+                </button>
+<button class="px-8 py-3 bg-primary text-on-primary font-bold rounded-lg shadow-lg shadow-primary/20 hover:opacity-90 transition-all flex items-center gap-2">
+                    Continue to Search
+                    <span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</footer>
+</div>
+</main>
+<script>
+        // Simple micro-interactions
+        document.querySelectorAll('button, a').forEach(el => {
+            el.addEventListener('mousedown', () => {
+                el.style.transform = 'scale(0.98)';
+            });
+            el.addEventListener('mouseup', () => {
+                el.style.transform = '';
+            });
+            el.addEventListener('mouseleave', () => {
+                el.style.transform = '';
+            });
+        });
+
+        // Add dummy interaction for project adding
+        const addProjectBtn = document.querySelector('button[data-icon="add_circle"]')?.parentElement;
+        if (addProjectBtn) {
+            addProjectBtn.addEventListener('click', () => {
+                const projectSection = addProjectBtn.previousElementSibling;
+                const newProject = projectSection.lastElementChild.cloneNode(true);
+                newProject.querySelector('input').value = '';
+                newProject.querySelector('textarea').value = '';
+                projectSection.appendChild(newProject);
+                
+                // Scroll to the new project
+                newProject.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+        }
+    </script>
+</body></html>

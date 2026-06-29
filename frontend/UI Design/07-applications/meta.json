@@ -1,0 +1,9 @@
+﻿{
+    "title":  "JobPilot Applications \u0026 History",
+    "files":  [
+                  "screenshot.png",
+                  "screen.html"
+              ],
+    "slug":  "07-applications",
+    "route":  "/applications"
+}

@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>DevCopilot AI - Settings</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Custom scrollbar for sidebar */
+        .sidebar-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 10px;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-secondary-fixed-variant": "#173bab",
+                      "inverse-surface": "#2d3133",
+                      "on-error-container": "#93000a",
+                      "secondary-container": "#708cfd",
+                      "disabled": "#CBD5E1",
+                      "on-secondary-fixed": "#001453",
+                      "inverse-primary": "#6bd8cb",
+                      "primary-fixed": "#89f5e7",
+                      "on-tertiary-fixed": "#131b2e",
+                      "primary-container": "#008378",
+                      "on-tertiary": "#ffffff",
+                      "sidebar-bg": "#0F172A",
+                      "outline-variant": "#bcc9c6",
+                      "surface": "#f7f9fb",
+                      "secondary-fixed": "#dde1ff",
+                      "inverse-on-surface": "#eff1f3",
+                      "secondary-fixed-dim": "#b8c4ff",
+                      "on-tertiary-container": "#fefcff",
+                      "on-primary-fixed": "#00201d",
+                      "surface-container": "#eceef0",
+                      "on-surface-variant": "#3d4947",
+                      "tertiary-fixed-dim": "#bec6e0",
+                      "primary-fixed-dim": "#6bd8cb",
+                      "on-tertiary-fixed-variant": "#3f465c",
+                      "error-container": "#ffdad6",
+                      "surface-bright": "#f7f9fb",
+                      "hitl-text": "#92400E",
+                      "error": "#DC2626",
+                      "background": "#f7f9fb",
+                      "surface-dim": "#d8dadc",
+                      "on-primary": "#ffffff",
+                      "on-secondary": "#ffffff",
+                      "tertiary-container": "#6c748b",
+                      "tertiary-fixed": "#dae2fd",
+                      "chip-bg": "#CCFBF1",
+                      "tertiary": "#545c72",
+                      "primary": "#00685f",
+                      "on-primary-fixed-variant": "#005049",
+                      "outline": "#6d7a77",
+                      "on-error": "#ffffff",
+                      "text-secondary": "#64748B",
+                      "surface-tint": "#006a61",
+                      "on-secondary-container": "#00217a",
+                      "warning": "#D97706",
+                      "surface-container-highest": "#e0e3e5",
+                      "success": "#16A34A",
+                      "on-surface": "#191c1e",
+                      "on-primary-container": "#f4fffc",
+                      "hitl-bg": "#FEF3C7",
+                      "surface-variant": "#e0e3e5",
+                      "surface-container-high": "#e6e8ea",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-container-low": "#f2f4f6",
+                      "border": "#E2E8F0",
+                      "on-background": "#191c1e",
+                      "secondary": "#3755c3",
+                      "text-primary": "#0F172A"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "content-max-width": "960px",
+                      "stack-md": "16px",
+                      "sidebar-width": "240px",
+                      "gutter": "24px",
+                      "stack-lg": "24px",
+                      "stack-sm": "8px",
+                      "margin-page": "32px"
+              },
+              "fontFamily": {
+                      "headline-h3": ["Inter"],
+                      "headline-h2": ["Inter"],
+                      "label-h4": ["Inter"],
+                      "caption": ["Inter"],
+                      "body-default": ["Inter"],
+                      "headline-h1": ["Inter"]
+              },
+              "fontSize": {
+                      "headline-h3": ["18px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "headline-h2": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                      "label-h4": ["16px", {"lineHeight": "24px", "fontWeight": "600"}],
+                      "caption": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                      "body-default": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "headline-h1": ["32px", {"lineHeight": "40px", "fontWeight": "700"}]
+              }
+            },
+          },
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface">
+<!-- Sidebar (Shared Component SideNavBar) -->
+<aside class="fixed left-0 top-0 h-full w-[240px] flex flex-col py-gutter bg-sidebar-bg z-50">
+<div class="px-6 mb-8">
+<h1 class="text-headline-h3 font-headline-h3 font-bold text-primary-fixed">DevCopilot AI</h1>
+<p class="text-caption text-text-secondary opacity-70">AI Job Assistant</p>
+</div>
+<nav class="flex-1 px-2 space-y-1 sidebar-scroll overflow-y-auto">
+<a class="flex items-center gap-3 px-4 py-3 text-text-secondary hover:text-on-tertiary-fixed transition-colors hover:bg-primary/5 group" href="#">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+<span class="font-label-h4 text-label-h4">Profile</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-text-secondary hover:text-on-tertiary-fixed transition-colors hover:bg-primary/5 group" href="#">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+<span class="font-label-h4 text-label-h4">Search</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-text-secondary hover:text-on-tertiary-fixed transition-colors hover:bg-primary/5 group" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span class="font-label-h4 text-label-h4">Applications</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-primary-fixed font-bold border-l-4 border-primary-container bg-primary/10 active:scale-[0.98] transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-h4 text-label-h4">Settings</span>
+</a>
+</nav>
+<div class="px-4 mt-auto">
+<button class="w-full bg-primary text-white font-label-h4 py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-primary-container transition-all">
+<span class="material-symbols-outlined text-sm" data-icon="add">add</span>
+<span>New Application</span>
+</button>
+</div>
+</aside>
+<!-- Header (Shared Component TopAppBar) -->
+<header class="flex justify-between items-center w-full h-16 px-gutter ml-[240px] max-w-[calc(100%-240px)] sticky top-0 bg-surface border-b border-border z-40">
+<h2 class="text-headline-h2 font-headline-h2 font-black text-primary">Settings</h2>
+<div class="flex items-center gap-6">
+<div class="relative hidden lg:block">
+<input class="w-64 pl-10 pr-4 py-2 bg-surface-container-low border border-border rounded-lg text-body-default focus:ring-2 focus:ring-primary focus:border-transparent outline-none" placeholder="Search settings..." type="text"/>
+<span class="material-symbols-outlined absolute left-3 top-2.5 text-text-secondary text-lg" data-icon="search">search</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-text-secondary hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-text-secondary hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</button>
+<div class="h-8 w-8 rounded-full overflow-hidden border border-border cursor-pointer">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a software developer with a clean, tech-focused background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC4IUuZKF8jHMFaj-Ulc_RjOU8EZvi-RnePzpjigrxN6rV5qUjeUdXKMSE-wWHSNTdVO3RfRKPXtDafSeOfPEMvp4RyOlYWcFzod2L8gEa7NsmNXaCvLxq42oGvM0l80Ri_L03RXTewwsl3P56eVqRK0YSDmxIy_ORoZ1yvBytPEJWMG8xzuE8dHl0e3zprRZPrkG_HxPMs0Gzg7IlnCFp07pJGhbGkqYW3vuNgLNeLLPYg621XchjYzmt8RcCLIuUqWB_2a-rFWKbq"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-[240px] min-h-[calc(100vh-64px)] p-margin-page">
+<div class="max-w-[960px] mx-auto space-y-stack-lg">
+<!-- HITL Banner -->
+<div class="w-full bg-hitl-bg border border-warning/20 px-stack-lg py-stack-md rounded-lg flex items-center gap-4">
+<span class="material-symbols-outlined text-warning" data-icon="verified_user">verified_user</span>
+<p class="text-body-default text-hitl-text font-medium">
+                    Human-in-the-loop: You approve every application, message, and profile update before anything is sent to recruiters.
+                </p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-stack-lg items-start">
+<!-- Left Column: Primary Sections -->
+<div class="md:col-span-2 space-y-stack-lg">
+<!-- Integration Card: Gmail -->
+<section class="bg-surface-container-lowest border border-border rounded-lg p-stack-lg shadow-sm">
+<div class="flex justify-between items-start mb-6">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-red-50 text-red-600 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-2xl" data-icon="mail">mail</span>
+</div>
+<div>
+<h3 class="text-headline-h3 font-headline-h3 text-text-primary">Gmail Integration</h3>
+<p class="text-body-default text-text-secondary">Connected to your professional email</p>
+</div>
+</div>
+<span class="px-3 py-1 bg-success/10 text-success text-caption font-bold rounded-full flex items-center gap-1">
+<span class="w-1.5 h-1.5 bg-success rounded-full"></span>
+                                Connected
+                            </span>
+</div>
+<div class="bg-surface-container-low p-stack-md rounded-lg mb-6 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-text-secondary" data-icon="alternate_email">alternate_email</span>
+<span class="text-body-default font-medium text-text-primary">alex.dev@gmail.com</span>
+</div>
+<button class="text-caption font-semibold text-primary hover:underline transition-all">Change</button>
+</div>
+<p class="text-body-default text-text-secondary mb-6 leading-relaxed">
+                            DevCopilot AI uses this connection to track application status updates and drafts responses for your approval. No emails are ever sent without your explicit click.
+                        </p>
+<div class="flex items-center gap-3">
+<button class="px-4 py-2 border border-primary text-primary font-label-h4 rounded-lg hover:bg-primary/5 transition-colors">
+                                Re-authenticate
+                            </button>
+<button class="px-4 py-2 text-text-secondary hover:text-error transition-colors font-label-h4">
+                                Disconnect
+                            </button>
+</div>
+</section>
+<!-- Job Board Preferences -->
+<section class="bg-surface-container-lowest border border-border rounded-lg p-stack-lg shadow-sm">
+<div class="flex items-center gap-4 mb-6">
+<div class="w-12 h-12 bg-secondary/10 text-secondary rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-2xl" data-icon="travel_explore">travel_explore</span>
+</div>
+<div>
+<h3 class="text-headline-h3 font-headline-h3 text-text-primary">Search Preferences</h3>
+<p class="text-body-default text-text-secondary">Default job board and platform targeting</p>
+</div>
+</div>
+<div class="space-y-4">
+<label class="flex items-center justify-between p-4 border border-border rounded-lg cursor-pointer hover:bg-surface-container-low transition-all group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 bg-on-secondary-fixed-variant/10 rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-on-secondary-fixed-variant" data-icon="work">work</span>
+</div>
+<div>
+<p class="text-label-h4 font-label-h4 text-text-primary">LinkedIn</p>
+<p class="text-caption text-text-secondary">Preferred for enterprise &amp; startup roles</p>
+</div>
+</div>
+<input checked="" class="text-primary focus:ring-primary w-5 h-5" name="job-board" type="radio"/>
+</label>
+<label class="flex items-center justify-between p-4 border border-border rounded-lg cursor-pointer hover:bg-surface-container-low transition-all group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 bg-primary/10 rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-primary" data-icon="terminal">terminal</span>
+</div>
+<div>
+<p class="text-label-h4 font-label-h4 text-text-primary">Indeed</p>
+<p class="text-caption text-text-secondary">Broad market reach and high volume</p>
+</div>
+</div>
+<input class="text-primary focus:ring-primary w-5 h-5" name="job-board" type="radio"/>
+</label>
+<label class="flex items-center justify-between p-4 border border-border rounded-lg cursor-pointer hover:bg-surface-container-low transition-all group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 bg-tertiary/10 rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary" data-icon="diversity_3">diversity_3</span>
+</div>
+<div>
+<p class="text-label-h4 font-label-h4 text-text-primary">Glassdoor</p>
+<p class="text-caption text-text-secondary">Focus on company culture and salary data</p>
+</div>
+</div>
+<input class="text-primary focus:ring-primary w-5 h-5" name="job-board" type="radio"/>
+</label>
+</div>
+</section>
+</div>
+<!-- Right Column: Metadata & Global actions -->
+<div class="space-y-stack-lg">
+<!-- App Info Card -->
+<section class="bg-surface-container-lowest border border-border rounded-lg p-stack-lg shadow-sm">
+<div class="flex flex-col items-center text-center mb-6">
+<div class="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-white text-4xl" data-icon="smart_toy" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+</div>
+<h4 class="text-label-h4 font-bold text-text-primary">DevCopilot AI</h4>
+<p class="text-caption text-text-secondary">v2.4.0 Stable</p>
+</div>
+<div class="space-y-3 pt-4 border-t border-border">
+<div class="flex justify-between items-center text-body-default">
+<span class="text-text-secondary">Last Sync</span>
+<span class="text-text-primary font-medium">4 mins ago</span>
+</div>
+<div class="flex justify-between items-center text-body-default">
+<span class="text-text-secondary">Storage Used</span>
+<span class="text-text-primary font-medium">12.4 MB</span>
+</div>
+<div class="flex justify-between items-center text-body-default">
+<span class="text-text-secondary">API Status</span>
+<span class="text-success font-medium">Operational</span>
+</div>
+</div>
+<div class="mt-8 space-y-2">
+<a class="flex items-center gap-2 text-body-default text-text-secondary hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="description">description</span>
+                                Privacy Policy
+                            </a>
+<a class="flex items-center gap-2 text-body-default text-text-secondary hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]" data-icon="security">security</span>
+                                Security Audit
+                            </a>
+</div>
+</section>
+<!-- Quick Actions -->
+<section class="bg-surface-container-low rounded-lg p-stack-md">
+<h4 class="text-caption font-bold text-text-secondary uppercase tracking-wider mb-4 px-2">Account Actions</h4>
+<div class="space-y-1">
+<button class="w-full flex items-center justify-between px-3 py-2 text-body-default text-text-primary hover:bg-white rounded-md transition-all">
+<span>Export My Data</span>
+<span class="material-symbols-outlined text-lg" data-icon="download">download</span>
+</button>
+<button class="w-full flex items-center justify-between px-3 py-2 text-body-default text-text-primary hover:bg-white rounded-md transition-all">
+<span>Clear Cache</span>
+<span class="material-symbols-outlined text-lg" data-icon="mop">mop</span>
+</button>
+<button class="w-full flex items-center justify-between px-3 py-2 text-body-default text-error hover:bg-error/5 rounded-md transition-all">
+<span>Deactivate Account</span>
+<span class="material-symbols-outlined text-lg" data-icon="no_accounts">no_accounts</span>
+</button>
+</div>
+</section>
+<!-- Feedback Widget -->
+<div class="relative overflow-hidden rounded-lg bg-primary-container p-6 text-white group">
+<div class="absolute -right-4 -top-4 opacity-10 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-8xl" data-icon="forum">forum</span>
+</div>
+<h4 class="text-label-h4 font-bold mb-2">Help us improve</h4>
+<p class="text-caption opacity-90 mb-4">Are the application drafts accurate? Let us know.</p>
+<button class="bg-white text-primary px-4 py-2 rounded-lg font-label-h4 text-sm hover:shadow-md transition-all">
+                            Send Feedback
+                        </button>
+</div>
+</div>
+</div>
+<!-- Bento style stats (Optional Extra Section) -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 pt-8">
+<div class="bg-white border border-border p-4 rounded-lg flex flex-col items-center justify-center">
+<span class="text-headline-h2 font-black text-primary">128</span>
+<span class="text-caption text-text-secondary">Drafts Approved</span>
+</div>
+<div class="bg-white border border-border p-4 rounded-lg flex flex-col items-center justify-center">
+<span class="text-headline-h2 font-black text-secondary">42</span>
+<span class="text-caption text-text-secondary">Auto-Saved Links</span>
+</div>
+<div class="bg-white border border-border p-4 rounded-lg flex flex-col items-center justify-center">
+<span class="text-headline-h2 font-black text-warning">8.2</span>
+<span class="text-caption text-text-secondary">Daily Matches</span>
+</div>
+<div class="bg-white border border-border p-4 rounded-lg flex flex-col items-center justify-center">
+<span class="text-headline-h2 font-black text-success">98%</span>
+<span class="text-caption text-text-secondary">Sync Health</span>
+</div>
+</div>
+</div>
+</main>
+<script>
+        // Simple micro-interactions
+        document.querySelectorAll('input[type="radio"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const parent = e.target.closest('label');
+                document.querySelectorAll('input[name="job-board"]').forEach(r => {
+                    r.closest('label').classList.remove('bg-surface-container-high', 'border-primary');
+                });
+                if(e.target.checked) {
+                    parent.classList.add('bg-surface-container-high', 'border-primary');
+                }
+            });
+        });
+
+        // Add a subtle entrance animation
+        window.onload = () => {
+            const sections = document.querySelectorAll('section, .bg-hitl-bg');
+            sections.forEach((sec, index) => {
+                sec.style.opacity = '0';
+                sec.style.transform = 'translateY(10px)';
+                sec.style.transition = 'all 0.4s ease-out';
+                setTimeout(() => {
+                    sec.style.opacity = '1';
+                    sec.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        };
+    </script>
+</body></html>

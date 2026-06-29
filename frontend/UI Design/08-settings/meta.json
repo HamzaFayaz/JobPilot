@@ -1,0 +1,9 @@
+﻿{
+    "title":  "JobPilot Settings",
+    "files":  [
+                  "screenshot.png",
+                  "screen.html"
+              ],
+    "slug":  "08-settings",
+    "route":  "/settings"
+}

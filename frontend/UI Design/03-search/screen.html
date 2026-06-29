@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>New Search | DevCopilot AI</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-fixed": "#131b2e",
+                        "on-tertiary-container": "#fefcff",
+                        "on-primary-fixed-variant": "#005049",
+                        "on-error-container": "#93000a",
+                        "surface-dim": "#d8dadc",
+                        "error": "#DC2626",
+                        "warning": "#D97706",
+                        "sidebar-bg": "#0F172A",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-container": "#00217a",
+                        "inverse-surface": "#2d3133",
+                        "text-secondary": "#64748B",
+                        "border": "#E2E8F0",
+                        "on-tertiary-fixed-variant": "#3f465c",
+                        "on-secondary": "#ffffff",
+                        "text-primary": "#0F172A",
+                        "error-container": "#ffdad6",
+                        "secondary-fixed-dim": "#b8c4ff",
+                        "on-primary-container": "#f4fffc",
+                        "surface-bright": "#f7f9fb",
+                        "primary-fixed": "#89f5e7",
+                        "tertiary": "#545c72",
+                        "primary-fixed-dim": "#6bd8cb",
+                        "on-secondary-fixed": "#001453",
+                        "on-primary-fixed": "#00201d",
+                        "secondary-fixed": "#dde1ff",
+                        "secondary-container": "#708cfd",
+                        "surface-tint": "#006a61",
+                        "surface-variant": "#e0e3e5",
+                        "secondary": "#3755c3",
+                        "inverse-on-surface": "#eff1f3",
+                        "surface-container": "#eceef0",
+                        "tertiary-fixed-dim": "#bec6e0",
+                        "tertiary-container": "#6c748b",
+                        "surface-container-high": "#e6e8ea",
+                        "background": "#f7f9fb",
+                        "outline-variant": "#bcc9c6",
+                        "surface-container-highest": "#e0e3e5",
+                        "chip-bg": "#CCFBF1",
+                        "tertiary-fixed": "#dae2fd",
+                        "on-surface-variant": "#3d4947",
+                        "success": "#16A34A",
+                        "surface-container-low": "#f2f4f6",
+                        "on-tertiary": "#ffffff",
+                        "primary-container": "#008378",
+                        "on-primary": "#ffffff",
+                        "surface": "#f7f9fb",
+                        "hitl-text": "#92400E",
+                        "disabled": "#CBD5E1",
+                        "on-background": "#191c1e",
+                        "outline": "#6d7a77",
+                        "on-error": "#ffffff",
+                        "hitl-bg": "#FEF3C7",
+                        "inverse-primary": "#6bd8cb",
+                        "primary": "#00685f",
+                        "on-surface": "#191c1e",
+                        "on-secondary-fixed-variant": "#173bab"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-lg": "24px",
+                        "gutter": "24px",
+                        "margin-page": "32px",
+                        "stack-sm": "8px",
+                        "stack-md": "16px",
+                        "sidebar-width": "240px",
+                        "content-max-width": "960px"
+                    },
+                    "fontFamily": {
+                        "label-h4": ["Inter"],
+                        "body-default": ["Inter"],
+                        "headline-h3": ["Inter"],
+                        "headline-h2": ["Inter"],
+                        "headline-h1": ["Inter"],
+                        "caption": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-h4": ["16px", {"lineHeight": "24px", "fontWeight": "600"}],
+                        "body-default": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "headline-h3": ["18px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "headline-h2": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "headline-h1": ["32px", {"lineHeight": "40px", "fontWeight": "700"}],
+                        "caption": ["12px", {"lineHeight": "16px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-surface">
+<!-- Sidebar Shell -->
+<aside class="fixed left-0 top-0 h-full w-[240px] flex flex-col py-gutter bg-sidebar-bg z-50">
+<div class="px-6 mb-10">
+<span class="text-headline-h3 font-headline-h3 font-bold text-primary-fixed">DevCopilot AI</span>
+<p class="text-text-secondary text-[10px] uppercase tracking-widest mt-1">AI Job Assistant</p>
+</div>
+<nav class="flex-1 space-y-1">
+<!-- Inactive -->
+<a class="flex items-center gap-3 px-4 py-3 text-text-secondary hover:text-on-tertiary-fixed transition-colors hover:bg-primary/5 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+<span class="font-label-h4 text-label-h4">Profile</span>
+</a>
+<!-- Active: Search -->
+<a class="flex items-center gap-3 px-4 py-3 text-primary-fixed font-bold border-l-4 border-primary-container bg-primary/10 transition-transform duration-200 scale-[0.98]" href="#">
+<span class="material-symbols-outlined" data-icon="search" style="font-variation-settings: 'FILL' 1;">search</span>
+<span class="font-label-h4 text-label-h4">Search</span>
+</a>
+<!-- Inactive -->
+<a class="flex items-center gap-3 px-4 py-3 text-text-secondary hover:text-on-tertiary-fixed transition-colors hover:bg-primary/5 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span class="font-label-h4 text-label-h4">Applications</span>
+</a>
+<!-- Inactive -->
+<a class="flex items-center gap-3 px-4 py-3 text-text-secondary hover:text-on-tertiary-fixed transition-colors hover:bg-primary/5 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-h4 text-label-h4">Settings</span>
+</a>
+</nav>
+<div class="px-4 mt-auto">
+<button class="w-full bg-primary-container text-on-primary-container py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+<span>New Application</span>
+</button>
+</div>
+</aside>
+<!-- Header Shell -->
+<header class="fixed top-0 right-0 h-16 bg-surface flex justify-between items-center px-gutter border-b border-border z-40 ml-[240px] w-[calc(100%-240px)]">
+<div class="flex items-center bg-surface-container px-4 py-2 rounded-full w-full max-w-md border border-border">
+<span class="material-symbols-outlined text-text-secondary mr-2" data-icon="search">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-body-default font-body-default w-full" placeholder="Global search..." type="text"/>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-text-secondary hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-text-secondary hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-primary/20 border border-primary/20 overflow-hidden">
+<img class="h-full w-full object-cover" data-alt="A professional headshot of a software developer with a clean, tech-focused background. The lighting is soft and professional, emphasizing a modern light-mode aesthetic with teal and blue tones. The individual is smiling slightly, conveying confidence and technical expertise in a minimalist corporate setting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBorl3qAyQ9mngsNagZs6-11Ic9W75OE_FwyQHEa411Yl3yzwhl_vA2kfXRXZdzKzQaC19nGMl57O2Fropdx0OYfF4UT3CAAlPS_aWRcraxJgo2kX9M063ZJk_xiggLyc6DY2WNSYx6MlNpFf4H_lkeWRV3vcvvjSmHMADflZnlVptTHoIbNros9sExRSUwjBTniozaUeIXQjyWDcUyyGTuOHbDNcq1J-ztkIC9524hc52b_31o0cl_5ofzUzq9KBOqq3XyALPnuIkX"/>
+</div>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="ml-[240px] pt-16 min-h-screen bg-surface">
+<div class="max-w-[960px] mx-auto px-margin-page py-12">
+<!-- Page Header -->
+<div class="mb-10">
+<h1 class="font-headline-h1 text-headline-h1 text-text-primary">New Search</h1>
+<p class="text-text-secondary mt-2 font-body-default text-body-default">Configure your AI agent to find and score relevant job opportunities.</p>
+</div>
+<!-- Focused Content Card -->
+<div class="max-w-[600px] mx-auto">
+<div class="bg-surface-container-lowest border border-border rounded-lg p-stack-lg shadow-[0_1px_3px_0_rgba(0,0,0,0.05)]">
+<!-- HITL Banner -->
+<div class="bg-hitl-bg text-hitl-text p-4 rounded-lg flex items-start gap-3 mb-8">
+<span class="material-symbols-outlined text-[20px]" data-icon="verified_user">verified_user</span>
+<div class="font-body-default text-body-default">
+<span class="font-bold">Human-in-the-loop:</span> You approve before anything is sent.
+                        </div>
+</div>
+<form class="space-y-8">
+<!-- Target Role -->
+<div class="space-y-stack-sm">
+<label class="font-label-h4 text-label-h4 text-text-primary block">Target Role</label>
+<input class="w-full bg-white border border-border rounded-lg px-4 py-3 text-body-default font-body-default focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none" placeholder="Senior Full-Stack Developer" type="text"/>
+</div>
+<!-- Platform Selection -->
+<div class="space-y-stack-sm">
+<label class="font-label-h4 text-label-h4 text-text-primary block">Platform</label>
+<div class="grid grid-cols-2 gap-4">
+<label class="cursor-pointer relative">
+<input checked="" class="peer sr-only" name="platform" type="radio" value="linkedin"/>
+<div class="flex items-center justify-between p-4 border border-border rounded-lg bg-white hover:border-primary/50 transition-all peer-checked:border-primary peer-checked:bg-primary/5">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-[#0A66C2] flex items-center justify-center text-white font-black text-sm">in</div>
+<span class="font-body-default text-body-default text-text-primary">LinkedIn</span>
+</div>
+<div class="w-4 h-4 rounded-full border-2 border-border peer-checked:border-primary flex items-center justify-center">
+<div class="w-2 h-2 rounded-full bg-primary scale-0 peer-checked:scale-100 transition-transform"></div>
+</div>
+</div>
+<div class="absolute inset-0 border-2 border-primary rounded-lg opacity-0 peer-checked:opacity-100 pointer-events-none"></div>
+</label>
+<label class="cursor-pointer relative">
+<input class="peer sr-only" name="platform" type="radio" value="indeed"/>
+<div class="flex items-center justify-between p-4 border border-border rounded-lg bg-white hover:border-primary/50 transition-all peer-checked:border-primary peer-checked:bg-primary/5">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-[#2164f3] flex items-center justify-center text-white font-black text-sm">i</div>
+<span class="font-body-default text-body-default text-text-primary">Indeed</span>
+</div>
+<div class="w-4 h-4 rounded-full border-2 border-border peer-checked:border-primary flex items-center justify-center">
+<div class="w-2 h-2 rounded-full bg-primary scale-0 peer-checked:scale-100 transition-transform"></div>
+</div>
+</div>
+<div class="absolute inset-0 border-2 border-primary rounded-lg opacity-0 peer-checked:opacity-100 pointer-events-none"></div>
+</label>
+</div>
+</div>
+<!-- Summary Line -->
+<div class="flex items-center gap-2 pt-2 pb-2">
+<span class="material-symbols-outlined text-text-secondary text-[16px]" data-icon="description">description</span>
+<p class="text-caption font-caption text-text-secondary">
+                                Using profile: <span class="text-primary font-semibold">resume_hamza.pdf</span> · 8 skills · 3 projects
+                            </p>
+</div>
+<!-- CTA Section -->
+<div class="space-y-4">
+<button class="w-full bg-[#0D9488] text-white py-4 rounded-lg font-bold text-headline-h3 hover:bg-[#0b7a70] transition-colors shadow-sm active:scale-[0.99] transition-transform" type="submit">
+                                Start search
+                            </button>
+<div class="flex flex-col items-center gap-1">
+<p class="text-caption font-caption text-text-secondary text-center">
+                                    ~1–2 min · opens your Chrome · scores jobs against your profile
+                                </p>
+<div class="flex gap-4 mt-2">
+<div class="flex items-center gap-1 text-[10px] text-text-secondary font-medium uppercase tracking-tighter">
+<span class="material-symbols-outlined text-[12px] text-success" data-icon="bolt" style="font-variation-settings: 'FILL' 1;">bolt</span>
+                                        GPU Optimized
+                                    </div>
+<div class="flex items-center gap-1 text-[10px] text-text-secondary font-medium uppercase tracking-tighter">
+<span class="material-symbols-outlined text-[12px] text-primary" data-icon="security" style="font-variation-settings: 'FILL' 1;">security</span>
+                                        Encrypted Local Storage
+                                    </div>
+</div>
+</div>
+</div>
+</form>
+</div>
+<!-- Secondary visual anchor: Quick Tips -->
+<div class="mt-8 grid grid-cols-2 gap-4">
+<div class="p-4 border border-border rounded-lg bg-surface-container-low flex flex-col gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]" data-icon="tips_and_updates">tips_and_updates</span>
+<h5 class="font-label-h4 text-label-h4 text-text-primary">Better Match?</h5>
+<p class="text-caption font-caption text-text-secondary leading-relaxed">Update your skills in the Profile tab to increase scoring accuracy.</p>
+</div>
+<div class="p-4 border border-border rounded-lg bg-surface-container-low flex flex-col gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]" data-icon="auto_awesome">auto_awesome</span>
+<h5 class="font-label-h4 text-label-h4 text-text-primary">Auto-Apply</h5>
+<p class="text-caption font-caption text-text-secondary leading-relaxed">Toggle high-confidence auto-applications in your agent settings.</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<script>
+        // Simple interactivity for the form
+        document.querySelector('form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `
+                <div class="flex items-center justify-center gap-3">
+                    <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Initializing Agent...
+                </div>
+            `;
+            
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                alert('JobPilot agent initialized. Opening search container...');
+            }, 2000);
+        });
+
+        // Toggle radio visual states manually if needed (Tailwind peer handled most)
+        const platformRadios = document.querySelectorAll('input[name="platform"]');
+        platformRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                console.log('Platform changed to:', radio.value);
+            });
+        });
+    </script>
+</body></html>

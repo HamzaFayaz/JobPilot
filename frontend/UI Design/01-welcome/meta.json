@@ -1,0 +1,9 @@
+﻿{
+    "title":  "JobPilot Welcome Screen",
+    "files":  [
+                  "screenshot.png",
+                  "screen.html"
+              ],
+    "slug":  "01-welcome",
+    "route":  "/"
+}
