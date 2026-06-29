@@ -1,0 +1,64 @@
+{
+  "projectId": "15608968145801711863",
+  "title": "JobPilot",
+  "designSystem": "assets/03714a654855452089a6eff03cc905e7",
+  "stitchUrl": "https://stitch.withgoogle.com",
+  "screens": [
+  {
+    "id": 1,
+    "slug": "welcome",
+    "route": "/",
+    "title": "JobPilot Welcome Screen",
+    "screenId": "df78acaf0bb34205b5d75eca81a25343"
+  },
+  {
+    "id": 2,
+    "slug": "profile",
+    "route": "/profile",
+    "title": "JobPilot Profile Setup",
+    "screenId": "1dd9b63d25824001b4437b2d3bb662ff"
+  },
+  {
+    "id": 3,
+    "slug": "search",
+    "route": "/search",
+    "title": "JobPilot New Search",
+    "screenId": "3df60c27ed344d3e9854e1f138ae98f7"
+  },
+  {
+    "id": 4,
+    "slug": "run-progress",
+    "route": "/runs/:runId",
+    "title": "JobPilot Run In Progress",
+    "screenId": "a1eff439ce704205b48d6e94678eac87"
+  },
+  {
+    "id": 5,
+    "slug": "job-list",
+    "route": "/runs/:runId/jobs",
+    "title": "Job Results List",
+    "screenId": "b89d2ce875b648afbf66435c202568da"
+  },
+  {
+    "id": 6,
+    "slug": "job-detail",
+    "route": "/jobs/:id",
+    "title": "Job Detail HITL Review",
+    "screenId": "d9d6b56064184ebb92a015a16b7a01a4"
+  },
+  {
+    "id": 7,
+    "slug": "applications",
+    "route": "/applications",
+    "title": "JobPilot Applications & History",
+    "screenId": "9cbb3de57c614a93b3677fc54d3574bf"
+  },
+  {
+    "id": 8,
+    "slug": "settings",
+    "route": "/settings",
+    "title": "JobPilot Settings",
+    "screenId": "3f59f9a54eaf4eb480006487eb7a77f4"
+  }
+]
+}
