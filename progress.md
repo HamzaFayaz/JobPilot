@@ -24,7 +24,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | Phase | Scope | Status |
 |-------|--------|--------|
 | **0 — Design** | Stitch UI, design system, screen exports | `[x]` |
-| **1 — Frontend (locked)** | Welcome, Profile, Search (responsive web) | `[o]` |
+| **1 — Frontend (locked)** | Welcome, Profile, Search (responsive web) | `[x]` |
 | **2 — Data & auth** | Database schema, profile storage, Gmail OAuth | `[o]` |
 | **3 — Backend core** | FastAPI, `POST /profile`, `POST /search`, polling | `[ ]` |
 | **4 — Agents** | LangGraph search + per-job sub-agents | `[ ]` |
@@ -38,7 +38,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | Plan | Purpose | Status |
 |------|---------|--------|
 | [`jobpilot_stitch_ui_plan.md`](.agent/plans/jobpilot_stitch_ui_plan.md) | Stitch desktop UI design + exports | `[x]` |
-| [`jobpilot_frontend_web_app_plan.md`](.agent/plans/jobpilot_frontend_web_app_plan.md) | Vite React app: Welcome, Profile, Search | `[o]` |
+| [`jobpilot_frontend_web_app_plan.md`](.agent/plans/jobpilot_frontend_web_app_plan.md) | Vite React app: Welcome, Profile, Search | `[x]` |
 | `jobpilot_backend_profile_api_plan.md` | FastAPI + SQLite + Gmail OAuth (TBD) | `[ ]` |
 
 **Execute frontend build:** `/build .agent/plans/jobpilot_frontend_web_app_plan.md`
@@ -57,26 +57,26 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | Frontend scope locked (screens 1–3 only) | `[x]` |
 | Responsive web UI rules documented | `[x]` |
 | ui-ux-pro-max skill installed (`.cursor/skills/`) | `[x]` |
-| `design-system/MASTER.md` (Stitch overrides) | `[ ]` |
+| `design-system/MASTER.md` (Stitch overrides) | `[x]` |
 
 ### Frontend — Welcome, Profile, Search
 
 | Screen | Route | Status |
 |--------|-------|--------|
-| Welcome / setup gate | `/` | `[o]` |
-| Profile setup | `/profile` | `[o]` |
-| New search | `/search` | `[o]` |
+| Welcome / setup gate | `/` | `[x]` |
+| Profile setup | `/profile` | `[x]` |
+| New search | `/search` | `[x]` |
 
 | Foundation | Status |
 |------------|--------|
-| Vite + React + TypeScript + Tailwind (locked) | `[ ]` |
-| AppShell: sidebar desktop + drawer mobile | `[ ]` |
-| Nav: Profile, Search, Applications†, Settings† (†disabled) | `[ ]` |
-| Heroicons; brand **JobPilot** | `[ ]` |
-| Profile store + gate rules | `[ ]` |
-| CV `.docx` only; target roles; skills/projects editable | `[ ]` |
-| GitHub “Coming soon”; Gmail mock connect | `[ ]` |
-| Mock API (localStorage until backend) | `[ ]` |
+| Vite + React + TypeScript + Tailwind (locked) | `[x]` |
+| AppShell: sidebar desktop + drawer mobile | `[x]` |
+| Nav: Profile, Search, Applications†, Settings† (†disabled) | `[x]` |
+| Heroicons; brand **JobPilot** | `[x]` |
+| Profile store + gate rules | `[x]` |
+| CV `.docx` only; target roles; skills/projects editable | `[x]` |
+| GitHub “Coming soon”; Gmail mock connect | `[x]` |
+| Mock API (localStorage until backend) | `[x]` |
 
 → Task-level detail: [`frontend/progress.md`](frontend/progress.md) · Build plan: [`jobpilot_frontend_web_app_plan.md`](.agent/plans/jobpilot_frontend_web_app_plan.md)
 
@@ -147,8 +147,8 @@ Long-term memory (DB when backend ships; localStorage during frontend build):
 
 | Area | Complete | In progress | Not started |
 |------|----------|-------------|-------------|
-| Design | 6 | 0 | 1 (MASTER.md) |
-| Frontend web app | 0 | 3 screens + plan | foundation |
+| Design | 7 | 0 | 0 |
+| Frontend web app | 11 | 0 | 0 |
 | Backend & DB | 1 (schema doc) | 1 | APIs, agents |
 | Integrations | 1 (GitHub scope) | 1 (Gmail) | search platforms |
 

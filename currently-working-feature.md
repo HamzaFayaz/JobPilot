@@ -8,54 +8,32 @@ Update this file when focus shifts. Mirror status changes in [`progress.md`](pro
 
 ## Active focus (2026-06-29)
 
-### 1. Execute frontend web app build plan `[o]`
+### 1. Frontend web app (Phase 1) `[x]` — shipped
 
-**Plan:** [`.agent/plans/jobpilot_frontend_web_app_plan.md`](.agent/plans/jobpilot_frontend_web_app_plan.md)  
-**Run:** `/build .agent/plans/jobpilot_frontend_web_app_plan.md`
+**Plan:** [`.agent/plans/jobpilot_frontend_web_app_plan.md`](.agent/plans/jobpilot_frontend_web_app_plan.md)
 
-Building Welcome, Profile, and Search as a **responsive website** (Stitch desktop = reference only).
+Welcome, Profile, and Search are live in `frontend/` as a responsive Vite + React app.
 
 | Step | Scope | Status |
 |------|-------|--------|
-| A0 | ui-ux-pro-max persist → `design-system/MASTER.md` | `[ ]` |
-| A | Vite + React + TS + Tailwind + AppShell + nav | `[ ]` |
-| B | 3 parallel subagents (Welcome, Profile, Search pages) | `[ ]` |
-| C | Integration, a11y, ux validation | `[ ]` |
+| A0 | ui-ux-pro-max persist → `design-system/MASTER.md` | `[x]` |
+| A | Vite + React + TS + Tailwind + AppShell + nav | `[x]` |
+| B | Welcome, Profile, Search pages | `[x]` |
+| C | Integration, a11y, ux validation | `[x]` |
 
-| Screen | Route | Status |
-|--------|-------|--------|
-| Welcome | `/` | `[o]` |
-| Profile | `/profile` | `[o]` |
-| Search | `/search` | `[o]` |
-
-**Locked for this build:**
-- **Vite + React + TypeScript + Tailwind** (not Next.js)
-- **Heroicons**; brand **JobPilot**
-- **Left sidebar** (desktop) + **drawer** (mobile): Profile, Search, Applications†, Settings†
-- CV **`.docx` only**; skills, **target roles**, projects — add/edit/remove
-- **GitHub:** “Coming soon” · **Gmail:** mock connect (Google OAuth backend later)
-- Profile: **localStorage** mock until backend plan ships
-- **Git commit after every single file change**
-
-**References:** `frontend/UI Design/01-welcome|02-profile|03-search/` · [`frontend/progress.md`](frontend/progress.md) · [`.cursor/skills/ui-ux-pro-max/SKILL.md`](.cursor/skills/ui-ux-pro-max/SKILL.md)
+**Run locally:** `cd frontend && npm run dev` → http://localhost:5173
 
 ---
 
-### 2. Database — long-term memory `[o]` (schema locked; build deferred)
+### 2. Backend profile API `[ ]` — next up
 
-Profile data is **long-term memory** in SQLite (later Postgres). Schema documented in frontend web app plan; **implementation waits** for `jobpilot_backend_profile_api_plan.md` (TBD).
+**Plan:** `jobpilot_backend_profile_api_plan.md` (TBD)
 
-| Data | Source screen | Decision |
-|------|---------------|----------|
-| CV `.docx` + parsed text | Profile | `data/uploads/` local; replaceable file |
-| Skills (string list) | Profile | JSON column on `profiles` |
-| Target roles (string list) | Profile | JSON column `target_roles` |
-| Projects (name + description) | Profile | JSON array on `profiles` |
-| Gmail connection | Profile | `oauth_tokens` table |
-
-**Open (minor):**
-- [ ] `POST /profile` on every Save vs debounced auto-save?
-- [ ] Single `profiles` row (single-user MVP) — **recommended yes**
+| Step | Scope | Status |
+|------|-------|--------|
+| FastAPI scaffold + SQLite `profiles` | `data/jobpilot.db` | `[ ]` |
+| `GET/PUT /profile`, `POST /profile/cv` | Replace localStorage mock | `[ ]` |
+| Gmail OAuth `GET /auth/google` | Wire Profile Gmail strip | `[ ]` |
 
 ---
 
@@ -68,7 +46,7 @@ Profile data is **long-term memory** in SQLite (later Postgres). Schema document
 | Google Cloud project + Gmail API | `[x]` |
 | OAuth client + redirect URI in `.env` | `[x]` |
 | `GET /auth/google` + callback (FastAPI) | `[ ]` — backend plan |
-| Profile UI mock connect | `[ ]` — frontend plan Phase B |
+| Profile UI mock connect | `[x]` — frontend shipped |
 
 ---
 
@@ -83,7 +61,6 @@ Profile data is **long-term memory** in SQLite (later Postgres). Schema document
 | Item | Status |
 |------|--------|
 | Screens 4–8 (run progress, jobs, HITL, applications, settings page) | `[ ]` locked |
-| Backend FastAPI + SQLite implementation | `[ ]` — next plan TBD |
 | LangGraph agents + browser worker | `[ ]` |
 | `POST /search` + polling | `[ ]` |
 | Gmail send (`POST /jobs/{id}/send`) | `[ ]` |
@@ -105,14 +82,15 @@ Profile data is **long-term memory** in SQLite (later Postgres). Schema document
 | 2026-06-29 | Profile memory | DB long-term; localStorage for frontend build only |
 | 2026-06-29 | GitHub | Coming soon; manual projects |
 | 2026-06-29 | Gmail Google Console | OAuth client configured; backend routes deferred |
+| 2026-06-29 | Frontend Phase 1 | Shipped — localStorage mock, mock search toast |
 
 ---
 
 ## Next actions
 
-1. **Run** `/build .agent/plans/jobpilot_frontend_web_app_plan.md` (Phase A0 → A → B → C)
-2. After frontend ships, **draft** `jobpilot_backend_profile_api_plan.md`
-3. Scaffold FastAPI + `profiles` + Gmail OAuth
-4. Swap frontend `localStorage` → API
+1. **Draft** `jobpilot_backend_profile_api_plan.md`
+2. Scaffold FastAPI + `profiles` + Gmail OAuth
+3. Swap frontend `localStorage` → API
+4. Implement screens 4–8 after backend + search agent
 
 **Last updated:** 2026-06-29

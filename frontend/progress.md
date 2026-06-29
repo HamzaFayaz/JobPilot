@@ -100,9 +100,9 @@ These three screens are **in scope**. Do not implement screens 4–8 until Phase
 
 | # | Screen | Route | React page | Design ref | Status |
 |---|--------|-------|------------|------------|--------|
-| 1 | Welcome / setup gate | `/` | `WelcomePage` | `UI Design/01-welcome/` | `[ ]` |
-| 2 | Profile setup | `/profile` | `ProfilePage` | `UI Design/02-profile/` | `[ ]` |
-| 3 | New search | `/search` | `SearchPage` | `UI Design/03-search/` | `[ ]` |
+| 1 | Welcome / setup gate | `/` | `WelcomePage` | `UI Design/01-welcome/` | `[x]` |
+| 2 | Profile setup | `/profile` | `ProfilePage` | `UI Design/02-profile/` | `[x]` |
+| 3 | New search | `/search` | `SearchPage` | `UI Design/03-search/` | `[x]` |
 
 ---
 
@@ -110,14 +110,14 @@ These three screens are **in scope**. Do not implement screens 4–8 until Phase
 
 | Task | Status |
 |------|--------|
-| Vite + React + TypeScript + Tailwind scaffold in `frontend/` | `[ ]` |
-| Tailwind breakpoints + design tokens (colors, fonts from `.stitch/DESIGN.md`) | `[ ]` |
-| Responsive `AppShell` — sidebar desktop / drawer or bottom nav mobile | `[ ]` |
-| React Router: `/`, `/profile`, `/search` | `[ ]` |
-| `ProfileContext` / store (CV, skills, projects, Gmail flag) | `[ ]` |
-| Profile gate: Search nav disabled until CV + ≥3 skills + ≥1 project | `[ ]` |
-| Mock API layer (localStorage; swap to backend later) | `[ ]` |
-| Responsive + a11y pass on shell (focus, contrast, tap targets) | `[ ]` |
+| Vite + React + TypeScript + Tailwind scaffold in `frontend/` | `[x]` |
+| Tailwind breakpoints + design tokens (colors, fonts from `.stitch/DESIGN.md`) | `[x]` |
+| Responsive `AppShell` — sidebar desktop / drawer or bottom nav mobile | `[x]` |
+| React Router: `/`, `/profile`, `/search` | `[x]` |
+| `ProfileContext` / store (CV, skills, projects, Gmail flag) | `[x]` |
+| Profile gate: Search nav disabled until CV + ≥3 skills + ≥1 project | `[x]` |
+| Mock API layer (localStorage; swap to backend later) | `[x]` |
+| Responsive + a11y pass on shell (focus, contrast, tap targets) | `[x]` |
 
 ---
 
@@ -125,12 +125,12 @@ These three screens are **in scope**. Do not implement screens 4–8 until Phase
 
 | Task | Status |
 |------|--------|
-| Hero: logo, tagline, subtext | `[ ]` |
-| Setup checklist card (4 rows) | `[ ]` |
-| Progress: “X of 3 required steps” | `[ ]` |
-| CTA: “Set up your profile” → `/profile` | `[ ]` |
-| Nav: Profile context; Search + Applications disabled | `[ ]` |
-| Responsive: stacked layout mobile; centered card desktop | `[ ]` |
+| Hero: logo, tagline, subtext | `[x]` |
+| Setup checklist card (4 rows) | `[x]` |
+| Progress: “X of 3 required steps” | `[x]` |
+| CTA: “Set up your profile” → `/profile` | `[x]` |
+| Nav: Profile context; Search + Applications disabled | `[x]` |
+| Responsive: stacked layout mobile; centered card desktop | `[x]` |
 
 ---
 
@@ -138,14 +138,16 @@ These three screens are **in scope**. Do not implement screens 4–8 until Phase
 
 | Task | Status |
 |------|--------|
-| Profile completeness progress bar | `[ ]` |
-| CV: drag-drop, filename, preview, re-upload | `[ ]` |
-| Skills: chip input (add/remove) | `[ ]` |
-| Projects: repeatable cards (name, description, add/remove) | `[ ]` |
-| Gmail strip: status badge + Connect button (mock) | `[ ]` |
-| Save profile (persist to localStorage / mock API) | `[ ]` |
-| Continue to Search (enabled when gate rules pass) | `[ ]` |
-| Responsive: single-column mobile; full-width cards | `[ ]` |
+| Profile completeness progress bar | `[x]` |
+| CV: drag-drop, filename, preview, re-upload | `[x]` |
+| Skills: chip input (add/remove) | `[x]` |
+| Target roles: chip input (add/remove) | `[x]` |
+| Projects: repeatable cards (name, description, add/remove) | `[x]` |
+| GitHub: “Coming soon” disabled button | `[x]` |
+| Gmail strip: status badge + Connect button (mock) | `[x]` |
+| Save profile (persist to localStorage / mock API) | `[x]` |
+| Continue to Search (enabled when gate rules pass) | `[x]` |
+| Responsive: single-column mobile; full-width cards | `[x]` |
 
 ---
 
@@ -153,13 +155,13 @@ These three screens are **in scope**. Do not implement screens 4–8 until Phase
 
 | Task | Status |
 |------|--------|
-| Route guard: redirect if profile incomplete | `[ ]` |
-| Target role input | `[ ]` |
-| Platform radio: LinkedIn / Indeed | `[ ]` |
-| Summary line from profile (resume · skills · projects) | `[ ]` |
-| Start search button (mock: toast or stub; no real `POST /search` yet) | `[ ]` |
-| Nav: Search active | `[ ]` |
-| Responsive: form card full width mobile; constrained desktop | `[ ]` |
+| Route guard: redirect if profile incomplete | `[x]` |
+| Target role dropdown from profile | `[x]` |
+| Platform radio: LinkedIn / Indeed | `[x]` |
+| Summary line from profile (resume · skills · projects) | `[x]` |
+| Start search button (mock: toast; no real `POST /search` yet) | `[x]` |
+| Nav: Search active | `[x]` |
+| Responsive: form card full width mobile; constrained desktop | `[x]` |
 
 ---
 
@@ -181,7 +183,7 @@ Not in scope until backend + Phase 1 is complete. **Do not build yet.**
 
 | Area | Complete | In progress | Not started |
 |------|----------|-------------|-------------|
-| Locked screens (1–3) | 0 / 3 | 0 / 3 | 3 / 3 |
-| Foundation | 0 / 8 | 0 / 8 | 8 / 8 |
+| Locked screens (1–3) | 3 / 3 | 0 / 3 | 0 / 3 |
+| Foundation | 8 / 8 | 0 / 8 | 0 / 8 |
 
 **Last updated:** 2026-06-29
