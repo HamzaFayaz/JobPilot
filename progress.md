@@ -25,8 +25,8 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 |-------|--------|--------|
 | **0 — Design** | Stitch UI, design system, screen exports | `[x]` |
 | **1 — Frontend (locked)** | Welcome, Profile, Search (responsive web) | `[x]` |
-| **2 — Data & auth** | Database schema, profile storage, Gmail OAuth | `[o]` |
-| **3 — Backend core** | FastAPI, `POST /profile`, `POST /search`, polling | `[ ]` |
+| **2 — Data & auth** | Database schema, profile storage, Gmail OAuth | `[x]` |
+| **3 — Backend core** | FastAPI profile API, CV upload, GitHub import | `[o]` |
 | **4 — Agents** | LangGraph search + per-job sub-agents | `[ ]` |
 | **5 — HITL flow** | Job detail, send, applications memory | `[ ]` |
 | **6 — Deploy** | ECS / Alibaba RDS + OSS (post-hackathon) | `[ ]` |
@@ -39,7 +39,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 |------|---------|--------|
 | [`jobpilot_stitch_ui_plan.md`](.agent/plans/jobpilot_stitch_ui_plan.md) | Stitch desktop UI design + exports | `[x]` |
 | [`jobpilot_frontend_web_app_plan.md`](.agent/plans/jobpilot_frontend_web_app_plan.md) | Vite React app: Welcome, Profile, Search | `[x]` |
-| `jobpilot_backend_profile_api_plan.md` | FastAPI + SQLite + Gmail OAuth (TBD) | `[ ]` |
+| [`jobpilot_backend_profile_api_plan.md`](.agent/plans/jobpilot_backend_profile_api_plan.md) | FastAPI + SQLite + CV/Gmail/GitHub | `[x]` |
 
 **Execute frontend build:** `/build .agent/plans/jobpilot_frontend_web_app_plan.md`
 
@@ -74,9 +74,10 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | Nav: Profile, Search, Applications†, Settings† (†disabled) | `[x]` |
 | Heroicons; brand **JobPilot** | `[x]` |
 | Profile store + gate rules | `[x]` |
-| CV `.docx` only; target roles; skills/projects editable | `[x]` |
-| GitHub “Coming soon”; Gmail mock connect | `[x]` |
-| Mock API (localStorage until backend) | `[x]` |
+| CV `.docx` upload → API; skills read-only from LLM | `[x]` |
+| GitHub OAuth + repo import | `[x]` |
+| Gmail OAuth connect/disconnect | `[x]` |
+| API layer (fetch → FastAPI; mock flag optional) | `[x]` |
 
 → Task-level detail: [`frontend/progress.md`](frontend/progress.md) · Build plan: [`jobpilot_frontend_web_app_plan.md`](.agent/plans/jobpilot_frontend_web_app_plan.md)
 
@@ -85,18 +86,18 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | Item | Status | Notes |
 |------|--------|--------|
 | Profile schema agreed (incl. `target_roles`, `.docx`) | `[x]` | Documented in frontend web app plan |
-| Database choice & schema for profile data | `[o]` | Implement in backend plan (TBD) |
-| `POST /profile` (CV, skills, projects, roles) | `[ ]` | After frontend ships |
-| SQLite MVP (`data/jobpilot.db`) | `[ ]` | Planned per system design |
-| `search_runs`, `job_packages`, `applied_jobs` tables | `[ ]` | Phase 3+ |
-| `oauth_tokens` table (Gmail) | `[ ]` | Backend plan |
+| SQLite MVP (`data/jobpilot.db`) | `[x]` | `profiles` + `oauth_tokens` |
+| `GET/PUT /api/profile`, `POST /api/profile/cv` | `[x]` | CV parse + LLM skills |
+| Gmail OAuth routes | `[x]` | Connect/disconnect; send deferred |
+| GitHub OAuth + repo import | `[x]` | README → project cards |
+| `POST /search` + polling | `[ ]` | Agent phase |
 
 ### Integrations
 
 | Integration | Purpose | In frontend screens? | Status |
 |-------------|---------|----------------------|--------|
-| **Gmail OAuth** | Send approved applications | Profile mock connect | `[o]` Google Console + `.env` done; backend `[ ]` |
-| **GitHub** | Auto-import repos | “Coming soon” on Profile | `[x]` locked post-MVP |
+| **Gmail OAuth** | Send approved applications | Profile connect/disconnect | `[x]` Google + backend routes |
+| **GitHub** | Auto-import repos | GitHubImport on Profile | `[x]` OAuth + README import |
 | **LinkedIn / Indeed** | Job search (browser worker) | Search screen picks platform | `[ ]` agent phase |
 
 ### Agents & orchestration
@@ -106,7 +107,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | LangGraph parent graph + subgraphs | `[ ]` |
 | Browser-Use search agent | `[ ]` |
 | Per-job application sub-agent | `[ ]` |
-| Qwen / model integration | `[ ]` (test scripts only) |
+| Qwen / model integration | `[x]` profile LLM (CV skills, README) |
 
 ### Documentation
 
@@ -149,7 +150,7 @@ Long-term memory (DB when backend ships; localStorage during frontend build):
 |------|----------|-------------|-------------|
 | Design | 7 | 0 | 0 |
 | Frontend web app | 11 | 0 | 0 |
-| Backend & DB | 1 (schema doc) | 1 | APIs, agents |
-| Integrations | 1 (GitHub scope) | 1 (Gmail) | search platforms |
+| Backend & DB | 6 | 1 | search agents |
+| Integrations | 2 | 0 | search platforms |
 
 **Last updated:** 2026-06-29

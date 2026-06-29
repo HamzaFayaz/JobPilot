@@ -12,7 +12,7 @@
 > **Adapt for the web:** layout, breakpoints, touch targets, navigation pattern, spacing.
 
 **Phase 1 scope (locked):** Welcome, Profile, Search only.  
-**Backend:** not required yet — use mock/local state until APIs exist.  
+**Backend:** FastAPI profile API at `localhost:8000` (Vite proxies `/api`).  
 **Design tokens:** `.stitch/DESIGN.md` (palette + components; layout rules overridden below)
 
 ---
@@ -116,7 +116,8 @@ These three screens are **in scope**. Do not implement screens 4–8 until Phase
 | React Router: `/`, `/profile`, `/search` | `[x]` |
 | `ProfileContext` / store (CV, skills, projects, Gmail flag) | `[x]` |
 | Profile gate: Search nav disabled until CV + ≥3 skills + ≥1 project | `[x]` |
-| Mock API layer (localStorage; swap to backend later) | `[x]` |
+| Mock API layer (localStorage; swap to backend later) | `[x]` → replaced by fetch API |
+| API fetch layer + optional `VITE_USE_MOCK_API` | `[x]` |
 | Responsive + a11y pass on shell (focus, contrast, tap targets) | `[x]` |
 
 ---
@@ -140,12 +141,12 @@ These three screens are **in scope**. Do not implement screens 4–8 until Phase
 |------|--------|
 | Profile completeness progress bar | `[x]` |
 | CV: drag-drop, filename, preview, re-upload | `[x]` |
-| Skills: chip input (add/remove) | `[x]` |
+| Skills: read-only chips from CV (`SkillsFromCv`) | `[x]` |
 | Target roles: chip input (add/remove) | `[x]` |
 | Projects: repeatable cards (name, description, add/remove) | `[x]` |
-| GitHub: “Coming soon” disabled button | `[x]` |
-| Gmail strip: status badge + Connect button (mock) | `[x]` |
-| Save profile (persist to localStorage / mock API) | `[x]` |
+| GitHub: OAuth connect + repo import modal | `[x]` |
+| Gmail strip: real connect/disconnect via OAuth | `[x]` |
+| Save profile (persist via API / SQLite) | `[x]` |
 | Continue to Search (enabled when gate rules pass) | `[x]` |
 | Responsive: single-column mobile; full-width cards | `[x]` |
 
@@ -184,6 +185,6 @@ Not in scope until backend + Phase 1 is complete. **Do not build yet.**
 | Area | Complete | In progress | Not started |
 |------|----------|-------------|-------------|
 | Locked screens (1–3) | 3 / 3 | 0 / 3 | 0 / 3 |
-| Foundation | 8 / 8 | 0 / 8 | 0 / 8 |
+| Foundation | 9 / 9 | 0 / 9 | 0 / 9 |
 
 **Last updated:** 2026-06-29
