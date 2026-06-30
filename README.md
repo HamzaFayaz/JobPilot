@@ -38,7 +38,7 @@ A serious job search means scanning multiple platforms, reading every JD, tailor
 | LangGraph search agents | 🚧 Planned |
 | Job scoring & CV rewrite per JD | 🚧 Planned |
 | HITL approve → send via Gmail | 🚧 Planned |
-| Production deploy | AWS EC2 now → Alibaba ECS for submit | 🚧 Planned |
+| Production deploy | Live on AWS — HTTPS for Gmail next | 🚧 In progress |
 
 **Live progress:** [`progress.md`](./progress.md) · **Active work:** [`currently-working-feature.md`](./currently-working-feature.md)
 
@@ -81,6 +81,8 @@ Everything JobPilot will do at launch:
 - Multi-user auth (out of hackathon MVP scope)
 
 **Deploy guides:** [`System Design/aws-ec2-deploy.md`](System%20Design/aws-ec2-deploy.md) (active) · [`System Design/alibaba-cloud-trial.md`](System%20Design/alibaba-cloud-trial.md) (hackathon submit)
+
+**Live demo:** http://jobpilot-hamza.duckdns.org
 
 ---
 
@@ -241,7 +243,7 @@ Search, job packages, and send endpoints are **planned** — see [`jobpilot_prd.
 | 3 | `POST /search`, LangGraph agents | 🚧 Next |
 | 4 | Job results, HITL, Gmail send | 🚧 |
 | 5 | Applications tracking UI | 🚧 |
-| 6 | Production deploy | 🚧 |
+| 6 | Production deploy (http://jobpilot-hamza.duckdns.org) | 🚧 HTTPS next |
 
 ---
 
