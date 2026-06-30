@@ -15,9 +15,9 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 1
 fi
 
-docker compose build
-docker compose up -d --remove-orphans
-docker compose ps
+sudo docker compose build
+sudo docker compose up -d --remove-orphans
+sudo docker compose ps
 
 curl -sf http://127.0.0.1/health >/dev/null
 echo "Deploy complete — JobPilot containers healthy."
