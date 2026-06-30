@@ -27,9 +27,11 @@ FastAPI backend with SQLite profile storage, CV upload + LLM skill extraction, G
 
 ---
 
-### 2. Search agents + `POST /search` `[ ]` — next up
+### 2. Search agents + cloud deploy `[ ]` — next up
 
 LangGraph search orchestration and real job search are deferred to the agent phase.
+
+**Cloud:** Build and test on **AWS EC2** (one instance, Singapore). Migrate to **Alibaba ECS** for hackathon submission when trial account is active. See [`System Design/aws-ec2-deploy.md`](System%20Design/aws-ec2-deploy.md).
 
 ---
 

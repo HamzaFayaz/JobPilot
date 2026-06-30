@@ -38,7 +38,7 @@ A serious job search means scanning multiple platforms, reading every JD, tailor
 | LangGraph search agents | 🚧 Planned |
 | Job scoring & CV rewrite per JD | 🚧 Planned |
 | HITL approve → send via Gmail | 🚧 Planned |
-| Production deploy (ECS / RDS / OSS) | 🚧 Planned |
+| Production deploy | AWS EC2 now → Alibaba ECS for submit | 🚧 Planned |
 
 **Live progress:** [`progress.md`](./progress.md) · **Active work:** [`currently-working-feature.md`](./currently-working-feature.md)
 
@@ -76,9 +76,11 @@ Everything JobPilot will do at launch:
 - **Browser-Use** — control user's Chrome for platform search (no headless detection)
 
 ### Platform & ops (post-MVP)
-- CV storage on Alibaba Cloud OSS
-- Managed database (RDS) and API on ECS
+- CV storage on Alibaba Cloud OSS (optional; files on instance disk for MVP)
+- Managed database (RDS) — optional; SQLite on instance disk for hackathon
 - Multi-user auth (out of hackathon MVP scope)
+
+**Deploy guides:** [`System Design/aws-ec2-deploy.md`](System%20Design/aws-ec2-deploy.md) (active) · [`System Design/alibaba-cloud-trial.md`](System%20Design/alibaba-cloud-trial.md) (hackathon submit)
 
 ---
 

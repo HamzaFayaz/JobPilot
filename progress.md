@@ -29,7 +29,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | **3 — Backend core** | FastAPI profile API, CV upload, GitHub import | `[o]` |
 | **4 — Agents** | LangGraph search + per-job sub-agents | `[ ]` |
 | **5 — HITL flow** | Job detail, send, applications memory | `[ ]` |
-| **6 — Deploy** | ECS / Alibaba RDS + OSS (post-hackathon) | `[ ]` |
+| **6 — Deploy** | AWS EC2 (active) → Alibaba ECS (submit) | `[o]` |
 
 ---
 
