@@ -115,6 +115,43 @@ GOOGLE_CLIENT_SECRET=...
 
 ---
 
+**Live URL:** http://jobpilot-hamza.duckdns.org (HTTP) · https://jobpilot-hamza.duckdns.org (after HTTPS setup)
+
+---
+
+## HTTPS for Gmail OAuth `[ ]` — next step
+
+Google OAuth **requires HTTPS** on a real domain. Raw IP and HTTP-only DuckDNS work for CV + GitHub; **Gmail needs Let's Encrypt**.
+
+| Item | Status |
+|------|--------|
+| DuckDNS `jobpilot-hamza.duckdns.org` → Elastic IP | `[x]` |
+| Google Console redirect `https://jobpilot-hamza.duckdns.org/auth/google/callback` | `[x]` |
+| GitHub OAuth callback on DuckDNS | `[x]` |
+| AWS security group port **443** open | `[ ]` verify |
+| Let's Encrypt cert on EC2 | `[ ]` run `deploy/setup-https.sh` |
+| `FRONTEND_URL` switched to `https://` in GitHub Secrets | `[ ]` after cert |
+
+### Run HTTPS setup (one time, on EC2)
+
+```bash
+ssh -i your-key.pem ubuntu@13.251.74.225
+cd /opt/jobpilot
+export DOMAIN=jobpilot-hamza.duckdns.org
+export CERTBOT_EMAIL=you@example.com
+bash deploy/setup-https.sh
+```
+
+Then update GitHub Secrets:
+
+| Secret | Value |
+|--------|--------|
+| `FRONTEND_URL` | `https://jobpilot-hamza.duckdns.org` |
+
+Redeploy (push to `main` or `gh workflow run deploy.yml`). Test Gmail at https://jobpilot-hamza.duckdns.org/profile.
+
+---
+
 ## Automated deploy (GitHub Actions)
 
 **Push to `main` → cloud updates automatically.** No manual SSH per change.
@@ -126,7 +163,8 @@ GOOGLE_CLIENT_SECRET=...
 | [`deploy/Dockerfile.web`](../deploy/Dockerfile.web) | React build + nginx container image |
 | [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml) | rsync → `docker compose build` → restart |
 | [`deploy/bootstrap-ec2.sh`](../deploy/bootstrap-ec2.sh) | One-time Docker install on EC2 |
-| [`deploy/remote-update.sh`](../deploy/remote-update.sh) | Rebuild and restart containers |
+| [`deploy/setup-https.sh`](../deploy/setup-https.sh) | One-time Let's Encrypt HTTPS (Gmail OAuth) |
+| [`deploy/nginx-docker-ssl.conf.template`](../deploy/nginx-docker-ssl.conf.template) | HTTPS nginx config template |
 
 **GitHub Secrets** (private repo — ~360 min for 6 deploys/day × 10 days):
 
