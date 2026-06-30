@@ -29,7 +29,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | **3 — Backend core** | FastAPI profile API, CV upload, GitHub import | `[o]` |
 | **4 — Agents** | LangGraph search + per-job sub-agents | `[ ]` |
 | **5 — HITL flow** | Job detail, send, applications memory | `[ ]` |
-| **6 — Deploy** | AWS EC2 (active) → Alibaba ECS (submit) | `[o]` |
+| **6 — Deploy** | AWS EC2 + Docker + GitHub Actions; HTTPS for Gmail next | `[o]` |
 
 ---
 
@@ -144,6 +144,19 @@ Long-term memory (DB when backend ships; localStorage during frontend build):
 
 ---
 
+### Cloud deploy (AWS EC2)
+
+| Item | Status |
+|------|--------|
+| Docker Compose + GitHub Actions auto-deploy | `[x]` |
+| Live URL http://jobpilot-hamza.duckdns.org | `[x]` |
+| CV upload on cloud | `[x]` |
+| GitHub OAuth on cloud | `[x]` |
+| Secrets via GitHub Actions → server `.env` | `[x]` |
+| HTTPS (Let's Encrypt) for Gmail OAuth | `[ ]` next |
+
+---
+
 ## Summary
 
 | Area | Complete | In progress | Not started |
@@ -153,4 +166,4 @@ Long-term memory (DB when backend ships; localStorage during frontend build):
 | Backend & DB | 6 | 1 | search agents |
 | Integrations | 2 | 0 | search platforms |
 
-**Last updated:** 2026-06-29
+**Last updated:** 2026-06-30

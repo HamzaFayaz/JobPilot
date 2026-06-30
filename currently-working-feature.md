@@ -6,32 +6,35 @@ Update this file when focus shifts. Mirror status changes in [`progress.md`](pro
 
 ---
 
-## Active focus (2026-06-29)
+## Active focus (2026-06-30)
 
-### 1. Backend profile API `[x]` — shipped
+### 1. Cloud deploy `[o]` — live on AWS
 
-**Plan:** [`.agent/plans/jobpilot_backend_profile_api_plan.md`](.agent/plans/jobpilot_backend_profile_api_plan.md)
+**Live:** http://jobpilot-hamza.duckdns.org  
+**Guide:** [`System Design/aws-ec2-deploy.md`](System%20Design/aws-ec2-deploy.md)
 
-FastAPI backend with SQLite profile storage, CV upload + LLM skill extraction, Gmail/GitHub OAuth, and GitHub repo import.
+| Step | Status |
+|------|--------|
+| EC2 + Elastic IP + Docker Compose | `[x]` |
+| GitHub Actions push-to-deploy | `[x]` |
+| DuckDNS domain | `[x]` |
+| CV upload on cloud | `[x]` |
+| GitHub OAuth on cloud | `[x]` |
+| Google Console HTTPS redirect URI saved | `[x]` |
+| **HTTPS (Let's Encrypt) for Gmail** | `[ ]` **next** |
 
-| Step | Scope | Status |
-|------|-------|--------|
-| FastAPI scaffold + SQLite | `data/jobpilot.db` | `[x]` |
-| `GET/PUT /api/profile`, `POST /api/profile/cv` | Replaced localStorage | `[x]` |
-| Gmail OAuth connect/disconnect | Profile Gmail strip | `[x]` |
-| GitHub OAuth + repo import | GitHubImport component | `[x]` |
+**Tomorrow — enable Gmail on cloud:**
 
-**Run locally:**
-- Backend: `uvicorn backend.app.main:app --reload --port 8000`
-- Frontend: `cd frontend && npm run dev` → http://localhost:5173
+1. Confirm AWS security group port **443** open
+2. SSH to EC2 → run `bash deploy/setup-https.sh` (see aws-ec2-deploy.md)
+3. Update GitHub Secret `FRONTEND_URL` → `https://jobpilot-hamza.duckdns.org`
+4. Redeploy and test Gmail connect
 
 ---
 
-### 2. Search agents + cloud deploy `[ ]` — next up
+### 2. Search agents `[ ]` — after deploy stable
 
-LangGraph search orchestration and real job search are deferred to the agent phase.
-
-**Cloud:** Build and test on **AWS EC2** (one instance, Singapore). Migrate to **Alibaba ECS** for hackathon submission when trial account is active. See [`System Design/aws-ec2-deploy.md`](System%20Design/aws-ec2-deploy.md).
+LangGraph search orchestration and real job search. See [`System Design/JobPilot-System-Design.md`](System%20Design/JobPilot-System-Design.md).
 
 ---
 
@@ -50,6 +53,9 @@ LangGraph search orchestration and real job search are deferred to the agent pha
 
 | Date | Topic | Decision |
 |------|-------|----------|
+| 2026-06-30 | Cloud URL | DuckDNS `jobpilot-hamza.duckdns.org` → Elastic IP `13.251.74.225` |
+| 2026-06-30 | Deploy | Docker Compose + GitHub Actions; secrets in GitHub Secrets |
+| 2026-06-30 | Gmail on cloud | Requires HTTPS (Let's Encrypt); Google rejects IP-only redirect |
 | 2026-06-29 | Frontend scope | Welcome, Profile, Search only (screens 4–8 deferred) |
 | 2026-06-29 | Frontend stack | Vite + React + TypeScript + Tailwind |
 | 2026-06-29 | CV format | `.docx` only; skills extracted via profile LLM (read-only UI) |
@@ -62,8 +68,8 @@ LangGraph search orchestration and real job search are deferred to the agent pha
 
 ## Next actions
 
-1. LangGraph search agent + `POST /search`
-2. Screens 4–8 (run progress, jobs, HITL)
-3. Gmail send on job approval
+1. **HTTPS setup** for Gmail OAuth on cloud
+2. LangGraph search agent + `POST /search`
+3. Screens 4–8 (run progress, jobs, HITL)
 
-**Last updated:** 2026-06-29
+**Last updated:** 2026-06-30
