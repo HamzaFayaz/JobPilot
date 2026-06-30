@@ -119,4 +119,7 @@ export async function importGitHubRepos(repos: string[]): Promise<Profile> {
   })
 }
 
-export const OAUTH_BASE = API_BASE || 'http://localhost:8000'
+// Same origin in production (nginx proxies /auth); direct to API in local dev.
+export const OAUTH_BASE =
+  (import.meta.env.VITE_OAUTH_BASE as string | undefined) ??
+  (API_BASE || (import.meta.env.DEV ? 'http://localhost:8000' : ''))

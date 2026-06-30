@@ -1,0 +1,49 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-ec2
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Sync application to EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+        run: |
+          rsync -avz --delete \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            --exclude '.git' \
+            --exclude '.venv' \
+            --exclude 'node_modules' \
+            --exclude 'frontend/node_modules' \
+            --exclude 'data/jobpilot.db' \
+            --exclude 'data/uploads' \
+            --exclude '.env' \
+            --exclude '.cursor' \
+            ./ "${EC2_USER}@${EC2_HOST}:/opt/jobpilot/"
+
+      - name: Build and restart Docker containers
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            "${EC2_USER}@${EC2_HOST}" 'bash -s' < deploy/remote-update.sh

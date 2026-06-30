@@ -1,0 +1,39 @@
+# JobPilot — production stack (EC2)
+#   web  → React static files + nginx reverse proxy (port 80)
+#   api  → FastAPI + SQLite volume
+
+name: jobpilot
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.api
+    image: jobpilot-api:latest
+    env_file: .env
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  web:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.web
+      args:
+        VITE_API_BASE: ""
+        VITE_USE_MOCK_API: "false"
+    image: jobpilot-web:latest
+    ports:
+      - "80:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped

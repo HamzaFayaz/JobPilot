@@ -1,0 +1,21 @@
+.git
+.github
+.venv
+venv
+node_modules
+frontend/node_modules
+frontend/dist
+data/jobpilot.db
+data/uploads
+.env
+.env.*
+.cursor
+__pycache__
+*.py[cod]
+*.log
+.stitch
+design-system
+System Design
+.agent
+*.md
+!frontend/README.md
