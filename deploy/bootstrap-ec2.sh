@@ -7,7 +7,7 @@ APP_DIR=/opt/jobpilot
 
 echo "==> Installing Docker..."
 sudo apt-get update
-sudo apt-get install -y ca-certificates curl git rsync
+sudo apt-get install -y ca-certificates curl git rsync gettext-base
 sudo install -m 0755 -d /etc/apt/keyrings
 sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
 sudo chmod a+r /etc/apt/keyrings/docker.asc
