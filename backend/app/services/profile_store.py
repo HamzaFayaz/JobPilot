@@ -1,4 +1,4 @@
-"""Profile CRUD against SQLite."""
+"""Profile CRUD against SQLite — scoped per user with encrypted cv_text."""
 
 import json
 import os
@@ -8,6 +8,7 @@ from typing import Any
 
 from backend.app.db import get_connection
 from backend.app.models.profile import ProfileResponse, ProfileUpdate, Project
+from backend.app.services import crypto
 
 
 def _now_iso() -> str:
@@ -21,6 +22,15 @@ def _parse_json_list(raw: str | None) -> list:
         return json.loads(raw)
     except json.JSONDecodeError:
         return []
+
+
+def _decrypt_cv_text(raw: str | None) -> str:
+    if not raw:
+        return ""
+    try:
+        return crypto.decrypt(raw)
+    except ValueError:
+        return raw
 
 
 def _row_to_profile(row: dict, oauth: dict[str, dict | None]) -> ProfileResponse:
@@ -49,24 +59,26 @@ def _row_to_profile(row: dict, oauth: dict[str, dict | None]) -> ProfileResponse
     )
 
 
-def _get_oauth_flags() -> dict[str, dict | None]:
+def _get_oauth_flags(user_id: int) -> dict[str, dict | None]:
     from backend.app.services.oauth_store import get_token
 
     return {
-        "google": get_token("google"),
-        "github": get_token("github"),
+        "google": get_token(user_id, "google"),
+        "github": get_token(user_id, "github"),
     }
 
 
-def get_profile() -> ProfileResponse:
+def get_profile(user_id: int) -> ProfileResponse:
     with get_connection() as conn:
-        row = conn.execute("SELECT * FROM profiles WHERE id = 1").fetchone()
+        row = conn.execute(
+            "SELECT * FROM profiles WHERE user_id = ?", (user_id,)
+        ).fetchone()
     if not row:
         return ProfileResponse()
-    return _row_to_profile(dict(row), _get_oauth_flags())
+    return _row_to_profile(dict(row), _get_oauth_flags(user_id))
 
 
-def update_profile(data: ProfileUpdate) -> ProfileResponse:
+def update_profile(user_id: int, data: ProfileUpdate) -> ProfileResponse:
     fields: list[str] = []
     values: list[Any] = []
 
@@ -78,27 +90,30 @@ def update_profile(data: ProfileUpdate) -> ProfileResponse:
         values.append(json.dumps([p.model_dump() for p in data.projects]))
 
     if not fields:
-        return get_profile()
+        return get_profile(user_id)
 
     fields.append("updated_at = ?")
     values.append(_now_iso())
+    values.append(user_id)
 
     with get_connection() as conn:
         conn.execute(
-            f"UPDATE profiles SET {', '.join(fields)} WHERE id = 1",
+            f"UPDATE profiles SET {', '.join(fields)} WHERE user_id = ?",
             values,
         )
         conn.commit()
-    return get_profile()
+    return get_profile(user_id)
 
 
 def update_cv(
+    user_id: int,
     filename: str,
     path: str,
     cv_text: str,
     skills: list[str],
     status: str,
 ) -> ProfileResponse:
+    encrypted_cv = crypto.encrypt(cv_text) if cv_text else None
     with get_connection() as conn:
         conn.execute(
             """
@@ -109,34 +124,39 @@ def update_cv(
                 skills = ?,
                 skills_extraction_status = ?,
                 updated_at = ?
-            WHERE id = 1
+            WHERE user_id = ?
             """,
-            (filename, path, cv_text, json.dumps(skills), status, _now_iso()),
+            (filename, path, encrypted_cv, json.dumps(skills), status, _now_iso(), user_id),
         )
         conn.commit()
-    return get_profile()
+    return get_profile(user_id)
 
 
-def set_skills_extraction_status(status: str) -> None:
+def set_skills_extraction_status(user_id: int, status: str) -> None:
     with get_connection() as conn:
         conn.execute(
-            "UPDATE profiles SET skills_extraction_status = ?, updated_at = ? WHERE id = 1",
-            (status, _now_iso()),
+            "UPDATE profiles SET skills_extraction_status = ?, updated_at = ? WHERE user_id = ?",
+            (status, _now_iso(), user_id),
         )
         conn.commit()
 
 
-def get_cv_text() -> str:
+def get_cv_text(user_id: int) -> str:
     with get_connection() as conn:
-        row = conn.execute("SELECT cv_text FROM profiles WHERE id = 1").fetchone()
-    return (row["cv_text"] if row and row["cv_text"] else "") or ""
+        row = conn.execute(
+            "SELECT cv_text FROM profiles WHERE user_id = ?", (user_id,)
+        ).fetchone()
+    if not row or not row["cv_text"]:
+        return ""
+    return _decrypt_cv_text(row["cv_text"])
 
 
 def merge_github_import(
+    user_id: int,
     new_projects: list[dict],
     new_skills: list[str],
 ) -> ProfileResponse:
-    profile = get_profile()
+    profile = get_profile(user_id)
     existing_projects = [p.model_dump() for p in profile.projects]
     existing_skills = list(profile.skills)
 
@@ -150,9 +170,9 @@ def merge_github_import(
     with get_connection() as conn:
         conn.execute(
             """
-            UPDATE profiles SET projects = ?, skills = ?, updated_at = ? WHERE id = 1
+            UPDATE profiles SET projects = ?, skills = ?, updated_at = ? WHERE user_id = ?
             """,
-            (json.dumps(existing_projects), json.dumps(merged_skills), _now_iso()),
+            (json.dumps(existing_projects), json.dumps(merged_skills), _now_iso(), user_id),
         )
         conn.commit()
-    return get_profile()
+    return get_profile(user_id)
