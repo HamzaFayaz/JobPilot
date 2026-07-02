@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from backend.app.deps.auth import get_current_user
 from backend.app.models.oauth import GitHubImportRequest, GitHubRepoItem
-from backend.app.models.profile import ProfileResponse
+from backend.app.models.profile import README_MAX_CHARS, ProfileResponse
 from backend.app.services import github_service, profile_llm
 from backend.app.services.oauth_store import get_access_token
 from backend.app.services.profile_store import get_cv_text, merge_github_import
@@ -21,12 +21,15 @@ MAX_PARALLEL = 4
 
 def _import_one_repo(full_name: str, cv_summary: str, access_token: str) -> dict:
     readme = github_service.get_readme(full_name, access_token=access_token)
+    readme_stored = readme[:README_MAX_CHARS] if readme else ""
     summary = profile_llm.summarize_repo(readme, cv_summary)
     return {
         "id": str(uuid.uuid4()),
         "name": summary["name"],
         "description": summary["description"],
         "source": "github",
+        "repo_full_name": full_name,
+        "readme_md": readme_stored,
         "repo_skills": summary.get("repo_skills", []),
     }
 
