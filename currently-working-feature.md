@@ -6,50 +6,86 @@ Update this file when focus shifts. Mirror status changes in [`progress.md`](pro
 
 ---
 
-## Active focus (2026-07-02)
+## Active focus — Main agent + sub-agents (2026-07-02)
 
-### 1. LangGraph search + browser worker `[ ]` — next
+**Branch:** `jobpilot-with-brosweruse`  
+**Master build doc:** [`System Design/jobpilot-agent-build-guide.md`](System%20Design/jobpilot-agent-build-guide.md)  
+**Browser layer spec:** [`System Design/browser-provider-abstraction.md`](System%20Design/browser-provider-abstraction.md)
 
-**Goal:** Parent search graph + per-job sub-agents; `POST /search` with `user_id` from session.
+### Goal
 
-**Architecture (locked):** [`System Design/browser-provider-abstraction.md`](System%20Design/browser-provider-abstraction.md) — Browser-Use v1, swappable WebBridge v2 via `BrowserProvider` only.
+Ship the **LangGraph parent orchestrator** with:
 
-| Area | Status |
+1. **search_subgraph** — browser task via **JobPilot Search Helper** (Browser-Use v1)  
+2. **application_subgraph** — per-job Qwen sub-agent (`enrich_job` → `job_packages`)  
+3. **Async** `POST /api/search` + poll UI  
+4. **Demo mode** on ECS for judges (mock jobs, no Helper install)
+
+### Locked architecture (do not revisit without decision)
+
+| Layer | What | Where |
+|-------|------|--------|
+| **Tier 1** | UI, API, LangGraph, DB, Qwen | **Alibaba ECS** |
+| **Tier 2** | JobPilot Search Helper (pairing, poll tasks) | **User PC** — install once, run per session |
+| **Tier 3** | `BrowserProvider` — Browser-Use now, WebBridge later | Inside Helper only |
+
+**Rejected:** draw.io-style all-in-browser app · full local backend on user PC.
+
+### Implementation phases (from build guide §7)
+
+| Phase | Scope | Status |
+|-------|--------|--------|
+| **A** | Models, `BrowserProvider` stubs, DB tables, search API stubs | `[ ]` |
+| **B** | Worker pairing + heartbeat + `worker/main.py` poll loop | `[ ]` |
+| **C** | `BrowserUseProvider` + local smoke test | `[ ]` |
+| **D** | LangGraph parent + **search_subgraph** | `[ ]` |
+| **E** | **application_subgraph** + Qwen `enrich_job` + `Send` fan-out | `[ ]` |
+| **F** | Run progress UI + demo mode + Helper `.exe` for demo | `[ ]` |
+| **G** | WebBridge provider (post-hackathon) | `[ ]` |
+
+### LangGraph components to build
+
+| Component | Type | Status |
+|-----------|------|--------|
+| Parent orchestrator (`RunState`) | Main graph | `[ ]` |
+| `init_run` | Node | `[ ]` |
+| `search_subgraph` (`SearchState`) | Subgraph | `[ ]` |
+| `prefilter` + cap N | Node | `[ ]` |
+| `Send` → application_subgraph × N | Fan-out | `[ ]` |
+| `application_subgraph` (`ApplicationState`) | Per-job sub-agent | `[ ]` |
+| `persist` job_packages | Node | `[ ]` |
+| Browser agent (Layer 3) | Opaque — `BrowserUseProvider` in Helper | `[ ]` |
+
+### Search Helper (user-facing)
+
+| Item | Status |
 |------|--------|
-| Browser provider spec + worker protocol | `[x]` documented |
-| `BrowserUseProvider` + local worker | `[ ]` |
-| `POST /search` + polling API | `[ ]` |
-| Job packages + applications flow | `[ ]` |
+| Architecture + UX documented | `[x]` |
+| Pairing API + device tokens | `[ ]` |
+| Task poll + result POST | `[ ]` |
+| Windows `.exe` packaging | `[ ]` |
+| UI: SearchHelperStatus + demo mode | `[ ]` |
+
+### API endpoints (target)
+
+| Endpoint | Status |
+|----------|--------|
+| `POST /api/search` | `[ ]` |
+| `GET /api/runs/{runId}/status` | `[ ]` |
+| `GET /api/jobs?runId=` | `[ ]` |
+| `POST /api/worker/pair` | `[ ]` |
+| `GET /api/worker/tasks/next` | `[ ]` |
+| `POST /api/worker/tasks/{id}/result` | `[ ]` |
 
 ---
 
-### 2. Multi-user auth + per-user profiles `[x]` — complete
+## Completed — Multi-user auth `[x]`
 
-| Area | Status |
-|------|--------|
-| Email + password signup/login | `[x]` |
-| JWT in httpOnly cookie | `[x]` |
-| `users` table + bcrypt passwords | `[x]` |
-| `profiles` + `oauth_tokens` scoped by `user_id` | `[x]` |
-| Fernet encryption for `cv_text` + OAuth tokens | `[x]` |
-| Signup + login UI (`/login`, `/signup`) | `[x]` |
-| Protected routes + `credentials: 'include'` | `[x]` |
-| GitHub connect bound to logged-in user | `[x]` |
-| Uploads under `data/uploads/{user_id}/` | `[x]` |
-| Legacy single-user migration (warn only) | `[x]` |
-
-**Deploy note:** Set `JWT_SECRET` and `DATA_ENCRYPTION_KEY` in GitHub Secrets before next production deploy.
+See [`jobpilot_multi_user_auth_plan.md`](.agent/plans/jobpilot_multi_user_auth_plan.md). Production: `http://43.98.197.132`.
 
 ---
 
-### 3. Alibaba ECS deploy `[x]` — complete
-
-| Step | Status |
-|------|--------|
-| ECS + Docker + GitHub Actions | `[x]` |
-| Public IP `43.98.197.132` (no DuckDNS) | `[x]` |
-| CV + GitHub on cloud | `[x]` |
-| GitHub OAuth callback on IP | `[x]` user updated OAuth app |
+## Completed — Alibaba ECS deploy `[x]`
 
 Guide: [`System Design/alibaba-cloud-trial.md`](System%20Design/alibaba-cloud-trial.md)
 
@@ -57,13 +93,12 @@ Guide: [`System Design/alibaba-cloud-trial.md`](System%20Design/alibaba-cloud-tr
 
 ## Not in focus right now
 
-| Item | Status | Notes |
-|------|--------|--------|
-| **Gmail send / connect UI** | `[x]` cancelled | LinkedIn/Indeed use in-platform apply; backend routes remain unused |
-| Screens 4–8 (HITL, applications) | `[ ]` locked |
-| HTTPS / Google OAuth | `[ ]` | Not needed without Gmail |
-| Email verification / password reset | `[ ]` | Post-hackathon hardening |
-| Rate limiting / audit logs | `[ ]` | Post-hackathon hardening |
+| Item | Notes |
+|------|--------|
+| Gmail send / connect UI | Cancelled for MVP |
+| HITL screens (job detail, approve send) | After Phase E job list works |
+| HTTPS | Not needed without Gmail |
+| WebBridge provider | Phase G — swap one layer only |
 
 ---
 
@@ -71,19 +106,20 @@ Guide: [`System Design/alibaba-cloud-trial.md`](System%20Design/alibaba-cloud-tr
 
 | Date | Topic | Decision |
 |------|-------|----------|
-| 2026-07-02 | **Auth MVP** | Email/password only; GitHub connect after login (not primary login) |
-| 2026-07-02 | **Session** | JWT in httpOnly cookie; all `/api/profile*` and `/api/github*` require auth |
-| 2026-07-02 | **Encryption** | bcrypt passwords; Fernet for `cv_text` + OAuth tokens at app level |
-| 2026-07-02 | **Browser automation** | **Browser-Use v1** behind `BrowserProvider`; WebBridge v2 = swap one layer ([spec](System%20Design/browser-provider-abstraction.md)) |
-| 2026-07-02 | Gmail | **Cancelled** for MVP |
-| 2026-07-02 | Public URL | **IP only** (`43.98.197.132`) |
+| 2026-07-02 | **Agent phase start** | Main LangGraph + search + application subgraphs per [build guide](System%20Design/jobpilot-agent-build-guide.md) |
+| 2026-07-02 | **Deployment** | ECS + **JobPilot Search Helper** (install once, run per session) |
+| 2026-07-02 | **Browser v1** | Browser-Use in Helper; WebBridge = provider swap later |
+| 2026-07-02 | **Hackathon demo** | Mock search on site for judges; real search on presenter PC |
+| 2026-07-02 | **Rejected** | Full client-side SPA · full local backend on PC |
+| 2026-07-02 | Auth, Gmail, public URL | See prior entries in git history |
 
 ---
 
 ## Next actions
 
-1. Add `JWT_SECRET` + `DATA_ENCRYPTION_KEY` to GitHub Actions secrets for production
-2. LangGraph search agent (`POST /search`, browser worker)
-3. Job detail HITL screens (when agent phase ships)
+1. **Phase A** — `models/browser.py`, `search_store.py`, DB migration for `worker_*` tables  
+2. **Phase B** — `routes/worker.py` + `worker/main.py` skeleton  
+3. **Phase C** — `BrowserUseProvider.search_listings()`  
+4. **Phase D–E** — LangGraph orchestrator + sub-agents  
 
 **Last updated:** 2026-07-02

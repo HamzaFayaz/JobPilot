@@ -28,7 +28,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | **2 — Data & auth** | Single-user profile + GitHub OAuth (MVP) | `[x]` |
 | **2b — Multi-user auth** | Login, signup, per-user profiles + tokens | `[x]` |
 | **3 — Backend core** | FastAPI profile API, CV upload, GitHub import | `[x]` |
-| **4 — Agents** | LangGraph search + per-job sub-agents | `[ ]` |
+| **4 — Agents** | LangGraph search + per-job sub-agents | `[o]` |
 | **5 — HITL flow** | Job detail, send, applications memory | `[ ]` |
 | **6 — Deploy** | Alibaba ECS (public IP) | `[x]` |
 
@@ -43,8 +43,9 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | [`jobpilot_backend_profile_api_plan.md`](.agent/plans/jobpilot_backend_profile_api_plan.md) | FastAPI + SQLite + CV/GitHub (single-user MVP) | `[x]` |
 | [`jobpilot_multi_user_auth_plan.md`](.agent/plans/jobpilot_multi_user_auth_plan.md) | Login, signup, per-user profiles + encryption | `[x]` |
 | [`browser-provider-abstraction.md`](System%20Design/browser-provider-abstraction.md) | Swappable Browser-Use / WebBridge layer + worker protocol | `[x]` spec |
+| [`jobpilot-agent-build-guide.md`](System%20Design/jobpilot-agent-build-guide.md) | **Active** — LangGraph + Search Helper build phases | `[x]` spec |
 
-**Execute frontend build:** `/build .agent/plans/jobpilot_frontend_web_app_plan.md`
+**Active implementation:** [`jobpilot-agent-build-guide.md`](System%20Design/jobpilot-agent-build-guide.md) on branch `jobpilot-with-brosweruse`.
 
 ---
 
@@ -110,10 +111,12 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 
 | Item | Status |
 |------|--------|
+| Build guide (ECS + Search Helper + LangGraph phases) | `[x]` spec — [`jobpilot-agent-build-guide.md`](System%20Design/jobpilot-agent-build-guide.md) |
 | LangGraph parent graph + subgraphs | `[ ]` |
+| JobPilot Search Helper (Browser-Use v1) | `[ ]` |
 | Browser-Use search agent | `[ ]` |
 | Per-job application sub-agent | `[ ]` |
-| Qwen / model integration | `[x]` profile LLM (CV skills, README) |
+| Qwen / model integration | `[x]` profile LLM (CV skills, README) · `[ ]` enrich_job |
 
 ### Documentation
 

@@ -136,9 +136,11 @@ Single-user MVP: one row in `oauth_tokens`. Multi-user later: keyed by `user_id`
 - **v2 (optional):** `BROWSER_PROVIDER=webbridge` — HTTP to `127.0.0.1:10086`, extension + daemon.
 - LangGraph and routes call **`get_browser_provider()` only** — never import `browser_use` or WebBridge directly on ECS.
 
+**Full spec:** [`browser-provider-abstraction.md`](./browser-provider-abstraction.md)
+
 **Chrome UX (v1):** JobPilot stays open in the user's main profile; automation uses a separate **job-search** profile (`Profile 1`). User logs into LinkedIn once there. Do not ask users to close Chrome.
 
-**Full spec:** [`browser-provider-abstraction.md`](./browser-provider-abstraction.md)
+**Deployment (locked):** Alibaba ECS for API + LangGraph; **JobPilot Search Helper** on user PC for browser automation. Rejected: full client-side SPA, full local backend. See [`jobpilot-agent-build-guide.md`](./jobpilot-agent-build-guide.md).
 
 ---
 
@@ -150,3 +152,4 @@ Single-user MVP: one row in `oauth_tokens`. Multi-user later: keyed by `user_id`
 | 2 | Async `/search` + poll | Change API contract; background graph execution |
 | 3 | Gmail OAuth lifecycle | Token table, refresh-on-send, explicit error codes |
 | 4 | Browser provider abstraction | `BrowserProvider` protocol + worker; Browser-Use v1 |
+| 5 | Deployment + Search Helper | ECS + Helper install once; mock search for judges — [build guide](./jobpilot-agent-build-guide.md) |

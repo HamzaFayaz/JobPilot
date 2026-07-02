@@ -496,10 +496,30 @@ WebBridge: add as Step 2b later (~+12 h), not blocking MVP.
 | 2026-07-02 | Browser Worker always on **user machine**; ECS orchestrates only |
 | 2026-07-02 | Separate Chrome **job-search profile** for v1; JobPilot tab stays open |
 | 2026-07-02 | LangGraph never imports provider SDKs — only `BrowserProvider` |
+| 2026-07-02 | **Deployment locked:** Alibaba ECS + **JobPilot Search Helper** on user PC (rejected: full client-side SPA, full local backend) |
+| 2026-07-02 | Helper install **once per PC**; **run** each search session; mock search on ECS for judges |
 
 ---
 
-## 17. References
+## 18. JobPilot Search Helper — locked UX (summary)
+
+Full narrative, LangGraph build order, and API tables: **[`jobpilot-agent-build-guide.md`](./jobpilot-agent-build-guide.md)**.
+
+| Topic | Locked decision |
+|-------|-----------------|
+| User-facing name | **JobPilot Search Helper** (not “worker”) |
+| Install | **Once** per computer (`.exe` / installer) |
+| Each search | **Run** Helper in background — do not reinstall |
+| JobPilot website | Always on ECS — no local backend for users |
+| Chrome | **Job search** profile separate from main JobPilot window |
+| Hackathon judges | **Demo/mock search** on website; real LinkedIn on presenter PC |
+| WebBridge later | Same Helper + ECS protocol; swap `providers/webbridge.py` only |
+
+---
+
+## 19. References
+
+- [`jobpilot-agent-build-guide.md`](./jobpilot-agent-build-guide.md) — **start here for agent implementation**
 
 - [Browser-Use — Real Browser](https://docs.browser-use.com/open-source/customize/browser/real-browser)
 - [Kimi WebBridge](https://www.kimi.com/features/webbridge)
