@@ -8,12 +8,37 @@ from pydantic import BaseModel, ConfigDict, Field
 SkillsExtractionStatus = Literal["idle", "pending", "ready", "failed"]
 ProjectSource = Literal["manual", "github"]
 
+# Max README bytes stored per GitHub project (server-side only).
+README_MAX_CHARS = 65_536
+
 
 class Project(BaseModel):
+    """Project fields exposed to the frontend API."""
+
     id: str
     name: str
     description: str
     source: ProjectSource | None = None
+    repo_full_name: str | None = Field(None, alias="repoFullName")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class StoredProject(Project):
+    """Full project record persisted in SQLite (includes server-only fields)."""
+
+    readme_md: str | None = Field(None, alias="readmeMd")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    def to_api(self) -> Project:
+        return Project(
+            id=self.id,
+            name=self.name,
+            description=self.description,
+            source=self.source,
+            repo_full_name=self.repo_full_name,
+        )
 
 
 class ProfileUpdate(BaseModel):
