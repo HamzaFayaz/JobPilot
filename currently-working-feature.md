@@ -8,16 +8,17 @@ Update this file when focus shifts. Mirror status changes in [`progress.md`](pro
 
 ## Active focus (2026-07-02)
 
-### 1. LangGraph search agents `[ ]` — next
+### 1. LangGraph search + browser worker `[ ]` — next
 
 **Goal:** Parent search graph + per-job sub-agents; `POST /search` with `user_id` from session.
 
-**Prerequisites shipped:** Multi-user auth, per-user profiles, encrypted tokens, future `search_runs` schema stubs.
+**Architecture (locked):** [`System Design/browser-provider-abstraction.md`](System%20Design/browser-provider-abstraction.md) — Browser-Use v1, swappable WebBridge v2 via `BrowserProvider` only.
 
 | Area | Status |
 |------|--------|
+| Browser provider spec + worker protocol | `[x]` documented |
+| `BrowserUseProvider` + local worker | `[ ]` |
 | `POST /search` + polling API | `[ ]` |
-| Browser-Use search worker | `[ ]` |
 | Job packages + applications flow | `[ ]` |
 
 ---
@@ -73,7 +74,7 @@ Guide: [`System Design/alibaba-cloud-trial.md`](System%20Design/alibaba-cloud-tr
 | 2026-07-02 | **Auth MVP** | Email/password only; GitHub connect after login (not primary login) |
 | 2026-07-02 | **Session** | JWT in httpOnly cookie; all `/api/profile*` and `/api/github*` require auth |
 | 2026-07-02 | **Encryption** | bcrypt passwords; Fernet for `cv_text` + OAuth tokens at app level |
-| 2026-07-02 | **Next phase** | LangGraph search agents after per-user data |
+| 2026-07-02 | **Browser automation** | **Browser-Use v1** behind `BrowserProvider`; WebBridge v2 = swap one layer ([spec](System%20Design/browser-provider-abstraction.md)) |
 | 2026-07-02 | Gmail | **Cancelled** for MVP |
 | 2026-07-02 | Public URL | **IP only** (`43.98.197.132`) |
 

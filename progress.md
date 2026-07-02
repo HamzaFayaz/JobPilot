@@ -42,6 +42,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | [`jobpilot_frontend_web_app_plan.md`](.agent/plans/jobpilot_frontend_web_app_plan.md) | Vite React app: Welcome, Profile, Search | `[x]` |
 | [`jobpilot_backend_profile_api_plan.md`](.agent/plans/jobpilot_backend_profile_api_plan.md) | FastAPI + SQLite + CV/GitHub (single-user MVP) | `[x]` |
 | [`jobpilot_multi_user_auth_plan.md`](.agent/plans/jobpilot_multi_user_auth_plan.md) | Login, signup, per-user profiles + encryption | `[x]` |
+| [`browser-provider-abstraction.md`](System%20Design/browser-provider-abstraction.md) | Swappable Browser-Use / WebBridge layer + worker protocol | `[x]` spec |
 
 **Execute frontend build:** `/build .agent/plans/jobpilot_frontend_web_app_plan.md`
 
@@ -95,7 +96,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | `users` table + login/signup | `[x]` | Email/password + JWT httpOnly cookie |
 | Profile + tokens scoped by `user_id` | `[x]` | Fernet encryption for cv_text + OAuth tokens |
 | Future tables (`search_runs`, `job_packages`, `job_applications`) | `[x]` | Schema stubs with `user_id` |
-| `POST /search` + polling | `[ ]` | Agent phase |
+| `POST /search` + polling | `[ ]` | Agent phase — see [`browser-provider-abstraction.md`](System%20Design/browser-provider-abstraction.md) |
 
 ### Integrations
 

@@ -559,7 +559,7 @@ app/
       persist.py       write JobPackages, update search_run status
   services/
     qwen.py            Qwen client (OpenAI-compatible)
-    browser.py         Browser agent interface (Browser-Use or Kimi WebBridge — not Playwright)
+    browser.py         BrowserProvider factory + providers/ (see browser-provider-abstraction.md)
     gmail.py           Gmail API (OAuth2, send with attachment)
     cv.py              CV parse + format-preserving rewrite
     store.py           SQLite now / Postgres later
@@ -590,7 +590,7 @@ Paste generated output back into this doc. The browser agent's internal ReAct lo
 
 - Confirm per-run job cap (N) and score threshold default (recommend N=8, threshold=60).
 - Confirm CV source format (PDF/DOCX) for chars-per-line measurement in `cv.py`.
-- Choose browser provider for MVP build: Browser-Use (default) vs Kimi WebBridge — both supported via `browser.py` abstraction.
+- Choose browser provider for MVP build: **Browser-Use (v1)** — see [`browser-provider-abstraction.md`](./browser-provider-abstraction.md). Kimi WebBridge (v2) swaps one layer only.
 - Implement parent graph + subgraphs before HITL routes.
 - Wire async `POST /search` + poll endpoints per [design-decisions.md](./design-decisions.md).
 
@@ -599,5 +599,5 @@ Paste generated output back into this doc. The browser agent's internal ReAct lo
 - Match prefilter: keyword/skills overlap (Stage 1) + LLM score (Stage 2).
 - Failed sends: allow retry; do not permanently reserve URL until `AppliedJob` insert succeeds.
 - Per-job parallelism: LangGraph `Send` to `application_subgraph`.
-- Search execution model: opaque browser ReAct (Browser-Use or Kimi WebBridge), not Playwright.
+- Search execution model: opaque browser ReAct (Browser-Use v1, WebBridge v2) via [`browser-provider-abstraction.md`](./browser-provider-abstraction.md) — not Playwright.
 - Graph structure: parent orchestrator + `search_subgraph` + `application_subgraph` with isolated state.
