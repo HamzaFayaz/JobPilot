@@ -29,7 +29,7 @@ function normalize(profile: Partial<Profile>): Profile {
 }
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, init)
+  const res = await fetch(`${API_BASE}${path}`, { credentials: 'include', ...init })
   if (!res.ok) {
     const detail = await res.text()
     throw new Error(detail || `Request failed: ${res.status}`)
