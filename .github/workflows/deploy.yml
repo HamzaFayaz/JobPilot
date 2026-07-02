@@ -30,7 +30,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
             "${EC2_USER}@${EC2_HOST}" \
-            "sudo mkdir -p /opt/jobpilot/data/uploads && sudo chown -R ubuntu:ubuntu /opt/jobpilot"
+            "sudo mkdir -p /opt/jobpilot/data/uploads && sudo chown -R ${EC2_USER}:${EC2_USER} /opt/jobpilot"
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
             "${EC2_USER}@${EC2_HOST}" 'bash -s' < deploy/bootstrap-ec2.sh || true
 
