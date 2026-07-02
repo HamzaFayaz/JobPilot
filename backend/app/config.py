@@ -69,7 +69,8 @@ class Settings(BaseSettings):
 
     @property
     def cookie_secure(self) -> bool:
-        return self.app_env == "production"
+        # Secure cookies only work over HTTPS; production hackathon deploy uses plain HTTP.
+        return self.frontend_url.startswith("https://")
 
     def user_uploads_dir(self, user_id: int) -> Path:
         return self.uploads_dir / str(user_id)

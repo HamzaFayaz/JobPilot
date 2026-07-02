@@ -24,7 +24,12 @@ def _set_auth_cookie(response: Response, token: str) -> None:
 
 
 def _clear_auth_cookie(response: Response) -> None:
-    response.delete_cookie(key=COOKIE_NAME, path="/")
+    response.delete_cookie(
+        key=COOKIE_NAME,
+        path="/",
+        secure=settings.cookie_secure,
+        samesite="lax",
+    )
 
 
 @router.post("/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
