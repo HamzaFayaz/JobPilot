@@ -1,4 +1,4 @@
-"""Google OAuth helpers for Gmail connect (Google web-server flow)."""
+"""Google OAuth helpers for Gmail connect — per-user token storage."""
 
 import logging
 import os
@@ -26,7 +26,7 @@ SCOPES = [
     "https://www.googleapis.com/auth/userinfo.email",
 ]
 
-_sessions: dict[str, Flow] = {}
+_sessions: dict[str, tuple[Flow, int]] = {}
 _sessions_lock = Lock()
 
 
@@ -50,8 +50,8 @@ def _create_flow() -> Flow:
     )
 
 
-def begin_auth() -> str:
-    """Start OAuth; store Flow by state so PKCE verifier survives the redirect."""
+def begin_auth(user_id: int) -> str:
+    """Start OAuth; store Flow + user_id by state so callback can save per-user token."""
     flow = _create_flow()
     auth_url, state = flow.authorization_url(
         access_type="offline",
@@ -59,17 +59,15 @@ def begin_auth() -> str:
         include_granted_scopes="false",
     )
     with _sessions_lock:
-        _sessions[state] = flow
-        # Drop stale sessions if user retries often
+        _sessions[state] = (flow, user_id)
         if len(_sessions) > 20:
             for key in list(_sessions.keys())[:-10]:
                 _sessions.pop(key, None)
-    logger.info("Google OAuth started (state=%s…)", state[:8])
+    logger.info("Google OAuth started for user %s (state=%s…)", user_id, state[:8])
     return auth_url
 
 
 def _exchange_with_httpx(code: str) -> dict:
-    """Fallback token exchange without PKCE (confidential web client)."""
     resp = httpx.post(
         GOOGLE_TOKEN_URL,
         data={
@@ -95,7 +93,6 @@ def _exchange_with_httpx(code: str) -> dict:
 
 
 def exchange_callback(authorization_response: str) -> tuple[str, str | None, str | None]:
-    """Complete OAuth using the full callback URL (Google-recommended)."""
     parsed = urlparse(authorization_response)
     qs = parse_qs(parsed.query)
     state = (qs.get("state") or [None])[0]
@@ -110,15 +107,22 @@ def exchange_callback(authorization_response: str) -> tuple[str, str | None, str
         raise RuntimeError("missing_gmail_send_scope")
 
     flow: Flow | None = None
+    user_id: int | None = None
     if state:
         with _sessions_lock:
-            flow = _sessions.pop(state, None)
+            session = _sessions.pop(state, None)
+            if session:
+                flow, user_id = session
+
+    if user_id is None:
+        raise RuntimeError("OAuth session expired or invalid state")
 
     if flow is not None:
         try:
             flow.fetch_token(authorization_response=authorization_response)
             creds = flow.credentials
             return _save_credentials(
+                user_id,
                 creds.token,
                 creds.refresh_token,
                 creds.expiry,
@@ -134,6 +138,7 @@ def exchange_callback(authorization_response: str) -> tuple[str, str | None, str
             tz=timezone.utc,
         )
     return _save_credentials(
+        user_id,
         data["access_token"],
         data.get("refresh_token"),
         expires_at,
@@ -141,6 +146,7 @@ def exchange_callback(authorization_response: str) -> tuple[str, str | None, str
 
 
 def _save_credentials(
+    user_id: int,
     access_token: str,
     refresh_token: str | None,
     expiry: datetime | None,
@@ -152,13 +158,14 @@ def _save_credentials(
             expiry = expiry.replace(tzinfo=timezone.utc)
         expires_at = expiry.isoformat()
     save_token(
+        user_id,
         "google",
         access_token=access_token,
         refresh_token=refresh_token,
         email=email,
         expires_at=expires_at,
     )
-    logger.info("Google OAuth connected for %s", email or "(unknown)")
+    logger.info("Google OAuth connected for user %s (%s)", user_id, email or "(unknown)")
     return access_token, refresh_token, email
 
 
@@ -173,15 +180,14 @@ def _fetch_google_email(access_token: str) -> str | None:
     return None
 
 
-def get_valid_access_token() -> str | None:
-    token_row = get_token("google")
+def get_valid_access_token(user_id: int) -> str | None:
+    token_row = get_token(user_id, "google")
     if not token_row:
         return None
     return token_row["access_token"]
 
 
 def oauth_config_summary() -> dict[str, str | list[str]]:
-    """Non-secret config check for debugging."""
     return {
         "redirect_uri": settings.google_redirect_uri,
         "client_id_suffix": settings.google_client_id[-20:] if settings.google_client_id else "",

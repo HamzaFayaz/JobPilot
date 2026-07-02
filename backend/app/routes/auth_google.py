@@ -1,11 +1,12 @@
-"""Google OAuth routes."""
+"""Google OAuth routes — requires authenticated user for connect."""
 
 import logging
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 
 from backend.app.config import settings
+from backend.app.deps.auth import get_current_user
 from backend.app.services.gmail_oauth import begin_auth, exchange_callback, oauth_config_summary
 from backend.app.services.oauth_store import delete_token
 
@@ -14,10 +15,10 @@ router = APIRouter(tags=["auth-google"])
 
 
 @router.get("/auth/google")
-def google_auth_start() -> RedirectResponse:
+def google_auth_start(current_user: dict = Depends(get_current_user)) -> RedirectResponse:
     if not settings.google_client_id or not settings.google_client_secret:
         raise HTTPException(status_code=500, detail="Google OAuth not configured")
-    return RedirectResponse(begin_auth())
+    return RedirectResponse(begin_auth(current_user["id"]))
 
 
 @router.get("/auth/google/callback")
@@ -39,11 +40,10 @@ def google_auth_callback(request: Request, error: str | None = None) -> Redirect
 
 @router.get("/auth/google/config")
 def google_auth_config() -> dict:
-    """Debug endpoint — confirms redirect URI and scopes (no secrets)."""
     return oauth_config_summary()
 
 
 @router.delete("/api/auth/google")
-def google_disconnect() -> dict[str, bool]:
-    delete_token("google")
+def google_disconnect(current_user: dict = Depends(get_current_user)) -> dict[str, bool]:
+    delete_token(current_user["id"], "google")
     return {"disconnected": True}

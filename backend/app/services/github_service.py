@@ -3,18 +3,14 @@
 from github import Auth, Github
 
 from backend.app.models.oauth import GitHubRepoItem
-from backend.app.services.oauth_store import get_access_token
 
 
-def _github_client() -> Github:
-    token = get_access_token("github")
-    if not token:
-        raise RuntimeError("GitHub not connected")
-    return Github(auth=Auth.Token(token))
+def _github_client(access_token: str) -> Github:
+    return Github(auth=Auth.Token(access_token))
 
 
-def list_repos() -> list[GitHubRepoItem]:
-    gh = _github_client()
+def list_repos(access_token: str) -> list[GitHubRepoItem]:
+    gh = _github_client(access_token)
     user = gh.get_user()
     repos = []
     for repo in user.get_repos(affiliation="owner"):
@@ -31,8 +27,8 @@ def list_repos() -> list[GitHubRepoItem]:
     return repos
 
 
-def get_readme(full_name: str) -> str:
-    gh = _github_client()
+def get_readme(full_name: str, access_token: str) -> str:
+    gh = _github_client(access_token)
     repo = gh.get_repo(full_name)
     try:
         content = repo.get_readme()
