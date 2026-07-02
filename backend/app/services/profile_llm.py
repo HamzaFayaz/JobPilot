@@ -69,12 +69,17 @@ def summarize_repo(readme: str, cv_summary: str) -> dict:
     completion = client.chat.completions.create(
         model=settings.profile_model,
         temperature=settings.profile_temperature,
-        max_tokens=settings.profile_max_tokens,
+        max_tokens=max(settings.profile_max_tokens, 1024),
         messages=[
             {
                 "role": "system",
                 "content": (
-                    "Summarize a GitHub repo for a job profile. Return ONLY JSON: "
+                    "Summarize a GitHub repo for a job profile. Write a technical "
+                    "description of at least 5 lines (minimum 80 words). Cover: "
+                    "problem/purpose, tools and stack, architecture or techniques, "
+                    "engineering decisions, and outcomes or metrics if mentioned. "
+                    "Use newline-separated lines. Do not invent technologies not "
+                    "supported by the README. Return ONLY JSON: "
                     '{"name": "...", "description": "...", "repo_skills": ["..."]}'
                 ),
             },
