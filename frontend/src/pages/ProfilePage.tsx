@@ -2,7 +2,6 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useEffect } from 'react'
 import { CvUpload } from '../components/profile/CvUpload'
 import { GitHubImport } from '../components/profile/GitHubImport'
-import { GmailStrip } from '../components/profile/GmailStrip'
 import { ProfileDerivedStatus } from '../components/profile/ProfileDerivedStatus'
 import { RolesInput } from '../components/profile/RolesInput'
 import { Button } from '../components/ui/Button'
@@ -13,16 +12,9 @@ export function ProfilePage() {
   const { gate, refreshProfile } = useProfile()
   const [searchParams] = useSearchParams()
   const completeness = Math.round((gate.requiredComplete / gate.requiredTotal) * 100)
-  const gmailError = searchParams.get('gmail') === 'error'
-  const gmailMissingSend = searchParams.get('gmail') === 'missing_send_scope'
 
   useEffect(() => {
-    if (
-      searchParams.get('gmail') === 'connected' ||
-      searchParams.get('github') === 'connected' ||
-      searchParams.get('gmail') === 'error' ||
-      searchParams.get('gmail') === 'missing_send_scope'
-    ) {
+    if (searchParams.get('github') === 'connected') {
       void refreshProfile()
       window.history.replaceState({}, '', '/profile')
     }
@@ -37,59 +29,6 @@ export function ProfilePage() {
           managed in Settings once processing finishes.
         </p>
       </header>
-
-      {gmailMissingSend ? (
-        <div className="rounded-lg border border-warning/40 bg-hitl-bg p-4 text-sm text-hitl-text">
-          <p className="font-semibold">Gmail connected partially — send permission missing</p>
-          <p className="mt-2">
-            Google only granted your <strong>email address</strong>, not{' '}
-            <strong>Send email on your behalf</strong>. JobPilot needs both.
-          </p>
-          <ol className="mt-3 list-inside list-decimal space-y-1">
-            <li>
-              Enable <strong>Gmail API</strong> in Google Cloud → APIs &amp; Services →
-              Library
-            </li>
-            <li>
-              Revoke JobPilot at{' '}
-              <a
-                href="https://myaccount.google.com/permissions"
-                className="font-semibold text-primary underline"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Google Account permissions
-              </a>
-            </li>
-            <li>
-              Connect Gmail again and on the Google screen{' '}
-              <strong>check the box</strong> for &quot;Send email on your behalf&quot;, then
-              click Continue
-            </li>
-          </ol>
-        </div>
-      ) : null}
-
-      {gmailError ? (
-        <div className="rounded-lg border border-error/30 bg-error/5 p-4 text-sm text-error">
-          Gmail connection failed. Try these steps:
-          <ol className="mt-2 list-inside list-decimal space-y-1">
-            <li>
-              Revoke JobPilot at{' '}
-              <a
-                href="https://myaccount.google.com/permissions"
-                className="font-semibold underline"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Google Account permissions
-              </a>
-            </li>
-            <li>Confirm Gmail API is enabled in Google Cloud Console</li>
-            <li>Restart with <code className="text-xs">dev.cmd</code> and connect again</li>
-          </ol>
-        </div>
-      ) : null}
 
       <div className="rounded-lg border border-warning/30 bg-hitl-bg p-4 text-sm text-hitl-text">
         You approve before anything is sent. JobPilot acts as your assistant, not your
@@ -107,7 +46,6 @@ export function ProfilePage() {
       <CvUpload />
       <RolesInput />
       <GitHubImport />
-      <GmailStrip />
       <ProfileDerivedStatus />
 
       <div className="flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:justify-end">

@@ -3,7 +3,6 @@ import {
   BoltIcon,
   CheckCircleIcon,
   CodeBracketIcon,
-  EnvelopeIcon,
   HandRaisedIcon,
   LockClosedIcon,
   RocketLaunchIcon,
@@ -24,7 +23,7 @@ interface ChecklistItem {
 }
 
 export function WelcomePage() {
-  const { profile, gate } = useProfile()
+  const { gate } = useProfile()
 
   const items: ChecklistItem[] = [
     {
@@ -47,14 +46,6 @@ export function WelcomePage() {
       description: 'Import from GitHub on Profile or add in Settings (minimum 1).',
       done: gate.hasProject,
       icon: RocketLaunchIcon,
-    },
-    {
-      key: 'gmail',
-      title: 'Connect Gmail',
-      description: 'Optional — connect when you are ready to send applications.',
-      done: profile.gmailConnected,
-      optional: true,
-      icon: EnvelopeIcon,
     },
   ]
 
