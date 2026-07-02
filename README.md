@@ -33,12 +33,11 @@ A serious job search means scanning multiple platforms, reading every JD, tailor
 | FastAPI profile API + SQLite | ✅ Complete |
 | CV upload → LLM skill extraction | ✅ Complete |
 | GitHub OAuth + repo import | ✅ Complete |
-| Gmail OAuth connect/disconnect | ✅ Complete |
-| Settings (skills & projects view) | ✅ Complete |
+| Multi-user login / signup | 🚧 Next |
 | LangGraph search agents | 🚧 Planned |
 | Job scoring & CV rewrite per JD | 🚧 Planned |
-| HITL approve → send via Gmail | 🚧 Planned |
-| Production deploy | Live on AWS — HTTPS for Gmail next | 🚧 In progress |
+| HITL approve → platform apply | 🚧 Planned |
+| Production deploy (Alibaba ECS) | ✅ Live — http://43.98.197.132 |
 
 **Live progress:** [`progress.md`](./progress.md) · **Active work:** [`currently-working-feature.md`](./currently-working-feature.md)
 
