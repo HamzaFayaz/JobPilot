@@ -36,6 +36,12 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:5173"
     api_host: str = "0.0.0.0"
     api_port: int = 8000
+    app_env: str = "development"
+
+    # Auth & encryption
+    jwt_secret: str = ""
+    jwt_expire_minutes: int = 10080  # 7 days
+    data_encryption_key: str = ""
 
     # Paths
     data_dir: Path = ROOT / "data"
@@ -60,6 +66,13 @@ class Settings(BaseSettings):
     @property
     def llm_config(self) -> dict:
         return _load_llm_yaml(self.llm_config_path)
+
+    @property
+    def cookie_secure(self) -> bool:
+        return self.app_env == "production"
+
+    def user_uploads_dir(self, user_id: int) -> Path:
+        return self.uploads_dir / str(user_id)
 
 
 @lru_cache
