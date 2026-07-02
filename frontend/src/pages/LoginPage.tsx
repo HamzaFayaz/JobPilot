@@ -33,7 +33,7 @@ export function LoginPage() {
       <div className="w-full max-w-md rounded-xl border border-border bg-surface p-8 shadow-sm">
         <h1 className="text-2xl font-bold text-text-primary">Sign in to JobPilot</h1>
         <p className="mt-2 text-sm text-text-secondary">
-          Your AI job application copilot — one workspace per account.
+          Your AI job application copilot, one workspace per account.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-4">

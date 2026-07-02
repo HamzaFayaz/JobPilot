@@ -27,7 +27,7 @@ export function SearchPage() {
   }
 
   const showToast = () => {
-    setToast('Search coming soon — backend integration is not wired yet.')
+    setToast('Search coming soon. Backend integration is not wired yet.')
     window.setTimeout(() => setToast(null), 3000)
   }
 
@@ -152,7 +152,7 @@ export function SearchPage() {
           <ShieldCheckIcon className="mb-2 h-6 w-6 text-primary" aria-hidden="true" />
           <h2 className="text-sm font-semibold">You stay in control</h2>
           <p className="mt-1 text-xs text-text-secondary">
-            Search results will feed into a human-approved application flow — nothing sends
+            Search results will feed into a human-approved application flow. Nothing sends
             automatically.
           </p>
         </article>
