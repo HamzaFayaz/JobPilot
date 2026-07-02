@@ -9,7 +9,7 @@
 set -euo pipefail
 
 APP_DIR=/opt/jobpilot
-DOMAIN="${DOMAIN:-jobpilot-hamza.duckdns.org}"
+DOMAIN="${DOMAIN:-43.98.197.132}"
 CERTBOT_EMAIL="${CERTBOT_EMAIL:-}"
 
 if [ -z "$CERTBOT_EMAIL" ]; then

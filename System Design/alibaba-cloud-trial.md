@@ -104,7 +104,6 @@ Alibaba ECS:
 - SSH username: root or ecs-user
 - Elastic IP attached: yes/no
 - Security group: 22, 80, 443 open
-- DuckDNS updated to new IP: yes/no
 ```
 
 ### GitHub Secrets (update for Alibaba)
@@ -114,10 +113,10 @@ Alibaba ECS:
 | `EC2_HOST` | Alibaba **public / Elastic IP** |
 | `EC2_USER` | `root` or `ecs-user` |
 | `EC2_SSH_KEY` | Private key `.pem` content |
-| `DOMAIN` | `jobpilot-hamza.duckdns.org` |
-| `FRONTEND_URL` | `http://jobpilot-hamza.duckdns.org` → `https://` after SSL |
-| `GOOGLE_REDIRECT_URI` | `https://jobpilot-hamza.duckdns.org/auth/google/callback` |
-| `GH_OAUTH_REDIRECT_URI` | `http://jobpilot-hamza.duckdns.org/auth/github/callback` |
+| `DOMAIN` | `43.98.197.132` |
+| `FRONTEND_URL` | `http://43.98.197.132` |
+| `GOOGLE_REDIRECT_URI` | `http://43.98.197.132/auth/google/callback` (deferred) |
+| `GH_OAUTH_REDIRECT_URI` | `http://43.98.197.132/auth/github/callback` |
 | App keys | `DASHSCOPE_API_KEY`, `GOOGLE_*`, `GH_OAUTH_*` (unchanged) |
 
 ### One-time on ECS
@@ -125,46 +124,31 @@ Alibaba ECS:
 1. [ ] Reset password OR bind SSH key (see above)  
 2. [ ] Security group: **22** (your IP), **80**, **443**  
 3. [ ] Attach **Elastic IP** (stable URL)  
-4. [ ] DuckDNS: point `jobpilot-hamza.duckdns.org` → **Alibaba Elastic IP**  
-5. [ ] SSH in → `bash deploy/bootstrap-ec2.sh`  
-6. [ ] Update GitHub Secrets → push/deploy (or workflow dispatch)  
-7. [ ] Run `bash deploy/setup-https.sh` → Gmail on cloud  
-8. [ ] Optional: copy `data/` from AWS if migrating profiles  
+4. [ ] SSH in → `bash deploy/bootstrap-ec2.sh`  
+5. [ ] Update GitHub Secrets → push/deploy (or workflow dispatch)  
+6. [ ] Update GitHub OAuth app callback to public IP  
+7. [ ] Optional: copy `data/` from AWS if migrating profiles  
 
 **Deploy files:** same as AWS — [`docker-compose.yml`](../docker-compose.yml), [`deploy/`](../deploy/), [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml)
 
 ---
 
-## OAuth consoles (Alibaba + DuckDNS)
+## OAuth consoles (public IP)
 
-Reuse domain **`jobpilot-hamza.duckdns.org`** — update DuckDNS IP to Alibaba, not AWS.
-
-### Google Cloud (Gmail)
-
-**Credentials** → OAuth client → Authorized redirect URIs:
-
-```
-http://localhost:8000/auth/google/callback
-https://jobpilot-hamza.duckdns.org/auth/google/callback
-```
-
-**Authorized JavaScript origins:**
-
-```
-http://localhost:5173
-https://jobpilot-hamza.duckdns.org
-```
-
-Gmail **requires HTTPS** on cloud — run `deploy/setup-https.sh` after deploy.
+Use the ECS **public IP** for cloud OAuth (no DuckDNS).
 
 ### GitHub OAuth App
 
 | Field | Value |
 |-------|--------|
-| **Homepage URL** | `http://jobpilot-hamza.duckdns.org` |
-| **Authorization callback URL** | `http://jobpilot-hamza.duckdns.org/auth/github/callback` |
+| **Homepage URL** | `http://43.98.197.132` |
+| **Authorization callback URL** | `http://43.98.197.132/auth/github/callback` |
 
-GitHub works on HTTP; Gmail needs HTTPS.
+GitHub works on HTTP. Visit the app at `http://43.98.197.132` when connecting GitHub.
+
+### Google Cloud (Gmail) — deferred
+
+Gmail send is out of scope for LinkedIn/Indeed flows. Skip unless you add HTTPS later.
 
 ---
 
@@ -173,10 +157,10 @@ GitHub works on HTTP; Gmail needs HTTPS.
 Written automatically from GitHub Secrets on deploy. Target values:
 
 ```env
-DOMAIN=jobpilot-hamza.duckdns.org
-FRONTEND_URL=https://jobpilot-hamza.duckdns.org
-GOOGLE_REDIRECT_URI=https://jobpilot-hamza.duckdns.org/auth/google/callback
-GITHUB_REDIRECT_URI=http://jobpilot-hamza.duckdns.org/auth/github/callback
+DOMAIN=43.98.197.132
+FRONTEND_URL=http://43.98.197.132
+GOOGLE_REDIRECT_URI=http://43.98.197.132/auth/google/callback
+GITHUB_REDIRECT_URI=http://43.98.197.132/auth/github/callback
 QWEN_BASE_URL=https://dashscope-intl.aliyuncs.com/compatible-mode/v1
 ```
 

@@ -17,7 +17,7 @@ fi
 
 # shellcheck disable=SC1091
 set -a && source .env && set +a
-DOMAIN="${DOMAIN:-jobpilot-hamza.duckdns.org}"
+DOMAIN="${DOMAIN:-43.98.197.132}"
 
 if [ -f "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]; then
   export DOMAIN

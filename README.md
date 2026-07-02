@@ -82,7 +82,7 @@ Everything JobPilot will do at launch:
 
 **Deploy guides:** [`System Design/aws-ec2-deploy.md`](System%20Design/aws-ec2-deploy.md) (active) · [`System Design/alibaba-cloud-trial.md`](System%20Design/alibaba-cloud-trial.md) (hackathon submit)
 
-**Live demo:** http://jobpilot-hamza.duckdns.org
+**Live demo:** http://43.98.197.132
 
 ---
 
@@ -243,7 +243,7 @@ Search, job packages, and send endpoints are **planned** — see [`jobpilot_prd.
 | 3 | `POST /search`, LangGraph agents | 🚧 Next |
 | 4 | Job results, HITL, Gmail send | 🚧 |
 | 5 | Applications tracking UI | 🚧 |
-| 6 | Production deploy (http://jobpilot-hamza.duckdns.org) | 🚧 HTTPS next |
+| 6 | Production deploy (http://43.98.197.132) | `[x]` Alibaba ECS |
 
 ---
 
