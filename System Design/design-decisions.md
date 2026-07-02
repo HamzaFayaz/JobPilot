@@ -28,7 +28,9 @@ class RunState(TypedDict):
     status: str              # "pending" | "running" | "completed" | "failed"
 ```
 
-**Out of scope for MVP:** `user_id`. Single-user hackathon — add when multi-user auth lands.
+**Out of scope for MVP:** `user_id` was deferred for hackathon single-user demo.
+
+**Update (2026-07-02):** Multi-user auth is now **in progress** — add `user_id` to `RunState`, `JobPackage`, `AppliedJob`, `profiles`, and `oauth_tokens` when login/signup ships. See [`currently-working-feature.md`](../currently-working-feature.md).
 
 ---
 
@@ -68,7 +70,9 @@ Client                          API                         Orchestrator
 
 ## 3. Gmail OAuth token lifecycle
 
-**Issue:** The main design lists "Gmail OAuth start + callback" but not where tokens live, how refresh works, or what happens when a token expires mid-run. This is the #1 likely demo failure.
+> **Status (2026-07-02): CANCELLED for MVP.** LinkedIn and Indeed use in-platform apply flows, not email send. Gmail UI removed from onboarding; backend routes may remain but are unused. Skip HTTPS/Google OAuth for deploy.
+
+**Issue:** The main design lists "Gmail OAuth start + callback" but not where tokens live, how refresh works, or what happens when a token expires mid-run. This was the #1 likely demo failure when email send was in scope.
 
 **Decision (MVP):**
 

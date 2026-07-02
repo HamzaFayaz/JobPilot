@@ -10,9 +10,9 @@ These gaps are real but do not block starting implementation. Address them natur
 
 **Gap:** No `user_id` in `RunState` — cannot correlate runs across concurrent users.
 
-**When to handle:** Post-MVP or when adding auth.
+**When to handle:** **Now** — active phase (login/signup + per-user profiles).
 
-**MVP approach:** Omit `user_id`. Single-user local app; one profile, one Gmail token row. Add `user_id` to `RunState`, `JobPackage`, and `AppliedJob` when multi-user auth ships.
+**Approach:** Add `users` table; scope `profiles`, `oauth_tokens`, uploads, and graph state by `user_id`. See [`currently-working-feature.md`](../currently-working-feature.md).
 
 ---
 
