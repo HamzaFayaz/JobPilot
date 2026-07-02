@@ -6,35 +6,50 @@ Update this file when focus shifts. Mirror status changes in [`progress.md`](pro
 
 ---
 
-## Active focus (2026-06-30)
+## Active focus (2026-07-01)
 
-### 1. Cloud deploy `[o]` — live on AWS
+### 1. Alibaba ECS deploy `[o]` — hackathon cloud (trial running)
 
-**Live:** http://jobpilot-hamza.duckdns.org  
-**Guide:** [`System Design/aws-ec2-deploy.md`](System%20Design/aws-ec2-deploy.md)
+**Guide:** [`System Design/alibaba-cloud-trial.md`](System%20Design/alibaba-cloud-trial.md)  
+**Domain (reuse):** `jobpilot-hamza.duckdns.org` → point to **Alibaba Elastic IP**  
+**Stack:** Same Docker Compose + GitHub Actions as AWS proof-of-deploy
 
 | Step | Status |
 |------|--------|
-| EC2 + Elastic IP + Docker Compose | `[x]` |
-| GitHub Actions push-to-deploy | `[x]` |
-| DuckDNS domain | `[x]` |
-| CV upload on cloud | `[x]` |
-| GitHub OAuth on cloud | `[x]` |
-| Google Console HTTPS redirect URI saved | `[x]` |
-| **HTTPS (Let's Encrypt) for Gmail** | `[ ]` **next** |
+| Alibaba trial ECS running (Singapore) | `[x]` |
+| Reset password / SSH key (Workbench asks for password — no default) | `[ ]` **you** |
+| Security group 22, 80, 443 | `[ ]` verify |
+| Elastic IP on Alibaba | `[ ]` |
+| DuckDNS → Alibaba IP | `[ ]` |
+| `bootstrap-ec2.sh` on ECS | `[ ]` |
+| GitHub Secrets → Alibaba host + SSH key | `[ ]` |
+| Deploy via GitHub Actions | `[ ]` |
+| CV + GitHub on Alibaba URL | `[ ]` |
+| HTTPS (`setup-https.sh`) for Gmail | `[ ]` |
+| Google + GitHub OAuth consoles updated | `[o]` partial |
 
-**Tomorrow — enable Gmail on cloud:**
+**Connect issue (Workbench / VNC):** Alibaba has **no default password**.  
+Console → instance → **All Actions → Reset Instance Password** → login as `root` (or `ecs-user`).  
+Official: [Workbench login](https://www.alibabacloud.com/help/en/ecs/user-guide/connect-to-a-linux-instance-by-using-a-password-or-key) · [VNC](https://www.alibabacloud.com/help/en/ecs/user-guide/log-on-to-an-instance-by-using-vnc)
 
-1. Confirm AWS security group port **443** open
-2. SSH to EC2 → run `bash deploy/setup-https.sh` (see aws-ec2-deploy.md)
-3. Update GitHub Secret `FRONTEND_URL` → `https://jobpilot-hamza.duckdns.org`
-4. Redeploy and test Gmail connect
+**Share when ready (no secrets):** public IP, SSH username, Elastic IP yes/no.
 
 ---
 
-### 2. Search agents `[ ]` — after deploy stable
+### 2. AWS EC2 `[x]` — proof complete (can stop)
 
-LangGraph search orchestration and real job search. See [`System Design/JobPilot-System-Design.md`](System%20Design/JobPilot-System-Design.md).
+| Item | Status |
+|------|--------|
+| Docker + GitHub Actions | `[x]` |
+| CV + GitHub on cloud | `[x]` |
+| DuckDNS + Google redirect URI saved | `[x]` |
+| HTTPS for Gmail | `[ ]` deferred — do on Alibaba |
+
+---
+
+### 3. Search agents `[ ]` — after Alibaba stable
+
+LangGraph search orchestration. See [`System Design/JobPilot-System-Design.md`](System%20Design/JobPilot-System-Design.md).
 
 ---
 
@@ -42,10 +57,10 @@ LangGraph search orchestration and real job search. See [`System Design/JobPilot
 
 | Item | Status |
 |------|--------|
-| Screens 4–8 (run progress, jobs, HITL, applications, settings page) | `[ ]` locked |
+| Screens 4–8 | `[ ]` locked |
 | LangGraph agents + browser worker | `[ ]` |
 | `POST /search` + polling | `[ ]` |
-| Gmail send (`POST /jobs/{id}/send`) | `[ ]` |
+| Gmail send | `[ ]` |
 
 ---
 
@@ -53,23 +68,19 @@ LangGraph search orchestration and real job search. See [`System Design/JobPilot
 
 | Date | Topic | Decision |
 |------|-------|----------|
-| 2026-06-30 | Cloud URL | DuckDNS `jobpilot-hamza.duckdns.org` → Elastic IP `13.251.74.225` |
+| 2026-07-01 | Cloud platform | **Alibaba ECS trial** = active hackathon target; AWS = proof only |
+| 2026-07-01 | Domain | Reuse DuckDNS `jobpilot-hamza.duckdns.org`; repoint IP to Alibaba |
+| 2026-07-01 | Gmail OAuth | Web app needs HTTPS + redirect URI (not mobile-style); same on Alibaba |
 | 2026-06-30 | Deploy | Docker Compose + GitHub Actions; secrets in GitHub Secrets |
-| 2026-06-30 | Gmail on cloud | Requires HTTPS (Let's Encrypt); Google rejects IP-only redirect |
-| 2026-06-29 | Frontend scope | Welcome, Profile, Search only (screens 4–8 deferred) |
-| 2026-06-29 | Frontend stack | Vite + React + TypeScript + Tailwind |
-| 2026-06-29 | CV format | `.docx` only; skills extracted via profile LLM (read-only UI) |
-| 2026-06-29 | GitHub | OAuth + README import for project cards |
-| 2026-06-29 | Gmail | OAuth connect/disconnect; send deferred to HITL phase |
-| 2026-06-29 | Profile storage | SQLite via FastAPI (no localStorage in production path) |
-| 2026-06-29 | Backend profile API | Shipped — CV, skills, roles, projects, OAuth |
+| 2026-06-29 | Backend profile API | Shipped locally + proven on AWS |
 
 ---
 
 ## Next actions
 
-1. **HTTPS setup** for Gmail OAuth on cloud
-2. LangGraph search agent + `POST /search`
-3. Screens 4–8 (run progress, jobs, HITL)
+1. Reset Alibaba password / bind SSH key → bootstrap ECS  
+2. Update DuckDNS + GitHub Secrets → deploy  
+3. HTTPS + Gmail on `jobpilot-hamza.duckdns.org`  
+4. LangGraph search agent  
 
-**Last updated:** 2026-06-30
+**Last updated:** 2026-07-01

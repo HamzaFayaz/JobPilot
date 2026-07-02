@@ -29,7 +29,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | **3 — Backend core** | FastAPI profile API, CV upload, GitHub import | `[o]` |
 | **4 — Agents** | LangGraph search + per-job sub-agents | `[ ]` |
 | **5 — HITL flow** | Job detail, send, applications memory | `[ ]` |
-| **6 — Deploy** | AWS EC2 + Docker + GitHub Actions; HTTPS for Gmail next | `[o]` |
+| **6 — Deploy** | Alibaba ECS (active) · AWS proof done · HTTPS for Gmail | `[o]` |
 
 ---
 
@@ -144,16 +144,29 @@ Long-term memory (DB when backend ships; localStorage during frontend build):
 
 ---
 
-### Cloud deploy (AWS EC2)
+### Cloud deploy
+
+#### Alibaba ECS (active — hackathon)
+
+| Item | Status |
+|------|--------|
+| Trial ECS running (Singapore) | `[x]` |
+| SSH / Workbench access (reset password) | `[ ]` |
+| Docker bootstrap + GitHub Actions deploy | `[ ]` |
+| DuckDNS → Alibaba IP | `[ ]` |
+| CV upload on cloud | `[ ]` |
+| GitHub OAuth on cloud | `[ ]` |
+| Google OAuth + HTTPS (Gmail) | `[ ]` |
+| Guide | [`System Design/alibaba-cloud-trial.md`](System%20Design/alibaba-cloud-trial.md) |
+
+#### AWS EC2 (proof — can stop)
 
 | Item | Status |
 |------|--------|
 | Docker Compose + GitHub Actions auto-deploy | `[x]` |
-| Live URL http://jobpilot-hamza.duckdns.org | `[x]` |
-| CV upload on cloud | `[x]` |
-| GitHub OAuth on cloud | `[x]` |
+| CV + GitHub on `jobpilot-hamza.duckdns.org` | `[x]` |
 | Secrets via GitHub Actions → server `.env` | `[x]` |
-| HTTPS (Let's Encrypt) for Gmail OAuth | `[ ]` next |
+| HTTPS for Gmail | `[ ]` → do on Alibaba |
 
 ---
 
@@ -166,4 +179,4 @@ Long-term memory (DB when backend ships; localStorage during frontend build):
 | Backend & DB | 6 | 1 | search agents |
 | Integrations | 2 | 0 | search platforms |
 
-**Last updated:** 2026-06-30
+**Last updated:** 2026-07-01

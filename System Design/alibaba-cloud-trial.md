@@ -1,118 +1,225 @@
-# Alibaba Cloud — ECS Free Trial (JobPilot)
+# Alibaba Cloud — ECS Deploy (Active)
 
-**Status:** **Hackathon submission target** — activate when account/trial is available.  
-**Active cloud:** AWS EC2 until then → [`aws-ec2-deploy.md`](./aws-ec2-deploy.md)  
-**Last updated:** 2026-06-29  
-**Hackathon requirement:** Agent backend must run on Alibaba Cloud ECS ([`jobpilot_prd.md`](../jobpilot_prd.md))
+**Status:** **Primary cloud target** — trial instance running (hackathon submission).  
+**Previous:** AWS EC2 proof-of-deploy → [`aws-ec2-deploy.md`](./aws-ec2-deploy.md)  
+**Last updated:** 2026-07-01  
+**Hackathon requirement:** Agent backend on Alibaba Cloud ECS ([`jobpilot_prd.md`](../jobpilot_prd.md))
 
 ---
 
 ## Deploy strategy
 
-| Phase | Platform | Notes |
-|-------|----------|-------|
-| **Now** | Local + **AWS EC2** | Build and validate all features |
-| **Submit** | **Alibaba ECS** | Same single-instance layout; swap host |
+| Phase | Platform | Status |
+|-------|----------|--------|
+| **Proof of deploy** | AWS EC2 | `[x]` Docker + GitHub Actions + DuckDNS |
+| **Active / submit** | **Alibaba ECS (this doc)** | `[o]` migrate host + OAuth + HTTPS |
+| **Local dev** | `dev.cmd` | `[x]` unchanged |
 
-If trial is blocked (risk control on duplicate accounts), continue on AWS and migrate to Alibaba before the deadline.
+**Same stack on Alibaba:** Docker Compose (`web` + `api`), GitHub Actions rsync + deploy, SQLite on disk, DuckDNS domain.
 
 ---
 
-## Confirmed trial selection (when account works)
+## Instance spec (trial)
 
-| Setting | Your choice |
-|---------|-------------|
-| **Region** | **Singapore** |
-| **Instance** | **ecs.e-c1m2.xlarge** — **4 vCPU · 8 GiB · Economy Type e** |
+| Setting | Choice |
+|---------|--------|
+| **Region** | **Singapore** (`ap-southeast-1`) |
+| **Instance** | **ecs.e-c1m2.xlarge** — 4 vCPU · 8 GiB |
 | **Disk** | **ESSD Entry · 100 GiB** |
 | **OS** | **Ubuntu 22.04 64-bit** |
-| **Pre-installed apps** | **None** (no WordPress, LNMP, Docker, BT-Panel) |
-| **Quantity** | **1 instance** |
-| **Trial credit** | USD 90 · ~**769 hours** at ~$0.117/hr · **$0.25/hr cap** |
-
-**~16-day sprint cost:** 384 hrs × $0.117 ≈ **~$45** — fits within trial credit.
+| **Pre-installed apps** | **None** |
+| **Count** | **1** |
 
 ---
 
-## Database & storage (no separate RDS)
+## Connect to the instance (official Alibaba)
 
-| Data | Where |
+Alibaba ECS has **no default password**. Workbench and VNC both need the **instance username + password** (or SSH key).
+
+**Official docs:**
+- [Log on with Workbench](https://www.alibabacloud.com/help/en/ecs/user-guide/connect-to-a-linux-instance-by-using-a-password-or-key)
+- [Connect with VNC](https://www.alibabacloud.com/help/en/ecs/user-guide/log-on-to-an-instance-by-using-vnc)
+- [Username / password / keys](https://www.alibabacloud.com/help/en/ecs/user-guide/instance-logon-credential-management)
+
+### Why Workbench / VNC asks for a password
+
+| Fact | Detail |
 |------|--------|
-| Profiles, OAuth, search runs (MVP) | **SQLite** `data/jobpilot.db` on ECS **100 GiB disk** |
-| CV `.docx` files | `data/uploads/` on same disk |
-| **RDS** | Optional post-MVP — **not needed** for hackathon |
-| **OSS** | Optional later for CV cloud storage |
+| **No default password** | Alibaba never assigns one — you set or reset it |
+| **No separate VNC password** | Since July 2023, VNC uses the **same instance password** |
+| **Default Linux username** | `root` (or `ecs-user` if chosen at creation) |
 
-Leftover credits *can* pay for RDS, but **not required** — SQLite on the ECS disk matches current code.
+### Fix: reset instance password (console)
+
+1. ECS Console → **Instances** → select your instance  
+2. **All Actions** → **Reset Instance Password** (try **online** reset first)  
+3. Set a strong password → confirm  
+4. If offline reset required → instance **reboots**  
+5. Connect again via Workbench or VNC with `root` + new password  
+
+### Recommended connection methods (JobPilot deploy)
+
+| Method | Use for | Notes |
+|--------|---------|-------|
+| **Workbench → Password-free login** | Quick console access | Easiest in browser; no SSH key needed |
+| **SSH from your PC** | Deploy + `bootstrap-ec2.sh` | **Preferred for GitHub Actions** — bind key pair |
+| **VNC** | Rescue / password verify | Use after reset to confirm OS login works |
+
+### SSH key pair (for GitHub Actions deploy)
+
+1. ECS Console → **Key Pairs** → Create (or use existing `.pem`)  
+2. **Bind key pair** to instance (or set at creation)  
+3. Security group: **22** from your IP + GitHub Actions needs SSH from internet (`0.0.0.0/0` for deploy key only — or self-hosted runner later)  
+4. Default user for Ubuntu images: usually **`root`** — verify in instance details  
+
+```bash
+ssh -i your-alibaba-key.pem root@<PUBLIC_IP>
+```
 
 ---
 
-## Do **not** choose
-
-| Option | Reason |
-|--------|--------|
-| **China (Shenzhen / Shanghai)** | Identity verification + ICP rules |
-| **WordPress / LNMP / BT-Panel** | Wrong stack (PHP/MySQL panel) |
-| **Separate RDS** | Unnecessary for 16-day MVP |
-| **2nd ECS instance** | Frontend + backend share one box via nginx |
-
----
-
-## Architecture (one ECS)
+## Architecture (one ECS — same as AWS)
 
 ```
 User's laptop                    Alibaba ECS (Singapore)
 ┌─────────────────────┐         ┌──────────────────────────┐
-│ Chrome + Browser    │◄───────►│ Nginx → frontend + /api  │
-│ Worker (local)      │  HTTPS  │ FastAPI + LangGraph      │
-└─────────────────────┘         │ data/jobpilot.db         │
-                                │ data/uploads/            │
+│ Chrome + Browser    │◄───────►│  web (nginx :80/:443)    │
+│ Worker (local)      │  HTTPS  │  api (FastAPI :8000)     │
+└─────────────────────┘         │  data/jobpilot.db        │
+                                │  data/uploads/           │
                                 └──────────────────────────┘
 ```
 
 ---
 
-## Region `.env` (Singapore)
+## What we need to wire JobPilot (checklist)
+
+### From you (safe to share in chat)
+
+```
+Alibaba ECS:
+- Public IP:
+- Region: Singapore
+- Instance ID:
+- SSH username: root or ecs-user
+- Elastic IP attached: yes/no
+- Security group: 22, 80, 443 open
+- DuckDNS updated to new IP: yes/no
+```
+
+### GitHub Secrets (update for Alibaba)
+
+| Secret | Value |
+|--------|--------|
+| `EC2_HOST` | Alibaba **public / Elastic IP** |
+| `EC2_USER` | `root` or `ecs-user` |
+| `EC2_SSH_KEY` | Private key `.pem` content |
+| `DOMAIN` | `jobpilot-hamza.duckdns.org` |
+| `FRONTEND_URL` | `http://jobpilot-hamza.duckdns.org` → `https://` after SSL |
+| `GOOGLE_REDIRECT_URI` | `https://jobpilot-hamza.duckdns.org/auth/google/callback` |
+| `GH_OAUTH_REDIRECT_URI` | `http://jobpilot-hamza.duckdns.org/auth/github/callback` |
+| App keys | `DASHSCOPE_API_KEY`, `GOOGLE_*`, `GH_OAUTH_*` (unchanged) |
+
+### One-time on ECS
+
+1. [ ] Reset password OR bind SSH key (see above)  
+2. [ ] Security group: **22** (your IP), **80**, **443**  
+3. [ ] Attach **Elastic IP** (stable URL)  
+4. [ ] DuckDNS: point `jobpilot-hamza.duckdns.org` → **Alibaba Elastic IP**  
+5. [ ] SSH in → `bash deploy/bootstrap-ec2.sh`  
+6. [ ] Update GitHub Secrets → push/deploy (or workflow dispatch)  
+7. [ ] Run `bash deploy/setup-https.sh` → Gmail on cloud  
+8. [ ] Optional: copy `data/` from AWS if migrating profiles  
+
+**Deploy files:** same as AWS — [`docker-compose.yml`](../docker-compose.yml), [`deploy/`](../deploy/), [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml)
+
+---
+
+## OAuth consoles (Alibaba + DuckDNS)
+
+Reuse domain **`jobpilot-hamza.duckdns.org`** — update DuckDNS IP to Alibaba, not AWS.
+
+### Google Cloud (Gmail)
+
+**Credentials** → OAuth client → Authorized redirect URIs:
+
+```
+http://localhost:8000/auth/google/callback
+https://jobpilot-hamza.duckdns.org/auth/google/callback
+```
+
+**Authorized JavaScript origins:**
+
+```
+http://localhost:5173
+https://jobpilot-hamza.duckdns.org
+```
+
+Gmail **requires HTTPS** on cloud — run `deploy/setup-https.sh` after deploy.
+
+### GitHub OAuth App
+
+| Field | Value |
+|-------|--------|
+| **Homepage URL** | `http://jobpilot-hamza.duckdns.org` |
+| **Authorization callback URL** | `http://jobpilot-hamza.duckdns.org/auth/github/callback` |
+
+GitHub works on HTTP; Gmail needs HTTPS.
+
+---
+
+## Production `.env` (on ECS at `/opt/jobpilot/.env`)
+
+Written automatically from GitHub Secrets on deploy. Target values:
 
 ```env
-ALIBABA_REGION=ap-southeast-1
-ALIBABA_ECS_ZONE=ap-southeast-1a
-
-# OSS (optional later)
-ALIBABA_OSS_ENDPOINT=oss-ap-southeast-1.aliyuncs.com
-ALIBABA_OSS_BUCKET=jobpilot-cv-sg
-
-FRONTEND_URL=https://your-alibaba-domain
-GOOGLE_REDIRECT_URI=https://your-alibaba-domain/auth/google/callback
-GITHUB_REDIRECT_URI=https://your-alibaba-domain/auth/github/callback
-
+DOMAIN=jobpilot-hamza.duckdns.org
+FRONTEND_URL=https://jobpilot-hamza.duckdns.org
+GOOGLE_REDIRECT_URI=https://jobpilot-hamza.duckdns.org/auth/google/callback
+GITHUB_REDIRECT_URI=http://jobpilot-hamza.duckdns.org/auth/github/callback
 QWEN_BASE_URL=https://dashscope-intl.aliyuncs.com/compatible-mode/v1
 ```
 
 ---
 
-## Activation checklist
+## Database & storage
 
-1. [ ] ECS: **Singapore · ecs.e-c1m2.xlarge · Ubuntu 22.04 · 100 GiB · no pre-installers**
-2. [ ] Security group: **22** (your IP), **80/443**
-3. [ ] Elastic IP for stable OAuth URLs
-4. [ ] Same setup as AWS: Python 3.11, nginx, clone JobPilot, `pip install`, `npm run build`
-5. [ ] Copy `data/` from AWS if migrating
-6. [ ] Update OAuth redirect URIs to Alibaba public URL
-7. [ ] Enable **Gmail API** in Google Cloud (same project as local)
+| Data | Where |
+|------|--------|
+| Profiles, OAuth tokens | `data/jobpilot.db` on ECS disk |
+| CV uploads | `data/uploads/` |
+| **RDS / OSS** | Not needed for hackathon MVP |
 
 ---
 
-## Account issues (risk control)
+## Migration from AWS
 
-- Second accounts often hit **risk control** — use **one primary account** or hackathon organizer credits.
-- Support: Console → **Work order / ticket** (not chat only).
-- **Do not block development** — use local + AWS EC2 until resolved.
+| Step | Action |
+|------|--------|
+| 1 | Start Alibaba ECS, bootstrap Docker |
+| 2 | Update DuckDNS → Alibaba IP |
+| 3 | Update GitHub Secrets `EC2_HOST` |
+| 4 | Deploy from `main` |
+| 5 | `scp` or copy `data/` from AWS (optional) |
+| 6 | Re-test CV, GitHub, Gmail (after HTTPS) |
+| 7 | Stop AWS instance to save cost |
+
+---
+
+## Do **not** choose / use
+
+| Option | Reason |
+|--------|--------|
+| China mainland regions | ICP / verification complexity |
+| WordPress / LNMP / BT-Panel AMIs | Wrong stack |
+| Separate RDS for MVP | SQLite on disk is enough |
+| Second ECS instance | One box runs web + api |
 
 ---
 
 ## Related docs
 
-- [`aws-ec2-deploy.md`](./aws-ec2-deploy.md) — **active** cloud deploy guide
-- [`jobpilot_prd.md`](../jobpilot_prd.md) — mandatory Alibaba ECS for submission
-- [`JobPilot-System-Design.md`](./JobPilot-System-Design.md) — topology
+- [`aws-ec2-deploy.md`](./aws-ec2-deploy.md) — AWS proof-of-deploy (archive)  
+- [`jobpilot_prd.md`](../jobpilot_prd.md) — mandatory Alibaba ECS  
+- [`JobPilot-System-Design.md`](./JobPilot-System-Design.md) — topology  
+- [`currently-working-feature.md`](../currently-working-feature.md) — active work

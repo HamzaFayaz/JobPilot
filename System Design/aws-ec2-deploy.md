@@ -1,6 +1,6 @@
 # AWS EC2 — JobPilot Deploy (Active)
 
-**Status:** **Primary cloud target** for build, test, and demo while Alibaba trial is unavailable.  
+**Status:** Proof-of-deploy on AWS; **active target** moved to Alibaba ECS → [`alibaba-cloud-trial.md`](./alibaba-cloud-trial.md)  
 **Last updated:** 2026-06-29  
 **Pattern:** **One EC2 instance** — same layout as Alibaba ECS (frontend static + backend API + SQLite on disk).
 
