@@ -114,7 +114,8 @@ These three screens are **in scope**. Do not implement screens 4–8 until Phase
 | Tailwind breakpoints + design tokens (colors, fonts from `.stitch/DESIGN.md`) | `[x]` |
 | Responsive `AppShell` — sidebar desktop / drawer or bottom nav mobile | `[x]` |
 | React Router: `/`, `/profile`, `/search` | `[x]` |
-| `ProfileContext` / store (CV, skills, projects, Gmail flag) | `[x]` |
+| `ProfileContext` / store (CV, skills, projects) | `[x]` |
+| Gmail strip | `[x]` removed — cancelled (LinkedIn/Indeed in-platform apply) |
 | Profile gate: Search nav disabled until CV + ≥3 skills + ≥1 project | `[x]` |
 | Mock API layer (localStorage; swap to backend later) | `[x]` → replaced by fetch API |
 | API fetch layer + optional `VITE_USE_MOCK_API` | `[x]` |
@@ -127,7 +128,7 @@ These three screens are **in scope**. Do not implement screens 4–8 until Phase
 | Task | Status |
 |------|--------|
 | Hero: logo, tagline, subtext | `[x]` |
-| Setup checklist card (4 rows) | `[x]` |
+| Setup checklist card (3 required rows) | `[x]` |
 | Progress: “X of 3 required steps” | `[x]` |
 | CTA: “Set up your profile” → `/profile` | `[x]` |
 | Nav: Profile context; Search + Applications disabled | `[x]` |
@@ -145,7 +146,7 @@ These three screens are **in scope**. Do not implement screens 4–8 until Phase
 | Target roles: chip input (add/remove) | `[x]` |
 | Projects: repeatable cards (name, description, add/remove) | `[x]` |
 | GitHub: OAuth connect + repo import modal | `[x]` |
-| Gmail strip: real connect/disconnect via OAuth | `[x]` |
+| Login / signup screens | `[ ]` next phase |
 | Save profile (persist via API / SQLite) | `[x]` |
 | Continue to Search (enabled when gate rules pass) | `[x]` |
 | Responsive: single-column mobile; full-width cards | `[x]` |

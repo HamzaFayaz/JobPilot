@@ -25,11 +25,12 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 |-------|--------|--------|
 | **0 — Design** | Stitch UI, design system, screen exports | `[x]` |
 | **1 — Frontend (locked)** | Welcome, Profile, Search (responsive web) | `[x]` |
-| **2 — Data & auth** | Database schema, profile storage, Gmail OAuth | `[x]` |
-| **3 — Backend core** | FastAPI profile API, CV upload, GitHub import | `[o]` |
+| **2 — Data & auth** | Single-user profile + GitHub OAuth (MVP) | `[x]` |
+| **2b — Multi-user auth** | Login, signup, per-user profiles + tokens | `[o]` |
+| **3 — Backend core** | FastAPI profile API, CV upload, GitHub import | `[x]` |
 | **4 — Agents** | LangGraph search + per-job sub-agents | `[ ]` |
 | **5 — HITL flow** | Job detail, send, applications memory | `[ ]` |
-| **6 — Deploy** | Alibaba ECS (active) · AWS proof done · HTTPS for Gmail | `[o]` |
+| **6 — Deploy** | Alibaba ECS (public IP) | `[x]` |
 
 ---
 
@@ -39,7 +40,8 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 |------|---------|--------|
 | [`jobpilot_stitch_ui_plan.md`](.agent/plans/jobpilot_stitch_ui_plan.md) | Stitch desktop UI design + exports | `[x]` |
 | [`jobpilot_frontend_web_app_plan.md`](.agent/plans/jobpilot_frontend_web_app_plan.md) | Vite React app: Welcome, Profile, Search | `[x]` |
-| [`jobpilot_backend_profile_api_plan.md`](.agent/plans/jobpilot_backend_profile_api_plan.md) | FastAPI + SQLite + CV/Gmail/GitHub | `[x]` |
+| [`jobpilot_backend_profile_api_plan.md`](.agent/plans/jobpilot_backend_profile_api_plan.md) | FastAPI + SQLite + CV/GitHub (single-user MVP) | `[x]` |
+| `jobpilot_auth_multi_user_plan.md` (TBD) | Login, signup, per-user profiles | `[ ]` |
 
 **Execute frontend build:** `/build .agent/plans/jobpilot_frontend_web_app_plan.md`
 
@@ -76,7 +78,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | Profile store + gate rules | `[x]` |
 | CV `.docx` upload → API; skills read-only from LLM | `[x]` |
 | GitHub OAuth + repo import | `[x]` |
-| Gmail OAuth connect/disconnect | `[x]` |
+| Gmail OAuth (UI + send) | `[x]` cancelled — out of scope for LinkedIn/Indeed |
 | API layer (fetch → FastAPI; mock flag optional) | `[x]` |
 
 → Task-level detail: [`frontend/progress.md`](frontend/progress.md) · Build plan: [`jobpilot_frontend_web_app_plan.md`](.agent/plans/jobpilot_frontend_web_app_plan.md)
@@ -86,18 +88,20 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | Item | Status | Notes |
 |------|--------|--------|
 | Profile schema agreed (incl. `target_roles`, `.docx`) | `[x]` | Documented in frontend web app plan |
-| SQLite MVP (`data/jobpilot.db`) | `[x]` | `profiles` + `oauth_tokens` |
+| SQLite MVP (`data/jobpilot.db`) | `[x]` | `profiles` + `oauth_tokens` (single user today) |
 | `GET/PUT /api/profile`, `POST /api/profile/cv` | `[x]` | CV parse + LLM skills |
-| Gmail OAuth routes | `[x]` | Connect/disconnect; send deferred |
+| Gmail OAuth routes | `[x]` cancelled | Backend exists; UI removed; send not planned |
 | GitHub OAuth + repo import | `[x]` | README → project cards |
+| `users` table + login/signup | `[ ]` | Next phase |
+| Profile + tokens scoped by `user_id` | `[ ]` | Next phase |
 | `POST /search` + polling | `[ ]` | Agent phase |
 
 ### Integrations
 
 | Integration | Purpose | In frontend screens? | Status |
 |-------------|---------|----------------------|--------|
-| **Gmail OAuth** | Send approved applications | Profile connect/disconnect | `[x]` Google + backend routes |
 | **GitHub** | Auto-import repos | GitHubImport on Profile | `[x]` OAuth + README import |
+| **Gmail** | Email send on approve | — | `[x]` cancelled |
 | **LinkedIn / Indeed** | Job search (browser worker) | Search screen picks platform | `[ ]` agent phase |
 
 ### Agents & orchestration
@@ -127,7 +131,7 @@ Long-term memory (DB when backend ships; localStorage during frontend build):
 | Screen | User data | Storage |
 |--------|-----------|---------|
 | Welcome | Checklist state (derived from profile) | Profile record |
-| Profile | CV `.docx`, skills[], target_roles[], projects[], Gmail flag | `profiles` + `data/uploads/` |
+| Profile | CV `.docx`, skills[], target_roles[], projects[] | `profiles` + `data/uploads/` (per `user_id` after auth) |
 | Search | One role from profile + platform | `search_runs` on submit (later); form ephemeral until then |
 
 ---
@@ -151,12 +155,9 @@ Long-term memory (DB when backend ships; localStorage during frontend build):
 | Item | Status |
 |------|--------|
 | Trial ECS running (Singapore) | `[x]` |
-| SSH / Workbench access (reset password) | `[ ]` |
-| Docker bootstrap + GitHub Actions deploy | `[ ]` |
-| DuckDNS → Alibaba IP | `[ ]` |
-| CV upload on cloud | `[ ]` |
-| GitHub OAuth on cloud | `[ ]` |
-| Google OAuth + HTTPS (Gmail) | `[ ]` |
+| Docker bootstrap + GitHub Actions deploy | `[x]` |
+| Public IP `43.98.197.132` | `[x]` |
+| CV + GitHub on cloud | `[x]` |
 | Guide | [`System Design/alibaba-cloud-trial.md`](System%20Design/alibaba-cloud-trial.md) |
 
 #### AWS EC2 (proof — can stop)
@@ -164,9 +165,7 @@ Long-term memory (DB when backend ships; localStorage during frontend build):
 | Item | Status |
 |------|--------|
 | Docker Compose + GitHub Actions auto-deploy | `[x]` |
-| CV + GitHub on `jobpilot-hamza.duckdns.org` | `[x]` |
-| Secrets via GitHub Actions → server `.env` | `[x]` |
-| HTTPS for Gmail | `[ ]` → do on Alibaba |
+| Superseded by Alibaba | `[x]` |
 
 ---
 
@@ -175,8 +174,9 @@ Long-term memory (DB when backend ships; localStorage during frontend build):
 | Area | Complete | In progress | Not started |
 |------|----------|-------------|-------------|
 | Design | 7 | 0 | 0 |
-| Frontend web app | 11 | 0 | 0 |
-| Backend & DB | 6 | 1 | search agents |
-| Integrations | 2 | 0 | search platforms |
+| Frontend web app | 11 | 0 | login/signup screens |
+| Backend & DB | 7 | 1 | multi-user auth |
+| Integrations | 1 | 0 | search platforms |
+| Deploy | 5 | 0 | 0 |
 
-**Last updated:** 2026-07-01
+**Last updated:** 2026-07-02
