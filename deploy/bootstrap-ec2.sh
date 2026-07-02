@@ -17,11 +17,13 @@ echo \
   | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 sudo apt-get update
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-sudo usermod -aG docker ubuntu
+
+DEPLOY_USER="${SUDO_USER:-$(whoami)}"
+sudo usermod -aG docker "$DEPLOY_USER"
 
 echo "==> Preparing application directory..."
 sudo mkdir -p "$APP_DIR/data/uploads"
-sudo chown -R ubuntu:ubuntu "$APP_DIR"
+sudo chown -R "$DEPLOY_USER:$DEPLOY_USER" "$APP_DIR"
 
 if [ ! -f "$APP_DIR/.env" ]; then
   echo ""
@@ -53,7 +55,7 @@ echo "IMPORTANT: Log out and SSH back in so the docker group applies."
 echo ""
 echo "GitHub repository secrets (Settings → Secrets and variables → Actions):"
 echo "  EC2_HOST    = your Elastic IP or public DNS"
-echo "  EC2_USER    = ubuntu"
+echo "  EC2_USER    = $DEPLOY_USER"
 echo "  EC2_SSH_KEY = private key printed above"
 echo ""
 echo "After .env exists on the server, push to main — GitHub Actions deploys via Docker Compose."
