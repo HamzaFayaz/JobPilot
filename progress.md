@@ -26,7 +26,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | **0 — Design** | Stitch UI, design system, screen exports | `[x]` |
 | **1 — Frontend (locked)** | Welcome, Profile, Search (responsive web) | `[x]` |
 | **2 — Data & auth** | Single-user profile + GitHub OAuth (MVP) | `[x]` |
-| **2b — Multi-user auth** | Login, signup, per-user profiles + tokens | `[o]` |
+| **2b — Multi-user auth** | Login, signup, per-user profiles + tokens | `[x]` |
 | **3 — Backend core** | FastAPI profile API, CV upload, GitHub import | `[x]` |
 | **4 — Agents** | LangGraph search + per-job sub-agents | `[ ]` |
 | **5 — HITL flow** | Job detail, send, applications memory | `[ ]` |
@@ -41,7 +41,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | [`jobpilot_stitch_ui_plan.md`](.agent/plans/jobpilot_stitch_ui_plan.md) | Stitch desktop UI design + exports | `[x]` |
 | [`jobpilot_frontend_web_app_plan.md`](.agent/plans/jobpilot_frontend_web_app_plan.md) | Vite React app: Welcome, Profile, Search | `[x]` |
 | [`jobpilot_backend_profile_api_plan.md`](.agent/plans/jobpilot_backend_profile_api_plan.md) | FastAPI + SQLite + CV/GitHub (single-user MVP) | `[x]` |
-| `jobpilot_auth_multi_user_plan.md` (TBD) | Login, signup, per-user profiles | `[ ]` |
+| [`jobpilot_multi_user_auth_plan.md`](.agent/plans/jobpilot_multi_user_auth_plan.md) | Login, signup, per-user profiles + encryption | `[x]` |
 
 **Execute frontend build:** `/build .agent/plans/jobpilot_frontend_web_app_plan.md`
 
@@ -88,12 +88,13 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | Item | Status | Notes |
 |------|--------|--------|
 | Profile schema agreed (incl. `target_roles`, `.docx`) | `[x]` | Documented in frontend web app plan |
-| SQLite MVP (`data/jobpilot.db`) | `[x]` | `profiles` + `oauth_tokens` (single user today) |
-| `GET/PUT /api/profile`, `POST /api/profile/cv` | `[x]` | CV parse + LLM skills |
+| SQLite MVP (`data/jobpilot.db`) | `[x]` | `users`, `profiles` per `user_id`, `oauth_tokens` composite PK |
+| `GET/PUT /api/profile`, `POST /api/profile/cv` | `[x]` | CV parse + LLM skills; auth required |
 | Gmail OAuth routes | `[x]` cancelled | Backend exists; UI removed; send not planned |
-| GitHub OAuth + repo import | `[x]` | README → project cards |
-| `users` table + login/signup | `[ ]` | Next phase |
-| Profile + tokens scoped by `user_id` | `[ ]` | Next phase |
+| GitHub OAuth + repo import | `[x]` | README → project cards; per-user tokens |
+| `users` table + login/signup | `[x]` | Email/password + JWT httpOnly cookie |
+| Profile + tokens scoped by `user_id` | `[x]` | Fernet encryption for cv_text + OAuth tokens |
+| Future tables (`search_runs`, `job_packages`, `job_applications`) | `[x]` | Schema stubs with `user_id` |
 | `POST /search` + polling | `[ ]` | Agent phase |
 
 ### Integrations
@@ -174,8 +175,8 @@ Long-term memory (DB when backend ships; localStorage during frontend build):
 | Area | Complete | In progress | Not started |
 |------|----------|-------------|-------------|
 | Design | 7 | 0 | 0 |
-| Frontend web app | 11 | 0 | login/signup screens |
-| Backend & DB | 7 | 1 | multi-user auth |
+| Frontend web app | 13 | 0 | 0 |
+| Backend & DB | 10 | 0 | search agents |
 | Integrations | 1 | 0 | search platforms |
 | Deploy | 5 | 0 | 0 |
 

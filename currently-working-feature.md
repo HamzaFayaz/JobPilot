@@ -8,50 +8,40 @@ Update this file when focus shifts. Mirror status changes in [`progress.md`](pro
 
 ## Active focus (2026-07-02)
 
-### 1. Multi-user auth + per-user profiles `[o]`
+### 1. LangGraph search agents `[ ]` — next
 
-**Goal:** Replace the single global profile with **login / signup** and **isolated data per user** (CV, skills, projects, GitHub tokens).
+**Goal:** Parent search graph + per-job sub-agents; `POST /search` with `user_id` from session.
 
-**Live deploy (unchanged):** http://43.98.197.132 — hackathon proof on Alibaba ECS.
+**Prerequisites shipped:** Multi-user auth, per-user profiles, encrypted tokens, future `search_runs` schema stubs.
 
 | Area | Status |
 |------|--------|
-| Auth method decision (email/password vs OAuth-only vs both) | `[ ]` |
-| `users` table + password hashing or OAuth identity mapping | `[ ]` |
-| Session / JWT (or cookie) on API requests | `[ ]` |
-| `profiles` + `oauth_tokens` scoped by `user_id` | `[ ]` |
-| Signup + login UI (new routes) | `[ ]` |
-| Profile API requires authenticated user | `[ ]` |
-| GitHub connect stores token per user | `[ ]` |
-| Migrate/remove single-row MVP assumptions | `[ ]` |
-
-**Proposed scope (MVP):**
-
-| Method | Purpose |
-|--------|---------|
-| **Email + password** | Sign up, log in, reset password (later) |
-| **GitHub OAuth** | Optional login **or** link-after-signup (reuse existing GitHub app) |
-| **Session** | HTTP-only cookie or Bearer JWT; all `/api/profile*` routes require auth |
-
-**Data model (target):**
-
-```
-users          id, email, password_hash?, created_at
-profiles       user_id (FK), cv_path, skills, target_roles, projects, ...
-oauth_tokens   user_id (FK), provider, tokens, email/login
-```
-
-**Open questions:**
-
-1. GitHub OAuth as **primary login** or only **profile import** after email signup?
-2. Keep Welcome gate for logged-in users only, or redirect unauthenticated users to `/login`?
-3. File uploads: `data/uploads/{user_id}/` per user on disk?
-
-**References:** [`System Design/dev-time-hardening.md`](System%20Design/dev-time-hardening.md) §1 · [`System Design/design-decisions.md`](System%20Design/design-decisions.md)
+| `POST /search` + polling API | `[ ]` |
+| Browser-Use search worker | `[ ]` |
+| Job packages + applications flow | `[ ]` |
 
 ---
 
-### 2. Alibaba ECS deploy `[x]` — complete
+### 2. Multi-user auth + per-user profiles `[x]` — complete
+
+| Area | Status |
+|------|--------|
+| Email + password signup/login | `[x]` |
+| JWT in httpOnly cookie | `[x]` |
+| `users` table + bcrypt passwords | `[x]` |
+| `profiles` + `oauth_tokens` scoped by `user_id` | `[x]` |
+| Fernet encryption for `cv_text` + OAuth tokens | `[x]` |
+| Signup + login UI (`/login`, `/signup`) | `[x]` |
+| Protected routes + `credentials: 'include'` | `[x]` |
+| GitHub connect bound to logged-in user | `[x]` |
+| Uploads under `data/uploads/{user_id}/` | `[x]` |
+| Legacy single-user migration (warn only) | `[x]` |
+
+**Deploy note:** Set `JWT_SECRET` and `DATA_ENCRYPTION_KEY` in GitHub Secrets before next production deploy.
+
+---
+
+### 3. Alibaba ECS deploy `[x]` — complete
 
 | Step | Status |
 |------|--------|
@@ -69,9 +59,10 @@ Guide: [`System Design/alibaba-cloud-trial.md`](System%20Design/alibaba-cloud-tr
 | Item | Status | Notes |
 |------|--------|--------|
 | **Gmail send / connect UI** | `[x]` cancelled | LinkedIn/Indeed use in-platform apply; backend routes remain unused |
-| LangGraph search agents | `[ ]` | After auth + per-user profiles |
 | Screens 4–8 (HITL, applications) | `[ ]` locked |
 | HTTPS / Google OAuth | `[ ]` | Not needed without Gmail |
+| Email verification / password reset | `[ ]` | Post-hackathon hardening |
+| Rate limiting / audit logs | `[ ]` | Post-hackathon hardening |
 
 ---
 
@@ -79,19 +70,19 @@ Guide: [`System Design/alibaba-cloud-trial.md`](System%20Design/alibaba-cloud-tr
 
 | Date | Topic | Decision |
 |------|-------|----------|
-| 2026-07-02 | **Next phase** | **Multi-user auth** — login/signup + `user_id` on profiles and OAuth tokens |
-| 2026-07-02 | Gmail | **Cancelled** for MVP — removed from UI; no email-send flow for LinkedIn/Indeed |
-| 2026-07-02 | Public URL | **IP only** (`43.98.197.132`) for deploy and hackathon proof |
-| 2026-07-01 | Cloud platform | Alibaba ECS trial = hackathon target |
-| 2026-06-30 | Deploy | Docker Compose + GitHub Actions |
+| 2026-07-02 | **Auth MVP** | Email/password only; GitHub connect after login (not primary login) |
+| 2026-07-02 | **Session** | JWT in httpOnly cookie; all `/api/profile*` and `/api/github*` require auth |
+| 2026-07-02 | **Encryption** | bcrypt passwords; Fernet for `cv_text` + OAuth tokens at app level |
+| 2026-07-02 | **Next phase** | LangGraph search agents after per-user data |
+| 2026-07-02 | Gmail | **Cancelled** for MVP |
+| 2026-07-02 | Public URL | **IP only** (`43.98.197.132`) |
 
 ---
 
 ## Next actions
 
-1. Decide auth methods (email/password + optional GitHub login)
-2. Add `users` table and migrate profile/OAuth storage to `user_id`
-3. Build `/login` and `/signup` screens + protected routes
-4. LangGraph search agent (after per-user data works)
+1. Add `JWT_SECRET` + `DATA_ENCRYPTION_KEY` to GitHub Actions secrets for production
+2. LangGraph search agent (`POST /search`, browser worker)
+3. Job detail HITL screens (when agent phase ships)
 
 **Last updated:** 2026-07-02
