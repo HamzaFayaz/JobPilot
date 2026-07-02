@@ -12,6 +12,7 @@ import {
   updateProfile as apiUpdateProfile,
   uploadCv as apiUploadCv,
 } from '../api/profile'
+import { useAuth } from './AuthContext'
 import { useProfileGate } from '../hooks/useProfileGate'
 import { EMPTY_PROFILE, type Profile, type Project } from '../types/profile'
 
@@ -33,12 +34,18 @@ interface ProfileContextValue {
 const ProfileContext = createContext<ProfileContextValue | null>(null)
 
 export function ProfileProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth()
   const [profile, setProfile] = useState<Profile>(EMPTY_PROFILE)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const gate = useProfileGate(profile)
 
   const refreshProfile = useCallback(async () => {
+    if (!user) {
+      setProfile(EMPTY_PROFILE)
+      setLoading(false)
+      return
+    }
     try {
       setError(null)
       const data = await getProfile()
@@ -48,7 +55,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [user])
 
   useEffect(() => {
     void refreshProfile()

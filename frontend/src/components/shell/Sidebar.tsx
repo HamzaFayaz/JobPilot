@@ -1,10 +1,12 @@
 import {
+  ArrowRightOnRectangleIcon,
   Cog6ToothIcon,
   DocumentTextIcon,
   MagnifyingGlassIcon,
   UserCircleIcon,
 } from '@heroicons/react/24/outline'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 import { useProfile } from '../../context/ProfileContext'
 
 interface SidebarProps {
@@ -41,6 +43,14 @@ const navItems: NavItem[] = [
 
 export function Sidebar({ onNavigate, className = '' }: SidebarProps) {
   const { gate } = useProfile()
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    await logout()
+    navigate('/login')
+    onNavigate?.()
+  }
 
   return (
     <aside
@@ -100,6 +110,22 @@ export function Sidebar({ onNavigate, className = '' }: SidebarProps) {
           })}
         </ul>
       </nav>
+
+      <div className="border-t border-white/10 px-4 py-4">
+        {user && (
+          <p className="truncate text-xs text-slate-400" title={user.email}>
+            {user.email}
+          </p>
+        )}
+        <button
+          type="button"
+          onClick={() => void handleLogout()}
+          className="mt-2 flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-200 transition-colors duration-200 hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          <ArrowRightOnRectangleIcon className="h-6 w-6 shrink-0" aria-hidden="true" />
+          Log out
+        </button>
+      </div>
     </aside>
   )
 }
