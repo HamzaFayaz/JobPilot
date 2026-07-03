@@ -117,8 +117,8 @@ These three screens are **in scope**. Do not implement screens 4–8 until Phase
 | `ProfileContext` / store (CV, skills, projects) | `[x]` |
 | Gmail strip | `[x]` removed — cancelled (LinkedIn/Indeed in-platform apply) |
 | Profile gate: Search nav disabled until CV + ≥3 skills + ≥1 project | `[x]` |
-| Mock API layer (localStorage; swap to backend later) | `[x]` → replaced by fetch API |
-| API fetch layer + optional `VITE_USE_MOCK_API` | `[x]` |
+| Mock API layer (localStorage; swap to backend later) | `[x]` removed — real backend API only |
+| API fetch layer (FastAPI only; no localStorage mock) | `[x]` |
 | Responsive + a11y pass on shell (focus, contrast, tap targets) | `[x]` |
 
 ---
@@ -161,7 +161,7 @@ These three screens are **in scope**. Do not implement screens 4–8 until Phase
 | Target role dropdown from profile | `[x]` |
 | Platform radio: LinkedIn / Indeed | `[x]` |
 | Summary line from profile (resume · skills · projects) | `[x]` |
-| Start search button (mock: toast; no real `POST /search` yet) | `[x]` |
+| Start search button (`POST /api/search` + status/jobs fetch) | `[x]` stub-wired |
 | Nav: Search active | `[x]` |
 | Responsive: form card full width mobile; constrained desktop | `[x]` |
 

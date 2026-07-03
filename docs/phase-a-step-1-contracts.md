@@ -1,83 +1,116 @@
-# Phase A — Step 1: Contracts and Scaffolding
+# Phase A — Step 1: Contracts First
 
-**Status:** Current working step  
-**Goal:** Define the search/application data contracts, persistence layer, and stub API surface before building graph logic or browser execution.
+**Purpose:** Lock the shared inputs/outputs before building graph logic.
 
 ---
 
-## What we will code in Step 1
+## Scope
 
-### 1. Search domain models
+Step 1 is split into three small parts:
+
+1. **Step 1A — Database**
+2. **Step 1B — Models and states**
+3. **Step 1C — Stub APIs**
+
+---
+
+## Step 1A — Database `[x]`
+
+Completed:
+
+- expanded `search_runs`
+- expanded `job_packages`
+- expanded `job_applications`
+- updated [`docs/database-schema.md`](docs/database-schema.md)
+
+Deferred for later:
+
+- `worker_devices`
+- `worker_tasks`
+
+---
+
+## Step 1B — Models and states `[x]`
+
+Completed:
+
+- `backend/app/models/browser.py`
+  - `Platform`
+  - `BrowserHealth`
+  - `RawJobListing`
+  - `SearchListingsRequest`
+  - `SearchListingsResult`
 
 - `backend/app/models/search.py`
   - `RunStatus`
-  - `SearchRequest`
+  - `JobPackageStatus`
+  - `CvDecision`
+  - `SearchStartResponse`
   - `SearchRunStatusResponse`
+  - `JobListingResponse`
   - `JobPackageResponse`
 
-### 2. Database schema updates
+- `backend/app/graph/state.py`
+  - `RunState`
+  - `ProfileState`
+  - `JobListing`
+  - `JobPackageState`
 
-- Update `backend/app/db.py`
-  - extend `search_runs` for real run tracking
-  - extend `job_packages` for scored job output
-  - extend `job_applications` so it can act as the dedupe source later
+- `backend/app/graph/subgraphs/search/state.py`
+  - `SearchState`
 
-### 3. Search persistence layer
+- `backend/app/graph/subgraphs/application/state.py`
+  - `ApplicationState`
 
-- `backend/app/services/search_store.py`
-  - create search run
-  - update run status
-  - insert job package
-  - read run status / jobs for polling
+---
 
-### 4. Stub search APIs
+## Step 1C — Stub APIs `[x]`
+
+Completed:
 
 - `backend/app/routes/search.py`
   - `POST /api/search`
-  - create run row
-  - return `{ runId, status }`
+  - reads saved `searchRole` / `searchPlatform` from profile DB
+  - creates a `search_runs` row and returns `{ runId, status }`
 
 - `backend/app/routes/runs.py`
   - `GET /api/runs/{runId}/status`
-  - return stub progress from DB
+  - returns `status`, `jobsReadyCount`, and `error`
 
 - `backend/app/routes/jobs.py`
   - `GET /api/jobs?runId=`
-  - return stored packages, even if currently empty
+  - returns the current `job_packages` list for one run
 
-### 5. Route registration
+- `backend/app/main.py`
+  - registers the new search, runs, and jobs routers
 
-- Update `backend/app/main.py`
-  - register the new search, runs, and jobs routers
+### Frontend ↔ backend connections added
+
+1. **Start search**
+   - frontend → `POST /api/search`
+   - backend reads saved profile search preferences from DB, creates a run row, and returns `runId`
+
+2. **Poll run status**
+   - frontend → `GET /api/runs/{runId}/status`
+   - backend reads `search_runs`
+
+3. **Fetch jobs**
+   - frontend → `GET /api/jobs?runId=`
+   - backend reads `job_packages`
 
 ---
 
-## What Step 1 does not include
+## Why this step exists
 
-- No LangGraph files yet
-- No `search_subgraph` yet
-- No `application_subgraph` yet
-- No worker tables yet
-- No worker pairing flow yet
-- No Browser-Use integration yet
-- No Qwen `enrich_job` yet
-
----
-
-## Expected output after Step 1
-
-- Repo has stable search models
-- DB can store search runs, job packages, and applied job records cleanly
-- Frontend or manual API calls can start a search run and poll status
-- The graph can be added on top of these contracts in the next step
+- everyone agrees on the data contracts first
+- graph nodes can be built on top of stable state shapes
+- APIs can be wired without guessing field names later
 
 ---
 
 ## Done when
 
-- Models import cleanly
-- DB initializes with the new tables/columns
-- `POST /api/search` returns a real `runId`
-- `GET /api/runs/{runId}/status` works
-- `GET /api/jobs?runId=` works
-- No real browser or LangGraph dependency is required yet
+- DB schema is ready
+- models and graph states exist
+- stub polling/search APIs exist
+- no real subgraph logic is required yet

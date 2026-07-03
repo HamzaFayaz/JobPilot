@@ -3,39 +3,84 @@ import {
   MagnifyingGlassIcon,
   ShieldCheckIcon,
 } from '@heroicons/react/24/outline'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
+import { getRunStatus, listRunJobs, startSearch, type JobPackage, type SearchRunStatusResponse } from '../api/search'
 import { Button } from '../components/ui/Button'
 import { useProfile } from '../context/ProfileContext'
-
-type Platform = 'linkedin' | 'indeed'
+import type { SearchPlatform } from '../types/profile'
 
 export function SearchPage() {
-  const { profile, gate } = useProfile()
-  const [role, setRole] = useState(profile.targetRoles[0] ?? '')
-  const [platform, setPlatform] = useState<Platform>('linkedin')
+  const { profile, gate, updateProfile } = useProfile()
+  const [role, setRole] = useState(profile.searchRole ?? profile.targetRoles[0] ?? '')
+  const [platform, setPlatform] = useState<SearchPlatform>(profile.searchPlatform)
   const [toast, setToast] = useState<string | null>(null)
+  const [activeRunId, setActiveRunId] = useState<number | null>(null)
+  const [runStatus, setRunStatus] = useState<SearchRunStatusResponse | null>(null)
+  const [jobs, setJobs] = useState<JobPackage[]>([])
+  const [submitting, setSubmitting] = useState(false)
+  const [pollError, setPollError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (profile.targetRoles.length && !profile.targetRoles.includes(role)) {
-      setRole(profile.targetRoles[0])
+    if (profile.targetRoles.length === 0) {
+      setRole('')
+      return
     }
-  }, [profile.targetRoles, role])
+
+    const nextRole =
+      profile.searchRole && profile.targetRoles.includes(profile.searchRole)
+        ? profile.searchRole
+        : profile.targetRoles[0]
+
+    setRole(nextRole)
+
+    if (profile.searchRole !== nextRole) {
+      void updateProfile({ searchRole: nextRole })
+    }
+  }, [profile.searchRole, profile.targetRoles, updateProfile])
+
+  useEffect(() => {
+    setPlatform(profile.searchPlatform)
+  }, [profile.searchPlatform])
 
   if (!gate.isComplete) {
     return <Navigate to="/profile" replace />
   }
 
-  const showToast = () => {
-    setToast('Search coming soon. Backend integration is not wired yet.')
+  const showToast = useCallback((message: string) => {
+    setToast(message)
     window.setTimeout(() => setToast(null), 3000)
-  }
+  }, [])
+
+  const refreshRun = useCallback(async (runId: number) => {
+    const [status, nextJobs] = await Promise.all([getRunStatus(runId), listRunJobs(runId)])
+    setRunStatus(status)
+    setJobs(nextJobs)
+    setPollError(null)
+  }, [])
 
   const summaryParts = [
     profile.cvFilename ?? 'No CV',
     `${profile.skills.length} skills`,
     `${profile.projects.length} projects`,
   ]
+
+  useEffect(() => {
+    if (!activeRunId || !runStatus) {
+      return
+    }
+    if (runStatus.status === 'completed' || runStatus.status === 'failed') {
+      return
+    }
+
+    const timer = window.setInterval(() => {
+      void refreshRun(activeRunId).catch((error: unknown) => {
+        setPollError(error instanceof Error ? error.message : 'Failed to refresh run status')
+      })
+    }, 3000)
+
+    return () => window.clearInterval(timer)
+  }, [activeRunId, refreshRun, runStatus])
 
   return (
     <div className="space-y-8">
@@ -58,9 +103,23 @@ export function SearchPage() {
 
           <form
             className="space-y-6"
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault()
-              showToast()
+              setSubmitting(true)
+              setPollError(null)
+              try {
+                const started = await startSearch()
+                setActiveRunId(started.runId)
+                await refreshRun(started.runId)
+                showToast(`Search run #${started.runId} started.`)
+              } catch (error: unknown) {
+                const message =
+                  error instanceof Error ? error.message : 'Failed to start search run'
+                setPollError(message)
+                showToast(message)
+              } finally {
+                setSubmitting(false)
+              }
             }}
           >
             <div>
@@ -75,7 +134,11 @@ export function SearchPage() {
                 <select
                   id="target-role"
                   value={role}
-                  onChange={(e) => setRole(e.target.value)}
+                  onChange={(e) => {
+                    const nextRole = e.target.value
+                    setRole(nextRole)
+                    void updateProfile({ searchRole: nextRole })
+                  }}
                   className="w-full cursor-pointer rounded-lg border border-border bg-surface px-3 py-3 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:text-sm"
                 >
                   {profile.targetRoles.map((targetRole) => (
@@ -115,7 +178,10 @@ export function SearchPage() {
                       name="platform"
                       value={item.id}
                       checked={platform === item.id}
-                      onChange={() => setPlatform(item.id)}
+                      onChange={() => {
+                        setPlatform(item.id)
+                        void updateProfile({ searchPlatform: item.id })
+                      }}
                       className="h-4 w-4 cursor-pointer accent-primary"
                     />
                   </label>
@@ -131,13 +197,73 @@ export function SearchPage() {
             <Button
               type="submit"
               className="w-full"
-              disabled={!profile.targetRoles.length}
+              disabled={!profile.targetRoles.length || submitting}
             >
-              Start search
+              {submitting ? 'Starting search...' : 'Start search'}
             </Button>
           </form>
         </div>
       </div>
+
+      {activeRunId ? (
+        <section className="mx-auto max-w-xl rounded-lg border border-border bg-surface p-6 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-base font-semibold text-text-primary">Current run</h2>
+              <p className="mt-1 text-sm text-text-secondary">Run #{activeRunId}</p>
+            </div>
+            <Button type="button" variant="ghost" onClick={() => void refreshRun(activeRunId)}>
+              Refresh
+            </Button>
+          </div>
+
+          <div className="mt-4 space-y-2 text-sm text-text-secondary">
+            <p>
+              <span className="font-semibold text-text-primary">Status:</span>{' '}
+              {runStatus?.status ?? 'pending'}
+            </p>
+            <p>
+              <span className="font-semibold text-text-primary">Jobs ready:</span>{' '}
+              {runStatus?.jobsReadyCount ?? 0}
+            </p>
+            {runStatus?.error ? (
+              <p className="text-red-600">
+                <span className="font-semibold">Run error:</span> {runStatus.error}
+              </p>
+            ) : null}
+            {pollError ? (
+              <p className="text-red-600">
+                <span className="font-semibold">Refresh error:</span> {pollError}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="mt-6 space-y-3">
+            {jobs.length === 0 ? (
+              <p className="text-sm text-text-secondary">No job packages stored for this run yet.</p>
+            ) : (
+              jobs.map((job) => (
+                <article key={job.id ?? `${job.url}-${job.title}`} className="rounded-lg border border-border p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-sm font-semibold text-text-primary">{job.title}</h3>
+                      <p className="text-sm text-text-secondary">{job.company}</p>
+                    </div>
+                    <span className="rounded-full bg-chip-bg px-2 py-1 text-xs font-medium text-text-primary">
+                      {job.status}
+                    </span>
+                  </div>
+                  {job.matchScore !== null ? (
+                    <p className="mt-2 text-sm text-text-secondary">Match score: {job.matchScore}</p>
+                  ) : null}
+                  {job.summary ? <p className="mt-2 text-sm text-text-secondary">{job.summary}</p> : null}
+                  {job.error ? <p className="mt-2 text-sm text-red-600">{job.error}</p> : null}
+                </article>
+              ))
+            )}
+          </div>
+        </section>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <article className="rounded-lg border border-border bg-surface p-5">

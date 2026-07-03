@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS profiles (
     skills TEXT NOT NULL DEFAULT '[]',
     skills_extraction_status TEXT NOT NULL DEFAULT 'idle',
     target_roles TEXT NOT NULL DEFAULT '[]',
+    search_role TEXT,
+    search_platform TEXT NOT NULL DEFAULT 'linkedin',
     projects TEXT NOT NULL DEFAULT '[]',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -117,6 +119,14 @@ def _ensure_columns(
 
 
 def _ensure_search_schema(conn: sqlite3.Connection) -> None:
+    _ensure_columns(
+        conn,
+        "profiles",
+        {
+            "search_role": "search_role TEXT",
+            "search_platform": "search_platform TEXT NOT NULL DEFAULT 'linkedin'",
+        },
+    )
     _ensure_columns(
         conn,
         "search_runs",

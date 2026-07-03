@@ -33,6 +33,8 @@ erDiagram
         TEXT skills "JSON array"
         TEXT skills_extraction_status "idle|pending|ready|failed"
         TEXT target_roles "JSON array"
+        TEXT search_role "current saved role for next run"
+        TEXT search_platform "current saved platform for next run"
         TEXT projects "JSON array of StoredProject"
         TIMESTAMP updated_at
     }
@@ -103,9 +105,9 @@ erDiagram
 ## Table summary
 
 | Table | Purpose | User isolation |
-|-------|---------|----------------|
+| ------- | --------- | ---------------- |
 | `users` | Account email + password hash | Primary identity |
-| `profiles` | CV, skills, target roles, projects JSON | **1:1** with `users.id` via `user_id` PK |
+| `profiles` | CV, skills, target roles, saved search preference, projects JSON | **1:1** with `users.id` via `user_id` PK |
 | `oauth_tokens` | Google / GitHub tokens (encrypted) | Composite PK `(user_id, provider)` |
 | `search_runs` | Search run lifecycle and polling status | `user_id` FK on every row |
 | `job_packages` | Per-job scored output produced during a run | `user_id` FK on every row |
@@ -120,7 +122,7 @@ erDiagram
 One row per user-initiated search request.
 
 | Column | Meaning |
-|--------|---------|
+| -------- | --------- |
 | `id` | Run identifier used by polling APIs |
 | `user_id` | Owner of the run |
 | `role`, `platform` | Search input |
@@ -136,7 +138,7 @@ One row per user-initiated search request.
 One row per job that passes through the application subgraph and is surfaced to the UI.
 
 | Column | Meaning |
-|--------|---------|
+| -------- | --------- |
 | `id`, `user_id`, `run_id` | Ownership and run linkage |
 | `title`, `company`, `url`, `platform` | Core job metadata |
 | `description_text` | Full or normalized job description text snapshot |
@@ -155,7 +157,7 @@ One row per job that passes through the application subgraph and is surfaced to 
 One row per tracked/sent application. This is also the dedupe source for "already applied" checks.
 
 | Column | Meaning |
-|--------|---------|
+| -------- | --------- |
 | `id`, `user_id`, `job_package_id` | Ownership and package linkage |
 | `url`, `platform` | Dedupe key data |
 | `title`, `company` | Stored job snapshot at send time |
@@ -184,12 +186,20 @@ Each element in the `projects` column is a `StoredProject` object:
 ```
 
 | Field | In API response | Notes |
-|-------|-----------------|-------|
+| ------- | ----------------- | ------- |
 | `id`, `name`, `description`, `source` | Yes | User-visible project card |
 | `repo_full_name` | Yes (`repoFullName`) | GitHub repo identifier |
 | `readme_md` | **No** | Stored for agents / CV tailoring; stripped in `ProfileResponse` |
 
 `cv_text` in `profiles` is encrypted at rest. `readme_md` is stored in plain text inside the user's JSON blob (same row isolation as CV).
+
+### Search preference fields in `profiles`
+
+- `target_roles` stores the full saved list of possible roles
+- `search_role` stores the currently selected role for the next search run
+- `search_platform` stores the currently selected platform for the next search run
+
+When the user starts a search, the backend reads `search_role` and `search_platform` from `profiles`, then copies them into `search_runs` as the snapshot for that run.
 
 ---
 

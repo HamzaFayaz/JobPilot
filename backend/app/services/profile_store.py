@@ -24,6 +24,14 @@ def _parse_json_list(raw: str | None) -> list:
         return []
 
 
+def _resolve_search_role(
+    target_roles: list[str], search_role: str | None
+) -> str | None:
+    if search_role and search_role in target_roles:
+        return search_role
+    return target_roles[0] if target_roles else None
+
+
 def _decrypt_cv_text(raw: str | None) -> str:
     if not raw:
         return ""
@@ -67,13 +75,17 @@ def _row_to_profile(row: dict, oauth: dict[str, dict | None]) -> ProfileResponse
         cv_file_meta = {"size": os.path.getsize(cv_path)}
 
     stored_projects = _parse_stored_projects(row.get("projects"))
+    target_roles = _parse_json_list(row.get("target_roles"))
+    search_role = _resolve_search_role(target_roles, row.get("search_role"))
 
     return ProfileResponse(
         cv_filename=row.get("cv_filename"),
         cv_file_meta=cv_file_meta,
         skills=_parse_json_list(row.get("skills")),
         skills_extraction_status=row.get("skills_extraction_status") or "idle",
-        target_roles=_parse_json_list(row.get("target_roles")),
+        target_roles=target_roles,
+        search_role=search_role,
+        search_platform=row.get("search_platform") or "linkedin",
         projects=_stored_projects_to_api(stored_projects),
         gmail_connected=google is not None,
         gmail_email=google.get("email") if google else None,
@@ -102,6 +114,24 @@ def get_profile(user_id: int) -> ProfileResponse:
     return _row_to_profile(dict(row), _get_oauth_flags(user_id))
 
 
+def get_search_preferences(user_id: int) -> tuple[str | None, str]:
+    with get_connection() as conn:
+        row = conn.execute(
+            """
+            SELECT target_roles, search_role, search_platform
+            FROM profiles
+            WHERE user_id = ?
+            """,
+            (user_id,),
+        ).fetchone()
+    if not row:
+        return None, "linkedin"
+    target_roles = _parse_json_list(row["target_roles"])
+    role = _resolve_search_role(target_roles, row["search_role"])
+    platform = row["search_platform"] or "linkedin"
+    return role, platform
+
+
 def get_stored_projects(user_id: int) -> list[StoredProject]:
     """Load full project records including readme_md (server-side only)."""
     with get_connection() as conn:
@@ -124,10 +154,23 @@ def get_project_readme(user_id: int, project_id: str) -> str | None:
 def update_profile(user_id: int, data: ProfileUpdate) -> ProfileResponse:
     fields: list[str] = []
     values: list[Any] = []
+    target_roles = get_profile(user_id).target_roles
 
     if data.target_roles is not None:
+        target_roles = data.target_roles
+        resolved_search_role = _resolve_search_role(target_roles, data.search_role)
         fields.append("target_roles = ?")
-        values.append(json.dumps(data.target_roles))
+        values.append(json.dumps(target_roles))
+        fields.append("search_role = ?")
+        values.append(resolved_search_role)
+
+    elif data.search_role is not None:
+        fields.append("search_role = ?")
+        values.append(_resolve_search_role(target_roles, data.search_role))
+
+    if data.search_platform is not None:
+        fields.append("search_platform = ?")
+        values.append(data.search_platform)
     if data.projects is not None:
         existing_by_id = {p.id: p for p in get_stored_projects(user_id)}
         merged_projects = [

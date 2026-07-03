@@ -5,6 +5,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from backend.app.models.browser import Platform
+
 SkillsExtractionStatus = Literal["idle", "pending", "ready", "failed"]
 ProjectSource = Literal["manual", "github"]
 
@@ -45,6 +47,8 @@ class ProfileUpdate(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     target_roles: list[str] | None = Field(None, alias="targetRoles")
+    search_role: str | None = Field(None, alias="searchRole")
+    search_platform: Platform | None = Field(None, alias="searchPlatform")
     projects: list[Project] | None = None
 
 
@@ -58,6 +62,8 @@ class ProfileResponse(BaseModel):
         "idle", alias="skillsExtractionStatus"
     )
     target_roles: list[str] = Field(default_factory=list, alias="targetRoles")
+    search_role: str | None = Field(None, alias="searchRole")
+    search_platform: Platform = Field("linkedin", alias="searchPlatform")
     projects: list[Project] = []
     gmail_connected: bool = Field(False, alias="gmailConnected")
     gmail_email: str | None = Field(None, alias="gmailEmail")

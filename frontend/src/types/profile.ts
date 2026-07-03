@@ -6,6 +6,7 @@ export interface Project {
 }
 
 export type SkillsExtractionStatus = 'idle' | 'pending' | 'ready' | 'failed'
+export type SearchPlatform = 'linkedin' | 'indeed'
 
 export interface Profile {
   cvFilename: string | null
@@ -13,6 +14,8 @@ export interface Profile {
   skills: string[]
   skillsExtractionStatus: SkillsExtractionStatus
   targetRoles: string[]
+  searchRole: string | null
+  searchPlatform: SearchPlatform
   projects: Project[]
   gmailConnected: boolean
   gmailEmail: string | null
@@ -26,14 +29,14 @@ export const EMPTY_PROFILE: Profile = {
   skills: [],
   skillsExtractionStatus: 'idle',
   targetRoles: [],
+  searchRole: null,
+  searchPlatform: 'linkedin',
   projects: [],
   gmailConnected: false,
   gmailEmail: null,
   githubConnected: false,
   githubUsername: null,
 }
-
-export const PROFILE_STORAGE_KEY = 'jobpilot-profile'
 
 export interface GitHubRepo {
   name: string

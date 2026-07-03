@@ -10,7 +10,16 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.app.config import settings
 from backend.app.db import init_db
-from backend.app.routes import auth, auth_github, auth_google, github, profile
+from backend.app.routes import (
+    auth,
+    auth_github,
+    auth_google,
+    github,
+    jobs,
+    profile,
+    runs,
+    search,
+)
 
 app = FastAPI(title="JobPilot API", version="0.2.0")
 
@@ -27,6 +36,9 @@ app.include_router(profile.router)
 app.include_router(auth_google.router)
 app.include_router(auth_github.router)
 app.include_router(github.router)
+app.include_router(search.router)
+app.include_router(runs.router)
+app.include_router(jobs.router)
 
 
 @app.on_event("startup")

@@ -81,7 +81,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | CV `.docx` upload → API; skills read-only from LLM | `[x]` |
 | GitHub OAuth + repo import | `[x]` |
 | Gmail OAuth (UI + send) | `[x]` cancelled — out of scope for LinkedIn/Indeed |
-| API layer (fetch → FastAPI; mock flag optional) | `[x]` |
+| API layer (fetch → FastAPI; DB-backed profile/search state) | `[x]` |
 
 → Task-level detail: [`frontend/progress.md`](frontend/progress.md) · Build plan: [`jobpilot_frontend_web_app_plan.md`](.agent/plans/jobpilot_frontend_web_app_plan.md)
 
@@ -97,7 +97,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | `users` table + login/signup | `[x]` | Email/password + JWT httpOnly cookie |
 | Profile + tokens scoped by `user_id` | `[x]` | Fernet encryption for cv_text + OAuth tokens |
 | Future tables (`search_runs`, `job_packages`, `job_applications`) | `[x]` | Schema stubs with `user_id` |
-| `POST /search` + polling | `[ ]` | Agent phase — see [`browser-provider-abstraction.md`](System%20Design/browser-provider-abstraction.md) |
+| `POST /search` + polling | `[o]` | DB-backed API wiring done; graph/worker execution still pending |
 
 ### Integrations
 
@@ -131,13 +131,13 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 
 ## Profile data map
 
-Long-term memory (DB when backend ships; localStorage during frontend build):
+Long-term memory (DB-backed current state):
 
 | Screen | User data | Storage |
 |--------|-----------|---------|
 | Welcome | Checklist state (derived from profile) | Profile record |
 | Profile | CV `.docx`, skills[], target_roles[], projects[] | `profiles` + `data/uploads/` (per `user_id` after auth) |
-| Search | One role from profile + platform | `search_runs` on submit (later); form ephemeral until then |
+| Search | Saved `search_role` + `search_platform`, plus per-run snapshot | `profiles` for current preference; `search_runs` on submit |
 
 ---
 
