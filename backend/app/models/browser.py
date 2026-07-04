@@ -1,0 +1,51 @@
+"""Pydantic schemas for browser-facing search contracts."""
+
+from enum import Enum
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+Platform = Literal["linkedin", "indeed"]
+
+
+class BrowserHealth(str, Enum):
+    READY = "ready"
+    NOT_INSTALLED = "not_installed"
+    DAEMON_DOWN = "daemon_down"
+    PROFILE_SETUP = "profile_setup"
+    BUSY = "busy"
+    ERROR = "error"
+
+
+class RawJobListing(BaseModel):
+    """Browser provider output before normalization and dedupe."""
+
+    model_config = ConfigDict(populate_by_name=True, serialize_by_alias=True)
+
+    title: str
+    company: str
+    url: str
+    description_text: str = Field(default="", alias="descriptionText")
+    source_platform: Platform = Field(alias="sourcePlatform")
+
+
+class SearchListingsRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, serialize_by_alias=True)
+
+    role: str
+    platform: Platform
+    max_listings: int = Field(8, alias="maxListings")
+    max_pages: int = Field(3, alias="maxPages")
+    skills_summary: str = Field(default="", alias="skillsSummary")
+    chrome_profile_directory: str | None = Field(
+        default=None, alias="chromeProfileDirectory"
+    )
+
+
+class SearchListingsResult(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, serialize_by_alias=True)
+
+    listings: list[RawJobListing] = Field(default_factory=list)
+    provider: str
+    duration_ms: int = Field(alias="durationMs")
+    warnings: list[str] = Field(default_factory=list)

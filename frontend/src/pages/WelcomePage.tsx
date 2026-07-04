@@ -29,7 +29,7 @@ export function WelcomePage() {
     {
       key: 'cv',
       title: 'Upload CV',
-      description: '.docx only — required for AI parsing.',
+      description: '.docx only, required for AI parsing.',
       done: gate.hasCv,
       icon: ArrowUpTrayIcon,
     },

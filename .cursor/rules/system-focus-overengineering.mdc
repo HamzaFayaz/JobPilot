@@ -1,0 +1,17 @@
+---
+description: Keep JobPilot focused on the complete system and avoid over-engineering
+alwaysApply: true
+---
+
+# System Focus
+
+Use this rule in all future build discussions and implementation choices.
+
+- Check whether a proposed change is necessary for the complete JobPilot system, not just for a short demo.
+- Prefer the simplest solution that keeps the full system architecture correct.
+- Avoid adding extra abstraction, protocols, nodes, tables, realtime infrastructure, or polish unless they solve a current system need.
+- Do not build demo-only shortcuts if they move the codebase away from the intended production/system design.
+- When a suggestion feels complex, explicitly ask: is this required now, or is it premature?
+- Prefer end-to-end working flow over sophisticated but partial architecture.
+- Keep frontend, backend, database, and agent design aligned around one source of truth.
+- If something is deferred, defer it cleanly without adding speculative scaffolding.

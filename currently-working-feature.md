@@ -1,88 +1,13 @@
 # Currently Working On
 
-What the team is actively doing **right now**, plus open questions that need decisions before implementation continues.
+**Active:** Search agent — design locked, implementation next.
 
-Update this file when focus shifts. Mirror status changes in [`progress.md`](progress.md) and [`frontend/progress.md`](frontend/progress.md).
+→ [`docs/discussion/search-subgraph-discussion-and-finalization.md`](docs/discussion/search-subgraph-discussion-and-finalization.md) — **Agreed way to build the search agent** (architecture, stops, ECS↔worker contract, Helper UI, build order)
 
----
+Related:
 
-## Active focus (2026-07-02)
+- [`docs/phase-a-step-1-contracts.md`](docs/phase-a-step-1-contracts.md) — Phase A contracts (complete)
+- [`docs/discussion/discussion-agentic-design.md`](docs/discussion/discussion-agentic-design.md) — broader agent design discussion
+- [`System Design/jobpilot-agent-build-guide.md`](System%20Design/jobpilot-agent-build-guide.md) — locked build phases
 
-### 1. LangGraph search agents `[ ]` — next
-
-**Goal:** Parent search graph + per-job sub-agents; `POST /search` with `user_id` from session.
-
-**Prerequisites shipped:** Multi-user auth, per-user profiles, encrypted tokens, future `search_runs` schema stubs.
-
-| Area | Status |
-|------|--------|
-| `POST /search` + polling API | `[ ]` |
-| Browser-Use search worker | `[ ]` |
-| Job packages + applications flow | `[ ]` |
-
----
-
-### 2. Multi-user auth + per-user profiles `[x]` — complete
-
-| Area | Status |
-|------|--------|
-| Email + password signup/login | `[x]` |
-| JWT in httpOnly cookie | `[x]` |
-| `users` table + bcrypt passwords | `[x]` |
-| `profiles` + `oauth_tokens` scoped by `user_id` | `[x]` |
-| Fernet encryption for `cv_text` + OAuth tokens | `[x]` |
-| Signup + login UI (`/login`, `/signup`) | `[x]` |
-| Protected routes + `credentials: 'include'` | `[x]` |
-| GitHub connect bound to logged-in user | `[x]` |
-| Uploads under `data/uploads/{user_id}/` | `[x]` |
-| Legacy single-user migration (warn only) | `[x]` |
-
-**Deploy note:** Set `JWT_SECRET` and `DATA_ENCRYPTION_KEY` in GitHub Secrets before next production deploy.
-
----
-
-### 3. Alibaba ECS deploy `[x]` — complete
-
-| Step | Status |
-|------|--------|
-| ECS + Docker + GitHub Actions | `[x]` |
-| Public IP `43.98.197.132` (no DuckDNS) | `[x]` |
-| CV + GitHub on cloud | `[x]` |
-| GitHub OAuth callback on IP | `[x]` user updated OAuth app |
-
-Guide: [`System Design/alibaba-cloud-trial.md`](System%20Design/alibaba-cloud-trial.md)
-
----
-
-## Not in focus right now
-
-| Item | Status | Notes |
-|------|--------|--------|
-| **Gmail send / connect UI** | `[x]` cancelled | LinkedIn/Indeed use in-platform apply; backend routes remain unused |
-| Screens 4–8 (HITL, applications) | `[ ]` locked |
-| HTTPS / Google OAuth | `[ ]` | Not needed without Gmail |
-| Email verification / password reset | `[ ]` | Post-hackathon hardening |
-| Rate limiting / audit logs | `[ ]` | Post-hackathon hardening |
-
----
-
-## Decision log
-
-| Date | Topic | Decision |
-|------|-------|----------|
-| 2026-07-02 | **Auth MVP** | Email/password only; GitHub connect after login (not primary login) |
-| 2026-07-02 | **Session** | JWT in httpOnly cookie; all `/api/profile*` and `/api/github*` require auth |
-| 2026-07-02 | **Encryption** | bcrypt passwords; Fernet for `cv_text` + OAuth tokens at app level |
-| 2026-07-02 | **Next phase** | LangGraph search agents after per-user data |
-| 2026-07-02 | Gmail | **Cancelled** for MVP |
-| 2026-07-02 | Public URL | **IP only** (`43.98.197.132`) |
-
----
-
-## Next actions
-
-1. Add `JWT_SECRET` + `DATA_ENCRYPTION_KEY` to GitHub Actions secrets for production
-2. LangGraph search agent (`POST /search`, browser worker)
-3. Job detail HITL screens (when agent phase ships)
-
-**Last updated:** 2026-07-02
+**Next code step:** ECS search subgraph (`enqueue_browser_task` → `wait_for_listings` → `normalize_listings` → `drop_applied`). Graph not wired to frontend yet.

@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS profiles (
     skills TEXT NOT NULL DEFAULT '[]',
     skills_extraction_status TEXT NOT NULL DEFAULT 'idle',
     target_roles TEXT NOT NULL DEFAULT '[]',
+    search_role TEXT,
+    search_platform TEXT NOT NULL DEFAULT 'linkedin',
     projects TEXT NOT NULL DEFAULT '[]',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -46,6 +48,10 @@ CREATE TABLE IF NOT EXISTS search_runs (
     role TEXT,
     platform TEXT,
     status TEXT NOT NULL DEFAULT 'pending',
+    error TEXT,
+    jobs_ready_count INTEGER NOT NULL DEFAULT 0,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    finished_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -53,6 +59,22 @@ CREATE TABLE IF NOT EXISTS job_packages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     run_id INTEGER REFERENCES search_runs(id) ON DELETE SET NULL,
+    title TEXT,
+    company TEXT,
+    url TEXT,
+    platform TEXT,
+    description_text TEXT NOT NULL DEFAULT '',
+    summary TEXT NOT NULL DEFAULT '',
+    match_score INTEGER,
+    current_cv_score INTEGER,
+    suggested_cv_score INTEGER,
+    cv_decision TEXT,
+    swap_out_project TEXT,
+    swap_in_text TEXT,
+    draft_email TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'ready',
+    error TEXT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -60,6 +82,14 @@ CREATE TABLE IF NOT EXISTS job_applications (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     job_package_id INTEGER REFERENCES job_packages(id) ON DELETE SET NULL,
+    url TEXT,
+    platform TEXT,
+    title TEXT,
+    company TEXT,
+    status TEXT NOT NULL DEFAULT 'sent',
+    email_subject TEXT,
+    cv_filename TEXT,
+    sent_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 """
@@ -70,6 +100,86 @@ def _table_names(conn: sqlite3.Connection) -> set[str]:
         "SELECT name FROM sqlite_master WHERE type='table'"
     ).fetchall()
     return {row["name"] for row in rows}
+
+
+def _column_names(conn: sqlite3.Connection, table_name: str) -> set[str]:
+    rows = conn.execute(f"PRAGMA table_info({table_name})").fetchall()
+    return {row["name"] for row in rows}
+
+
+def _ensure_columns(
+    conn: sqlite3.Connection, table_name: str, column_defs: dict[str, str]
+) -> None:
+    existing_columns = _column_names(conn, table_name)
+    for column_name, column_def in column_defs.items():
+        if column_name in existing_columns:
+            continue
+        conn.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_def}")
+        logger.info("Added %s.%s to database schema.", table_name, column_name)
+
+
+def _ensure_search_schema(conn: sqlite3.Connection) -> None:
+    _ensure_columns(
+        conn,
+        "profiles",
+        {
+            "search_role": "search_role TEXT",
+            "search_platform": "search_platform TEXT NOT NULL DEFAULT 'linkedin'",
+        },
+    )
+    _ensure_columns(
+        conn,
+        "search_runs",
+        {
+            "error": "error TEXT",
+            "jobs_ready_count": "jobs_ready_count INTEGER NOT NULL DEFAULT 0",
+            "updated_at": "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+            "finished_at": "finished_at TIMESTAMP",
+        },
+    )
+    _ensure_columns(
+        conn,
+        "job_packages",
+        {
+            "title": "title TEXT",
+            "company": "company TEXT",
+            "url": "url TEXT",
+            "platform": "platform TEXT",
+            "description_text": "description_text TEXT NOT NULL DEFAULT ''",
+            "summary": "summary TEXT NOT NULL DEFAULT ''",
+            "match_score": "match_score INTEGER",
+            "current_cv_score": "current_cv_score INTEGER",
+            "suggested_cv_score": "suggested_cv_score INTEGER",
+            "cv_decision": "cv_decision TEXT",
+            "swap_out_project": "swap_out_project TEXT",
+            "swap_in_text": "swap_in_text TEXT",
+            "draft_email": "draft_email TEXT NOT NULL DEFAULT ''",
+            "status": "status TEXT NOT NULL DEFAULT 'ready'",
+            "error": "error TEXT",
+            "updated_at": "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        },
+    )
+    _ensure_columns(
+        conn,
+        "job_applications",
+        {
+            "url": "url TEXT",
+            "platform": "platform TEXT",
+            "title": "title TEXT",
+            "company": "company TEXT",
+            "status": "status TEXT NOT NULL DEFAULT 'sent'",
+            "email_subject": "email_subject TEXT",
+            "cv_filename": "cv_filename TEXT",
+            "sent_at": "sent_at TIMESTAMP",
+        },
+    )
+    conn.execute(
+        """
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_job_applications_user_platform_url
+        ON job_applications (user_id, platform, url)
+        WHERE url IS NOT NULL
+        """
+    )
 
 
 def _is_legacy_schema(conn: sqlite3.Connection) -> bool:
@@ -113,6 +223,7 @@ def init_db() -> None:
             _migrate_legacy_schema(conn)
         else:
             conn.executescript(SCHEMA)
+            _ensure_search_schema(conn)
             conn.commit()
 
 

@@ -1,6 +1,7 @@
 ---
 name: JobPilot Backend Profile API Plan
 overview: Build a FastAPI backend with SQLite for profile storage, CV upload + LLM skill extraction, real Gmail/GitHub OAuth, and GitHub repo import (README → project cards). Wire the existing React frontend to replace localStorage mocks and manual skills entry. Strict per-change git commits.
+historical_note: The frontend replacement is now complete for profile/search state. Current behavior is DB-backed via FastAPI + SQLite rather than browser localStorage.
 todos:
   - id: scaffold-fastapi
     content: Scaffold backend/app (FastAPI, config, SQLite, CORS, requirements.txt, llm.yaml)

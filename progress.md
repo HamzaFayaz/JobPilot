@@ -28,7 +28,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | **2 — Data & auth** | Single-user profile + GitHub OAuth (MVP) | `[x]` |
 | **2b — Multi-user auth** | Login, signup, per-user profiles + tokens | `[x]` |
 | **3 — Backend core** | FastAPI profile API, CV upload, GitHub import | `[x]` |
-| **4 — Agents** | LangGraph search + per-job sub-agents | `[ ]` |
+| **4 — Agents** | LangGraph search + per-job sub-agents | `[o]` |
 | **5 — HITL flow** | Job detail, send, applications memory | `[ ]` |
 | **6 — Deploy** | Alibaba ECS (public IP) | `[x]` |
 
@@ -42,8 +42,10 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | [`jobpilot_frontend_web_app_plan.md`](.agent/plans/jobpilot_frontend_web_app_plan.md) | Vite React app: Welcome, Profile, Search | `[x]` |
 | [`jobpilot_backend_profile_api_plan.md`](.agent/plans/jobpilot_backend_profile_api_plan.md) | FastAPI + SQLite + CV/GitHub (single-user MVP) | `[x]` |
 | [`jobpilot_multi_user_auth_plan.md`](.agent/plans/jobpilot_multi_user_auth_plan.md) | Login, signup, per-user profiles + encryption | `[x]` |
+| [`browser-provider-abstraction.md`](System%20Design/browser-provider-abstraction.md) | Swappable Browser-Use / WebBridge layer + worker protocol | `[x]` spec |
+| [`jobpilot-agent-build-guide.md`](System%20Design/jobpilot-agent-build-guide.md) | **Active** — LangGraph + Search Helper build phases | `[x]` spec |
 
-**Execute frontend build:** `/build .agent/plans/jobpilot_frontend_web_app_plan.md`
+**Active implementation:** [`docs/discussion/search-subgraph-discussion-and-finalization.md`](docs/discussion/search-subgraph-discussion-and-finalization.md) on branch `jobpilot-with-brosweruse`. Build guide: [`jobpilot-agent-build-guide.md`](System%20Design/jobpilot-agent-build-guide.md).
 
 ---
 
@@ -79,7 +81,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | CV `.docx` upload → API; skills read-only from LLM | `[x]` |
 | GitHub OAuth + repo import | `[x]` |
 | Gmail OAuth (UI + send) | `[x]` cancelled — out of scope for LinkedIn/Indeed |
-| API layer (fetch → FastAPI; mock flag optional) | `[x]` |
+| API layer (fetch → FastAPI; DB-backed profile/search state) | `[x]` |
 
 → Task-level detail: [`frontend/progress.md`](frontend/progress.md) · Build plan: [`jobpilot_frontend_web_app_plan.md`](.agent/plans/jobpilot_frontend_web_app_plan.md)
 
@@ -95,7 +97,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | `users` table + login/signup | `[x]` | Email/password + JWT httpOnly cookie |
 | Profile + tokens scoped by `user_id` | `[x]` | Fernet encryption for cv_text + OAuth tokens |
 | Future tables (`search_runs`, `job_packages`, `job_applications`) | `[x]` | Schema stubs with `user_id` |
-| `POST /search` + polling | `[ ]` | Agent phase |
+| `POST /search` + polling | `[o]` | DB-backed API wiring done; graph/worker execution still pending |
 
 ### Integrations
 
@@ -109,10 +111,19 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 
 | Item | Status |
 |------|--------|
-| LangGraph parent graph + subgraphs | `[ ]` |
-| Browser-Use search agent | `[ ]` |
-| Per-job application sub-agent | `[ ]` |
-| Qwen / model integration | `[x]` profile LLM (CV skills, README) |
+| Build guide (ECS + Search Helper + LangGraph phases) | `[x]` spec — [`jobpilot-agent-build-guide.md`](System%20Design/jobpilot-agent-build-guide.md) |
+| Search agent design locked | `[x]` — [`search-subgraph-discussion-and-finalization.md`](docs/discussion/search-subgraph-discussion-and-finalization.md) |
+| Phase A contracts (models, states, stub APIs) | `[x]` — [`phase-a-step-1-contracts.md`](docs/phase-a-step-1-contracts.md) |
+| `langgraph` dependency | `[x]` — `requirements.txt` |
+| Parent graph skeleton (nodes + edges) | `[x]` — `backend/app/graph/orchestrator.py` |
+| `init_run` node | `[x]` — load run + profile, set `running` |
+| ECS search subgraph (`enqueue` → `wait` → `normalize` → `drop_applied`) | `[ ]` **next** |
+| `worker_tasks` + worker API routes | `[ ]` |
+| Wire `POST /api/search` → background graph | `[ ]` deferred |
+| `prefilter` node | `[ ]` |
+| JobPilot Search Helper (Browser-Use + PySide6 UI) | `[ ]` |
+| Per-job application sub-agent (`enrich_job`) | `[ ]` |
+| Qwen / model integration | `[x]` profile LLM (CV skills, README) · `[ ]` enrich_job |
 
 ### Documentation
 
@@ -121,19 +132,21 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | `System Design/JobPilot-System-Design.md` | `[x]` |
 | `System Design/design-decisions.md` | `[x]` |
 | `System Design/dev-time-hardening.md` | `[x]` |
+| `docs/discussion/search-subgraph-discussion-and-finalization.md` | `[x]` locked — search agent build agreement |
+| `docs/discussion/discussion-agentic-design.md` | `[x]` |
 | `System Design/JobPilot-Frontend-Design.md` | `[ ]` |
 
 ---
 
 ## Profile data map
 
-Long-term memory (DB when backend ships; localStorage during frontend build):
+Long-term memory (DB-backed current state):
 
 | Screen | User data | Storage |
 |--------|-----------|---------|
 | Welcome | Checklist state (derived from profile) | Profile record |
 | Profile | CV `.docx`, skills[], target_roles[], projects[] | `profiles` + `data/uploads/` (per `user_id` after auth) |
-| Search | One role from profile + platform | `search_runs` on submit (later); form ephemeral until then |
+| Search | Saved `search_role` + `search_platform`, plus per-run snapshot | `profiles` for current preference; `search_runs` on submit |
 
 ---
 
@@ -176,8 +189,9 @@ Long-term memory (DB when backend ships; localStorage during frontend build):
 |------|----------|-------------|-------------|
 | Design | 7 | 0 | 0 |
 | Frontend web app | 13 | 0 | 0 |
-| Backend & DB | 10 | 0 | search agents |
+| Backend & DB | 10 | 1 | search subgraph + worker |
+| Agents | 5 | 1 | search subgraph, Helper, application |
 | Integrations | 1 | 0 | search platforms |
 | Deploy | 5 | 0 | 0 |
 
-**Last updated:** 2026-07-02
+**Last updated:** 2026-07-05

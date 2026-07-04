@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from backend.app.db import get_connection
-from backend.app.models.profile import ProfileResponse, ProfileUpdate, Project
+from backend.app.models.profile import ProfileResponse, ProfileUpdate, Project, StoredProject
 from backend.app.services import crypto
 
 
@@ -24,6 +24,14 @@ def _parse_json_list(raw: str | None) -> list:
         return []
 
 
+def _resolve_search_role(
+    target_roles: list[str], search_role: str | None
+) -> str | None:
+    if search_role and search_role in target_roles:
+        return search_role
+    return target_roles[0] if target_roles else None
+
+
 def _decrypt_cv_text(raw: str | None) -> str:
     if not raw:
         return ""
@@ -31,6 +39,31 @@ def _decrypt_cv_text(raw: str | None) -> str:
         return crypto.decrypt(raw)
     except ValueError:
         return raw
+
+
+def _parse_stored_projects(raw: str | None) -> list[StoredProject]:
+    projects: list[StoredProject] = []
+    for item in _parse_json_list(raw):
+        try:
+            projects.append(StoredProject.model_validate(item))
+        except Exception:
+            continue
+    return projects
+
+
+def _stored_projects_to_api(projects: list[StoredProject]) -> list[Project]:
+    return [p.to_api() for p in projects]
+
+
+def _merge_project_update(existing: StoredProject | None, incoming: Project) -> dict:
+    """Preserve server-only fields when the client updates a project."""
+    merged = incoming.model_dump(by_alias=False)
+    if existing:
+        if existing.readme_md:
+            merged["readme_md"] = existing.readme_md
+        if existing.repo_full_name and not merged.get("repo_full_name"):
+            merged["repo_full_name"] = existing.repo_full_name
+    return merged
 
 
 def _row_to_profile(row: dict, oauth: dict[str, dict | None]) -> ProfileResponse:
@@ -41,16 +74,19 @@ def _row_to_profile(row: dict, oauth: dict[str, dict | None]) -> ProfileResponse
     if cv_path and os.path.exists(cv_path):
         cv_file_meta = {"size": os.path.getsize(cv_path)}
 
-    projects_raw = _parse_json_list(row.get("projects"))
-    projects = [Project(**p) for p in projects_raw]
+    stored_projects = _parse_stored_projects(row.get("projects"))
+    target_roles = _parse_json_list(row.get("target_roles"))
+    search_role = _resolve_search_role(target_roles, row.get("search_role"))
 
     return ProfileResponse(
         cv_filename=row.get("cv_filename"),
         cv_file_meta=cv_file_meta,
         skills=_parse_json_list(row.get("skills")),
         skills_extraction_status=row.get("skills_extraction_status") or "idle",
-        target_roles=_parse_json_list(row.get("target_roles")),
-        projects=projects,
+        target_roles=target_roles,
+        search_role=search_role,
+        search_platform=row.get("search_platform") or "linkedin",
+        projects=_stored_projects_to_api(stored_projects),
         gmail_connected=google is not None,
         gmail_email=google.get("email") if google else None,
         github_connected=github is not None,
@@ -78,16 +114,70 @@ def get_profile(user_id: int) -> ProfileResponse:
     return _row_to_profile(dict(row), _get_oauth_flags(user_id))
 
 
+def get_search_preferences(user_id: int) -> tuple[str | None, str]:
+    with get_connection() as conn:
+        row = conn.execute(
+            """
+            SELECT target_roles, search_role, search_platform
+            FROM profiles
+            WHERE user_id = ?
+            """,
+            (user_id,),
+        ).fetchone()
+    if not row:
+        return None, "linkedin"
+    target_roles = _parse_json_list(row["target_roles"])
+    role = _resolve_search_role(target_roles, row["search_role"])
+    platform = row["search_platform"] or "linkedin"
+    return role, platform
+
+
+def get_stored_projects(user_id: int) -> list[StoredProject]:
+    """Load full project records including readme_md (server-side only)."""
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT projects FROM profiles WHERE user_id = ?", (user_id,)
+        ).fetchone()
+    if not row:
+        return []
+    return _parse_stored_projects(row["projects"])
+
+
+def get_project_readme(user_id: int, project_id: str) -> str | None:
+    """Return stored README for one project, scoped to user_id."""
+    for project in get_stored_projects(user_id):
+        if project.id == project_id:
+            return project.readme_md
+    return None
+
+
 def update_profile(user_id: int, data: ProfileUpdate) -> ProfileResponse:
     fields: list[str] = []
     values: list[Any] = []
+    target_roles = get_profile(user_id).target_roles
 
     if data.target_roles is not None:
+        target_roles = data.target_roles
+        resolved_search_role = _resolve_search_role(target_roles, data.search_role)
         fields.append("target_roles = ?")
-        values.append(json.dumps(data.target_roles))
+        values.append(json.dumps(target_roles))
+        fields.append("search_role = ?")
+        values.append(resolved_search_role)
+
+    elif data.search_role is not None:
+        fields.append("search_role = ?")
+        values.append(_resolve_search_role(target_roles, data.search_role))
+
+    if data.search_platform is not None:
+        fields.append("search_platform = ?")
+        values.append(data.search_platform)
     if data.projects is not None:
+        existing_by_id = {p.id: p for p in get_stored_projects(user_id)}
+        merged_projects = [
+            _merge_project_update(existing_by_id.get(p.id), p) for p in data.projects
+        ]
         fields.append("projects = ?")
-        values.append(json.dumps([p.model_dump() for p in data.projects]))
+        values.append(json.dumps(merged_projects))
 
     if not fields:
         return get_profile(user_id)
@@ -157,7 +247,7 @@ def merge_github_import(
     new_skills: list[str],
 ) -> ProfileResponse:
     profile = get_profile(user_id)
-    existing_projects = [p.model_dump() for p in profile.projects]
+    existing_projects = [p.model_dump(by_alias=False) for p in get_stored_projects(user_id)]
     existing_skills = list(profile.skills)
 
     for proj in new_projects:

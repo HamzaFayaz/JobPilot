@@ -24,7 +24,7 @@ export function SettingsPage() {
           <Link to="/profile" className="font-semibold text-primary hover:underline">
             profile setup
           </Link>{' '}
-          first — upload your CV and optionally import GitHub repos. Skills and projects will
+          first: upload your CV and optionally import GitHub repos. Skills and projects will
           appear here when ready.
         </div>
       ) : null}

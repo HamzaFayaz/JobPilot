@@ -1,6 +1,7 @@
 ---
 name: JobPilot Frontend Web App Plan
 overview: Build the JobPilot responsive web app (Welcome, Profile, Search) with Vite + React + TypeScript + Tailwind, adapting desktop Stitch mocks per frontend/progress.md. Profile uses localStorage mock first; backend profile API is a separate follow-up plan. Strict per-change git commits and parallel subagent tracks for the three screens.
+historical_note: LocalStorage/mock references in this plan are obsolete. The current frontend uses real FastAPI calls with backend SQLite as the source of truth for profile/search state.
 todos:
   - id: phase-a0-uipro
     content: "Phase A0: Run ui-ux-pro-max --design-system --persist; create design-system/MASTER.md with Stitch token overrides"
