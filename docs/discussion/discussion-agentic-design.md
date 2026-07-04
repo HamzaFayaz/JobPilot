@@ -3,7 +3,7 @@
 **Purpose:** Living doc for design conversations before and during implementation.  
 **Status:** Discussion (2026-07-03) — nothing in `backend/app/graph/` yet.  
 **Authoritative specs (locked unless we change them here):**  
-[`System Design/jobpilot-agent-build-guide.md`](../System%20Design/jobpilot-agent-build-guide.md) · [`System Design/JobPilot-System-Design.md`](../System%20Design/JobPilot-System-Design.md) · [`System Design/browser-provider-abstraction.md`](../System%20Design/browser-provider-abstraction.md)
+[`System Design/jobpilot-agent-build-guide.md`](../../System%20Design/jobpilot-agent-build-guide.md) · [`System Design/JobPilot-System-Design.md`](../../System%20Design/JobPilot-System-Design.md) · [`System Design/browser-provider-abstraction.md`](../../System%20Design/browser-provider-abstraction.md)
 
 ---
 
@@ -38,7 +38,7 @@ The PRD lists an **“Orchestrator Agent”** that routes between sub-agents. Th
 
 > **Parent orchestrator = LangGraph `StateGraph` + Python routing — not an LLM agent.**
 
-See [`llm-routing-and-cost-plan.md`](../System%20Design/llm-routing-and-cost-plan.md) §3.
+See [`llm-routing-and-cost-plan.md`](../../System%20Design/llm-routing-and-cost-plan.md) §3.
 
 | Concept | MVP design | Uses Qwen? |
 |---------|------------|------------|
@@ -231,12 +231,12 @@ Does this order still feel right?
 
 | Doc | Role |
 |-----|------|
-| [`jobpilot-agent-build-guide.md`](../System%20Design/jobpilot-agent-build-guide.md) | Phase checklist, code map, API tables |
-| [`JobPilot-System-Design.md`](../System%20Design/JobPilot-System-Design.md) | Full topology, state shapes, API |
-| [`browser-provider-abstraction.md`](../System%20Design/browser-provider-abstraction.md) | `BrowserProvider` protocol, tier boundaries |
-| [`llm-routing-and-cost-plan.md`](../System%20Design/llm-routing-and-cost-plan.md) | Which steps use Qwen |
-| [`design-decisions.md`](../System%20Design/design-decisions.md) | Async `/search`, `run_id`, dedupe |
-| [`currently-working-feature.md`](../currently-working-feature.md) | Active task tracker |
+| [`jobpilot-agent-build-guide.md`](../../System%20Design/jobpilot-agent-build-guide.md) | Phase checklist, code map, API tables |
+| [`JobPilot-System-Design.md`](../../System%20Design/JobPilot-System-Design.md) | Full topology, state shapes, API |
+| [`browser-provider-abstraction.md`](../../System%20Design/browser-provider-abstraction.md) | `BrowserProvider` protocol, tier boundaries |
+| [`llm-routing-and-cost-plan.md`](../../System%20Design/llm-routing-and-cost-plan.md) | Which steps use Qwen |
+| [`design-decisions.md`](../../System%20Design/design-decisions.md) | Async `/search`, `run_id`, dedupe |
+| [`currently-working-feature.md`](../../currently-working-feature.md) | Active task tracker |
 
 ---
 
