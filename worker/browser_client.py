@@ -31,7 +31,9 @@ def _build_llm(settings: WorkerSettings) -> ChatOpenAI:
 
 
 def _build_browser_profile(task: WorkerTask, settings: WorkerSettings) -> BrowserProfile:
-    profile_dir = task.chrome_profile_directory or settings.browser_chrome_profile
+    # Local worker/.env wins — ECS does not know this PC's Chrome profile layout.
+    profile_dir = settings.browser_chrome_profile or task.chrome_profile_directory
+    logger.info("Using Chrome profile directory: %s", profile_dir)
     return BrowserProfile(
         channel=BrowserChannel.CHROME,
         user_data_dir=_chrome_user_data_dir(),
