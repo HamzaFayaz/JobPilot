@@ -6,9 +6,8 @@ import {
 import { useCallback, useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { getRunStatus, listRunJobs, startSearch, type JobPackage, type SearchRunStatusResponse } from '../api/search'
-import { type WorkerStatusResponse } from '../api/worker'
 import { Button } from '../components/ui/Button'
-import { SearchHelperStatus } from '../components/search/SearchHelperStatus'
+import { SearchHelperHint } from '../components/search/SearchHelperHint'
 import { SearchPreferencesFields } from '../components/search/SearchPreferencesFields'
 import { useProfile } from '../context/ProfileContext'
 import type { SearchPlatform } from '../types/profile'
@@ -95,8 +94,8 @@ export function SearchPage() {
         </p>
       </header>
 
-      <div className="mx-auto max-w-xl space-y-6">
-        <SearchHelperStatus onStatusChange={(status: WorkerStatusResponse) => setHelperConnected(status.connected)} />
+      <div className="mx-auto max-w-xl space-y-4">
+        <SearchHelperHint onConnectedChange={setHelperConnected} />
 
         <div className="rounded-lg border border-border bg-surface p-6 shadow-sm">
           <div className="mb-6 flex items-start gap-3 rounded-lg bg-hitl-bg p-4 text-hitl-text">
@@ -219,7 +218,7 @@ export function SearchPage() {
                 ? 'Starting search...'
                 : helperConnected
                   ? 'Start search'
-                  : 'Connect Search Helper first'}
+                  : 'Connect Search Helper in Settings'}
             </Button>
           </form>
         </div>
@@ -240,11 +239,20 @@ export function SearchPage() {
           <div className="mt-4 space-y-2 text-sm text-text-secondary">
             <p>
               <span className="font-semibold text-text-primary">Status:</span>{' '}
-              {runStatus?.status ?? 'pending'}
+              {runStatus?.status === 'running' || runStatus?.status === 'pending' ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-primary" />
+                  {runStatus.status === 'pending' ? 'Starting…' : 'Searching on your PC…'}
+                </span>
+              ) : (
+                runStatus?.status ?? 'pending'
+              )}
             </p>
             <p>
               <span className="font-semibold text-text-primary">Jobs ready:</span>{' '}
-              {runStatus?.jobsReadyCount ?? 0}
+              {runStatus?.status === 'running' || runStatus?.status === 'pending'
+                ? '—'
+                : (runStatus?.jobsReadyCount ?? 0)}
             </p>
             {runStatus?.error ? (
               <p className="text-red-600">
@@ -259,8 +267,20 @@ export function SearchPage() {
           </div>
 
           <div className="mt-6 space-y-3">
-            {jobs.length === 0 ? (
-              <p className="text-sm text-text-secondary">No job packages stored for this run yet.</p>
+            {runStatus?.status === 'running' || runStatus?.status === 'pending' ? (
+              <div className="rounded-lg border border-dashed border-primary/40 bg-chip-bg/30 p-4 text-sm text-text-secondary">
+                <p className="font-medium text-text-primary">Search in progress</p>
+                <p className="mt-1">
+                  Your Search Helper is working on this run. Keep the worker terminal open and
+                  close Chrome on the profile used for LinkedIn before starting a search.
+                </p>
+              </div>
+            ) : jobs.length === 0 ? (
+              <p className="text-sm text-text-secondary">
+                {runStatus?.status === 'failed'
+                  ? 'Search failed before any jobs were saved.'
+                  : 'No matching jobs were found for this run.'}
+              </p>
             ) : (
               jobs.map((job) => (
                 <article key={job.id ?? `${job.url}-${job.title}`} className="rounded-lg border border-border p-4">

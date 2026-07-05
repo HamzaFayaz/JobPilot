@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { SearchHelperSettings } from '../components/settings/SearchHelperSettings'
 import { SkillsFromCv } from '../components/profile/SkillsFromCv'
 import { ProjectsList } from '../components/profile/ProjectsList'
 import { useProfile } from '../context/ProfileContext'
@@ -17,6 +18,8 @@ export function SettingsPage() {
           View extracted skills and manage project cards after setup actions complete.
         </p>
       </header>
+
+      <SearchHelperSettings />
 
       {!hasCv && !hasProjects && profile.skillsExtractionStatus === 'idle' ? (
         <div className="rounded-lg border border-border bg-background p-6 text-sm text-text-secondary">
