@@ -50,9 +50,6 @@ class SearchListingsRequest(BaseModel):
     )
     max_pages: int = Field(3, alias="maxPages")
     skills_summary: str = Field(default="", alias="skillsSummary")
-    chrome_profile_directory: str | None = Field(
-        default=None, alias="chromeProfileDirectory"
-    )
 
 
 class SearchListingsResult(BaseModel):
