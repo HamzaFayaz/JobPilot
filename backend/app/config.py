@@ -45,7 +45,7 @@ class Settings(BaseSettings):
 
     # Search Helper / ECS orchestration (system settings — not user search prefs)
     # User max jobs, job age, country, work mode live in profiles + search_runs (DB).
-    browser_chrome_profile: str = "Profile 1"
+    browser_chrome_profile: str = "Default"
     browser_search_wait_timeout_seconds: int = 120
     worker_heartbeat_stale_seconds: int = 60
 
