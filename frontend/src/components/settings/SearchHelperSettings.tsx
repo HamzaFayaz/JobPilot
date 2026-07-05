@@ -17,7 +17,7 @@ const HEALTH_LABELS: Record<BrowserHealth, string> = {
   busy: 'Running a search',
   not_installed: 'Not installed',
   daemon_down: 'Daemon down',
-  profile_setup: 'Chrome profile setup needed',
+  profile_setup: 'WebBridge setup needed',
   error: 'Error',
 }
 
@@ -102,7 +102,7 @@ export function SearchHelperSettings() {
             <div>
               <h2 className="text-base font-semibold text-text-primary">Search Helper</h2>
               <p className="mt-1 text-sm text-text-secondary">
-                Connect this computer to run LinkedIn/Indeed search locally via Browser-Use.
+                Connect this computer to run LinkedIn/Indeed search locally via Kimi WebBridge.
               </p>
             </div>
             <Button type="button" variant="ghost" onClick={() => void refresh()}>

@@ -1,9 +1,11 @@
 
+> **2026-07-05:** Browser row below refers to **Kimi WebBridge** (Browser-Use deprecated). See [`System Design/kimi-webbridge-provider.md`](System%20Design/kimi-webbridge-provider.md).
+
 ### lean Version — What Stays, What Goes
 
 | Feature                            | Keep             | Cut              |
 | ---------------------------------- | ---------------- | ---------------- |
-| Browser-Use opens LinkedIn/Indeed  | ✅               |                  |
+| Kimi WebBridge opens LinkedIn/Indeed | ✅               |                  |
 | Searches jobs by role              | ✅               |                  |
 | Extracts job listings              | ✅               |                  |
 | Scores each job vs CV              | ✅ simple prompt |                  |

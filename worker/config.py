@@ -1,5 +1,6 @@
 """Search Helper configuration from worker/.env."""
 
+import os
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -21,8 +22,21 @@ class WorkerSettings(BaseSettings):
     qwen_base_url: str = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
     qwen_model: str = "qwen-plus"
 
-    browser_chrome_profile: str = "Profile 1"
+    # Kimi WebBridge (v1) — replaces Browser-Use
+    browser_provider: str = "webbridge"
+    webbridge_url: str = "http://127.0.0.1:10086"
+
+    # Deprecated (Browser-Use only — remove after WebBridge E2E)
+    browser_chrome_profile: str = "Default"
+    browser_user_data_dir: str = ""
     poll_interval_seconds: float = 3.0
+
+
+def default_browser_user_data_dir() -> Path:
+    """Deprecated — Browser-Use persistent profile dir. Not used with WebBridge."""
+    local_app_data = os.environ.get("LOCALAPPDATA", "").strip()
+    base = Path(local_app_data) if local_app_data else Path.home() / "AppData" / "Local"
+    return base / "JobPilot" / "browser-use-user-data-dir-jobpilot"
 
 
 def get_settings() -> WorkerSettings:

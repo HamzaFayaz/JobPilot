@@ -2,7 +2,9 @@
 
 Local app in `worker/` — runs on the **user's PC**, not on ECS.
 
-Polls JobPilot cloud for search tasks, runs **Browser-Use** with **Qwen (`qwen-plus`)** against a **job-search Chrome profile**, and posts raw listings back.
+Polls JobPilot cloud for search tasks, runs **Kimi WebBridge** + **Qwen (`qwen-plus`)** ReAct loop against the user's **real Chrome** (existing LinkedIn login), and posts raw listings back.
+
+> **Migration:** Browser-Use is deprecated. Setup and architecture: [`System Design/kimi-webbridge-provider.md`](../System%20Design/kimi-webbridge-provider.md)
 
 ## Dev setup (use `worker/.venv` — not global Python)
 
@@ -19,10 +21,18 @@ Edit `worker/.env`:
 | Variable | Example |
 |----------|---------|
 | `JOBPILOT_API_BASE` | `http://43.98.197.132` or `http://localhost:8000` |
-| `WORKER_TOKEN` | From JobPilot after `POST /api/worker/pair` (logged-in user) |
+| `WORKER_TOKEN` | From JobPilot Settings → pairing code |
 | `DASHSCOPE_API_KEY` | Your Dashscope key (browser LLM on this PC only) |
 | `QWEN_MODEL` | `qwen-plus` (default) |
-| `BROWSER_CHROME_PROFILE` | `Profile 1` (Chrome profile with LinkedIn login) |
+| `BROWSER_PROVIDER` | `webbridge` (default) |
+| `WEBBRIDGE_URL` | `http://127.0.0.1:10086` |
+
+## Kimi WebBridge one-time setup
+
+1. Install Kimi WebBridge + Chrome extension — see [kimi-webbridge-provider.md](../System%20Design/kimi-webbridge-provider.md)
+2. Start daemon: `kimi-webbridge.exe start`
+3. Verify: `kimi-webbridge.exe status` → `running: true`, `extension_connected: true`
+4. Log into LinkedIn in your normal Chrome (no separate profile needed)
 
 ## Run locally (test before .exe)
 
@@ -30,27 +40,21 @@ Edit `worker/.env`:
 .\.venv\Scripts\python.exe main.py
 ```
 
-Leave it running. On the website: set search preferences → Start search (with graph wired) or enqueue a task via API tests.
-
-## Chrome one-time setup
-
-1. Chrome → Add profile **Job search** (often shows as `Profile 1`)
-2. Log into LinkedIn in that profile only
-3. Keep JobPilot open in your main Chrome window
+Leave it running. On the website: Settings → pair Search Helper → Start search.
 
 ## Pairing WORKER_TOKEN
 
 1. Log into JobPilot in the browser
-2. Call `POST /api/worker/pair` (Settings UI coming) — copy `workerToken`
+2. Settings → **Connect this computer** — copy pairing code
 3. Paste into `worker/.env` as `WORKER_TOKEN`
 
 ## Model note
 
-Default model is **`qwen-plus`** for trial token budget. Browser-Use officially documents best results with `qwen-vl-max`; if `qwen-plus` misbehaves on action schema, switch to `qwen-vl-max` in `.env`.
+Default model is **`qwen-plus`** for trial token budget. If navigation misbehaves, try `qwen-vl-max` in `.env`.
 
 ## Not in this slice
 
 - PyInstaller `.exe` (after local `python main.py` works)
 - PySide6 tray UI (later)
 
-Full spec: [`System Design/jobpilot-agent-build-guide.md`](../System%20Design/jobpilot-agent-build-guide.md)
+Full spec: [`System Design/jobpilot-agent-build-guide.md`](../System%20Design/jobpilot-agent-build-guide.md) · [`kimi-webbridge-provider.md`](../System%20Design/kimi-webbridge-provider.md)

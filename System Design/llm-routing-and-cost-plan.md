@@ -108,7 +108,7 @@ agent:
   model: qwen3.7-plus    # application subgraph (when built)
 ```
 
-Browser-Use model is **not** in this file — it lives in Search Helper / worker env (separate process).
+Search Helper browser LLM (Kimi WebBridge + Qwen) is **not** in this file — it lives in `worker/.env` (separate process).
 
 ---
 

@@ -1,4 +1,8 @@
-"""Browser-Use search execution for the Search Helper."""
+"""Search execution for the Search Helper.
+
+DEPRECATED path: Browser-Use (being replaced by Kimi WebBridge).
+Target: worker/providers/webbridge.py — see System Design/kimi-webbridge-provider.md
+"""
 
 import logging
 import os
@@ -7,7 +11,7 @@ from pathlib import Path
 from browser_use import Agent, BrowserProfile, BrowserSession, ChatOpenAI
 from browser_use.browser.profile import BrowserChannel
 
-from worker.config import WorkerSettings
+from worker.config import WorkerSettings, default_browser_user_data_dir
 from worker.models import RawJobListing, WorkerTask
 from worker.parse import parse_listings_from_agent_output
 from worker.prompts import build_search_task
@@ -15,11 +19,24 @@ from worker.prompts import build_search_task
 logger = logging.getLogger(__name__)
 
 
-def _chrome_user_data_dir() -> Path:
-    local_app_data = os.environ.get("LOCALAPPDATA", "").strip()
-    if local_app_data:
-        return Path(local_app_data) / "Google" / "Chrome" / "User Data"
-    return Path.home() / "AppData" / "Local" / "Google" / "Chrome" / "User Data"
+def _worker_user_data_dir(settings: WorkerSettings) -> Path:
+    if settings.browser_user_data_dir.strip():
+        return Path(settings.browser_user_data_dir).expanduser().resolve()
+    return default_browser_user_data_dir()
+
+
+def _build_browser_profile(task: WorkerTask, settings: WorkerSettings) -> BrowserProfile:
+    # Local worker/.env wins — ECS does not know this PC's Chrome profile layout.
+    profile_dir = settings.browser_chrome_profile or task.chrome_profile_directory
+    user_data_dir = _worker_user_data_dir(settings)
+    user_data_dir.mkdir(parents=True, exist_ok=True)
+    logger.info("Using Chrome user_data_dir=%s profile=%s", user_data_dir, profile_dir)
+    return BrowserProfile(
+        channel=BrowserChannel.CHROME,
+        user_data_dir=user_data_dir,
+        profile_directory=profile_dir,
+        headless=False,
+    )
 
 
 def _build_llm(settings: WorkerSettings) -> ChatOpenAI:
@@ -27,18 +44,6 @@ def _build_llm(settings: WorkerSettings) -> ChatOpenAI:
         model=settings.qwen_model,
         api_key=settings.dashscope_api_key,
         base_url=settings.qwen_base_url,
-    )
-
-
-def _build_browser_profile(task: WorkerTask, settings: WorkerSettings) -> BrowserProfile:
-    # Local worker/.env wins — ECS does not know this PC's Chrome profile layout.
-    profile_dir = settings.browser_chrome_profile or task.chrome_profile_directory
-    logger.info("Using Chrome profile directory: %s", profile_dir)
-    return BrowserProfile(
-        channel=BrowserChannel.CHROME,
-        user_data_dir=_chrome_user_data_dir(),
-        profile_directory=profile_dir,
-        headless=False,
     )
 
 

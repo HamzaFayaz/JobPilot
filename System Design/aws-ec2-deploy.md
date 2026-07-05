@@ -60,7 +60,7 @@ User's laptop                 AWS EC2 (Singapore)
 
 - **Two containers:** `web` (React + nginx) and `api` (FastAPI).
 - **EC2 runs:** Docker Compose — **not** the browser.
-- **Browser-Use** stays on the user's machine.
+- **Kimi WebBridge** (Search Helper) stays on the user's machine — ECS never runs browser automation.
 
 ---
 

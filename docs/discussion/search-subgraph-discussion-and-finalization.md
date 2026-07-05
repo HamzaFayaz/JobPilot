@@ -1,5 +1,7 @@
 # Search Subgraph — Discussion and Finalization
 
+> **Browser provider update (2026-07-05):** **Kimi WebBridge** replaces Browser-Use for the Search Helper. ECS subgraph and worker HTTP protocol are unchanged. See [`System Design/kimi-webbridge-provider.md`](../../System%20Design/kimi-webbridge-provider.md). Historical Browser-Use references below are kept for context.
+
 ## Question
 
 if you check we plan to use someting like Your intuition is right (user view)
@@ -697,7 +699,7 @@ Installing a local app is a **justified trust step** — same class as Zoom/Slac
 |------------|--------|---------|
 | JWT cookie | Website | User login |
 | **`WORKER_TOKEN`** | Helper (paired once per PC) | Helper ↔ JobPilot API — revocable |
-| **User Dashscope key** | Helper (Option B) | Browser-Use LLM on PC |
+| **User Dashscope key** | Helper (Option B) | WebBridge + Qwen ReAct loop on PC |
 | **ECS Dashscope key** | Server `.env` | Profile LLM + `enrich_job` |
 
 Do **not** ship public `.exe` with our Dashscope key inside.
@@ -711,21 +713,21 @@ Do **not** ship public `.exe` with our Dashscope key inside.
 | **Orchestration (ECS)** | LangGraph **≥1.2.6, &lt;2** · Python · `RunState` / `SearchState` |
 | **API (ECS)** | FastAPI · SQLite · `search_runs` · `worker_tasks` (to add) |
 | **Search subgraph (ECS)** | Python nodes — no `browser_use` import on ECS in production |
-| **Browser agent (PC)** | **Browser-Use** (v1) · `BrowserProvider` protocol · separate **Chrome job-search profile** |
+| **Browser agent (PC)** | **Kimi WebBridge** (v1) · `BrowserProvider` · real Chrome via extension |
 | **Browser LLM (PC)** | **Qwen via Dashscope** — user-provided key (Option B) |
 | **Cloud LLM (ECS)** | **Qwen via Dashscope** — profile tasks + `enrich_job` (later) |
 | **Helper UI (PC)** | **PySide6** minimal window + system tray |
 | **Helper packaging** | **PyInstaller** `.exe` (hackathon demo); dev: `python main.py` |
 | **Worker ↔ ECS** | HTTPS · `WORKER_TOKEN` · poll `GET /tasks/next` every ~3s |
 | **Website status** | React · `SearchHelperStatus.tsx` (to build) |
-| **Provider swap (later)** | Kimi WebBridge v2 — same API contract, Helper only |
+| **Provider** | Kimi WebBridge v1 (replaces Browser-Use) — [`kimi-webbridge-provider.md`](../../System%20Design/kimi-webbridge-provider.md) |
 
 ---
 
 ### 6. Techniques & patterns (agreed)
 
 - **LangGraph parent graph** = code routing, not LLM supervisor  
-- **Browser ReAct** = opaque inside Browser-Use — not LangGraph click nodes  
+- **Browser ReAct** = opaque inside Kimi WebBridge + Qwen loop — not LangGraph click nodes  
 - **Task prompt** controls role, platform, max jobs, 1-week filter, JSON output shape  
 - **Deterministic cleanup** on ECS: URL normalize, dedupe, `drop_applied(user_id)`  
 - **Async search:** user polls `/runs/{id}/status` — graph runs in background (when wired)  
@@ -742,7 +744,7 @@ Do **not** ship public `.exe` with our Dashscope key inside.
 | 2 | `init_run` node | Done |
 | 3 | **Search subgraph (ECS)** — `enqueue`, `wait`, `normalize`, `drop_applied` | **Next** |
 | 4 | `search_store` + `worker_tasks` table + worker API routes | With step 3 |
-| 5 | **Search Helper** — poll loop + Browser-Use provider | After ECS queue |
+| 5 | **Search Helper** — poll loop + Kimi WebBridge provider | After ECS queue |
 | 6 | **PySide6 minimal UI** — API key, pair, status, tray | With Helper |
 | 7 | Wire `POST /api/search` → background graph | When subgraph + queue ready |
 | 8 | `prefilter` + application subgraph | After search works end-to-end |
