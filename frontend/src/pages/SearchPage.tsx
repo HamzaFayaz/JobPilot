@@ -5,7 +5,14 @@ import {
 } from '@heroicons/react/24/outline'
 import { useCallback, useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { getRunStatus, listRunJobs, startSearch, type JobPackage, type SearchRunStatusResponse } from '../api/search'
+import {
+  getLatestRun,
+  getRunStatus,
+  listRunJobs,
+  startSearch,
+  type JobPackage,
+  type SearchRunStatusResponse,
+} from '../api/search'
 import { Button } from '../components/ui/Button'
 import { SearchHelperHint } from '../components/search/SearchHelperHint'
 import { SearchPreferencesFields } from '../components/search/SearchPreferencesFields'
@@ -23,6 +30,38 @@ export function SearchPage() {
   const [submitting, setSubmitting] = useState(false)
   const [pollError, setPollError] = useState<string | null>(null)
   const [helperReady, setHelperReady] = useState(false)
+  const [restoringRun, setRestoringRun] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+
+    void (async () => {
+      try {
+        const latest = await getLatestRun()
+        if (cancelled || !latest) {
+          return
+        }
+        setActiveRunId(latest.runId)
+        setRunStatus(latest)
+        const nextJobs = await listRunJobs(latest.runId)
+        if (!cancelled) {
+          setJobs(nextJobs)
+        }
+      } catch (error: unknown) {
+        if (!cancelled) {
+          setPollError(error instanceof Error ? error.message : 'Failed to load latest search run')
+        }
+      } finally {
+        if (!cancelled) {
+          setRestoringRun(false)
+        }
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     if (profile.targetRoles.length === 0) {
@@ -255,7 +294,11 @@ export function SearchPage() {
         </div>
       </div>
 
-      {activeRunId ? (
+      {restoringRun ? (
+        <section className="mx-auto max-w-xl rounded-lg border border-border bg-surface p-6 shadow-sm">
+          <p className="text-sm text-text-secondary">Loading your latest search run…</p>
+        </section>
+      ) : activeRunId ? (
         <section className="mx-auto max-w-xl rounded-lg border border-border bg-surface p-6 shadow-sm">
           <div className="flex items-start justify-between gap-4">
             <div>

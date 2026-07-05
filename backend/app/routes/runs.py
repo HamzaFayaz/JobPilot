@@ -5,8 +5,25 @@ from fastapi import APIRouter, Depends, HTTPException
 from backend.app.db import get_connection
 from backend.app.deps.auth import get_current_user
 from backend.app.models.search import SearchRunStatusResponse
+from backend.app.services.search_store import get_latest_search_run
 
 router = APIRouter(prefix="/api/runs", tags=["runs"])
+
+
+@router.get("/latest", response_model=SearchRunStatusResponse | None)
+def get_latest_run(
+    current_user: dict = Depends(get_current_user),
+) -> SearchRunStatusResponse | None:
+    row = get_latest_search_run(current_user["id"])
+    if not row:
+        return None
+
+    return SearchRunStatusResponse(
+        runId=int(row["id"]),
+        status=row["status"],
+        jobsReadyCount=int(row["jobs_ready_count"] or 0),
+        error=row["error"],
+    )
 
 
 @router.get("/{run_id}/status", response_model=SearchRunStatusResponse)

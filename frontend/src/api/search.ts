@@ -59,6 +59,10 @@ export async function startSearch(): Promise<SearchStartResponse> {
   })
 }
 
+export async function getLatestRun(): Promise<SearchRunStatusResponse | null> {
+  return apiFetch<SearchRunStatusResponse | null>('/api/runs/latest')
+}
+
 export async function getRunStatus(runId: number): Promise<SearchRunStatusResponse> {
   return apiFetch<SearchRunStatusResponse>(`/api/runs/${runId}/status`)
 }
