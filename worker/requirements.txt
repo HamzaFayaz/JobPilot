@@ -1,4 +1,15 @@
-# Local browser worker — not installed on ECS
+# JobPilot Search Helper (local PC — install into worker/.venv only)
+#
+# Setup:
+#   cd worker
+#   python -m venv .venv
+#   .venv\Scripts\activate        # Windows
+#   pip install -r requirements.txt
+#   copy .env.example .env
+#
+# Run (dev — not .exe):
+#   .venv\Scripts\python.exe main.py
+#
 browser-use>=0.12.0
 httpx>=0.27.0
 pydantic>=2.0.0
