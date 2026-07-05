@@ -21,8 +21,8 @@ This document describes the backend only. It defines the LangGraph topology (par
 - **No duplicate applies.** On a successful send, the job is recorded in `AppliedJob`. That URL is excluded from all future searches and blocked at send time.
 - **Topology = local-first.** One local process for the hackathon, with a documented path to Alibaba ECS. In both modes a **Browser Worker** drives the user's **real Chrome** using the user's own session and cookies; in cloud mode that worker is a thin local process the cloud orchestrator delegates to.
 - **LangGraph subgraphs with isolated state.** The parent orchestrator graph owns `RunState`. The **search subgraph** owns `SearchState`. Each **application subgraph** invocation owns `ApplicationState`. Subgraphs are compiled once and invoked from the parent; per-job work fans out via LangGraph `Send`.
-- **Browser layer = Browser-Use or Kimi WebBridge only.** Job search and listing extraction use an opaque ReAct browser agent (observe → decide → act → loop). We do **not** use Playwright scripts, Selenium, or other deterministic scrapers for the search path. Post-processing (URL normalize, dedupe) is deterministic code after the browser agent returns.
-- **Three ownership layers.** LangGraph owns workflow and parallelism. The browser agent (Browser-Use or Kimi WebBridge) owns the browser ReAct loop. Qwen owns structured per-job enrichment. FastAPI routes own HITL actions (CV edit, email refine, send).
+- **Browser layer = Kimi WebBridge (v1).** Browser-Use is deprecated. Job search and listing extraction use an opaque ReAct browser agent (observe → decide → act → loop). We do **not** use Playwright scripts, Selenium, or other deterministic scrapers for the search path. Post-processing (URL normalize, dedupe) is deterministic code after the browser agent returns.
+- **Three ownership layers.** LangGraph owns workflow and parallelism. The browser agent (Kimi WebBridge + Qwen ReAct in the worker) owns the browser loop. Qwen owns structured per-job enrichment. FastAPI routes own HITL actions (CV edit, email refine, send).
 
 ---
 
@@ -32,7 +32,7 @@ This document describes the backend only. It defines the LangGraph topology (par
 - **Persistence:** SQLite for the MVP (`search_runs`, `JobPackage`, `AppliedJob`, `oauth_tokens`); Postgres when deployed to ECS.
 - **Profile:** CV text plus a user-maintained skills/projects list. GitHub repo scanner stays post-MVP.
 - **Orchestrator:** LangGraph parent `StateGraph` with code-based routing — no separate LLM "orchestrator agent" for the MVP.
-- **Browser tool:** Browser-Use (primary, native Python SDK) or Kimi WebBridge (alternative); both expose a task-in / structured-results-out interface. The LangGraph graph never models individual browser clicks as nodes.
+- **Browser tool:** **Kimi WebBridge** (v1) — HTTP to local daemon + Chrome extension; Qwen ReAct loop in Search Helper. Browser-Use is deprecated. The LangGraph graph never models individual browser clicks as nodes.
 - **Dedupe key:** normalized `job_url` + `platform`.
 - **LLM:** Qwen via Dashscope (OpenAI-compatible), reused from the existing test clients.
 - **Async search:** `POST /search` returns immediately with `run_id`; client polls for status and partial job results. See [design-decisions.md](./design-decisions.md).
@@ -63,7 +63,7 @@ flowchart TB
         gate -->|no| skipEnd(["END — skip job"])
     end
 
-    subgraph L3 ["Layer 3 — Browser agent opaque (Browser-Use or Kimi WebBridge)"]
+    subgraph L3 ["Layer 3 — Browser agent opaque (Kimi WebBridge)"]
         react["observe → decide → act → loop until task done"]
     end
 
@@ -127,7 +127,7 @@ Local-first for the hackathon; the same components lift to ECS later. The key in
 flowchart LR
     subgraph userMachine [User Machine - always]
         chrome[("Real Chrome: user session + cookies")]
-        worker["Browser Worker (Browser-Use or Kimi WebBridge + CDP)"]
+        worker["Browser Worker (Kimi WebBridge + real Chrome)"]
         worker --> chrome
     end
 
@@ -149,7 +149,7 @@ flowchart LR
 
 - **Local mode (MVP):** orchestrator and Browser Worker run in the same process/machine; only Qwen and Gmail are remote.
 - **Cloud mode (later):** orchestrator + API + DB move to ECS. The Browser Worker stays on the user's machine and connects out to the orchestrator (websocket or task queue). Browser actions still execute against the user's real Chrome.
-- **Browser tool choice:** Browser-Use is the default (native Python SDK, CDP, built-in CAPTCHA handling). Kimi WebBridge is an acceptable alternative with the same opaque task interface; `app/services/browser.py` abstracts the provider.
+- **Browser tool choice:** **Kimi WebBridge** (v1) — extension + daemon on user's PC; Qwen ReAct loop in Search Helper. Browser-Use deprecated. `app/services/browser.py` abstracts the provider.
 
 ---
 
@@ -168,7 +168,7 @@ flowchart LR
 
 ### 5.1 Search subgraph
 
-The search path is **not** a fixed script of LangGraph click nodes. Browser-Use / Kimi WebBridge runs an internal ReAct loop; LangGraph only sees the boundary.
+The search path is **not** a fixed script of LangGraph click nodes. Kimi WebBridge + Qwen ReAct loop runs inside the Search Helper; LangGraph only sees the boundary.
 
 ```mermaid
 flowchart TD
@@ -182,7 +182,7 @@ flowchart TD
         inSearch --> invokeBrowser --> normalize --> dropApplied --> outList
     end
 
-    subgraph browserOpaque ["Browser agent — opaque (Browser-Use or Kimi WebBridge)"]
+    subgraph browserOpaque ["Browser agent — opaque (Kimi WebBridge)"]
         observe["observe page state"]
         decide["decide next action"]
         act["click / scroll / type / extract"]
@@ -332,7 +332,7 @@ sequenceDiagram
     participant API as FastAPI
     participant Orch as Parent orchestrator
     participant SearchSG as search_subgraph
-    participant Browser as Browser-Use / WebBridge
+    participant Browser as Kimi WebBridge
     participant AppSG as application_subgraph
     participant LLM as Qwen
     participant DB as Store
@@ -590,7 +590,7 @@ Paste generated output back into this doc. The browser agent's internal ReAct lo
 
 - Confirm per-run job cap (N) and score threshold default (recommend N=8, threshold=60).
 - Confirm CV source format (PDF/DOCX) for chars-per-line measurement in `cv.py`.
-- Choose browser provider for MVP build: **Browser-Use (v1)** — see [`browser-provider-abstraction.md`](./browser-provider-abstraction.md). Kimi WebBridge (v2) swaps one layer only.
+- Choose browser provider: **Kimi WebBridge (v1)** — see [`kimi-webbridge-provider.md`](./kimi-webbridge-provider.md) and [`browser-provider-abstraction.md`](./browser-provider-abstraction.md). Browser-Use deprecated.
 - Implement parent graph + subgraphs before HITL routes.
 - Wire async `POST /search` + poll endpoints per [design-decisions.md](./design-decisions.md).
 
@@ -599,5 +599,5 @@ Paste generated output back into this doc. The browser agent's internal ReAct lo
 - Match prefilter: keyword/skills overlap (Stage 1) + LLM score (Stage 2).
 - Failed sends: allow retry; do not permanently reserve URL until `AppliedJob` insert succeeds.
 - Per-job parallelism: LangGraph `Send` to `application_subgraph`.
-- Search execution model: opaque browser ReAct (Browser-Use v1, WebBridge v2) via [`browser-provider-abstraction.md`](./browser-provider-abstraction.md) — not Playwright.
+- Search execution model: opaque browser ReAct (Kimi WebBridge v1) via [`kimi-webbridge-provider.md`](./kimi-webbridge-provider.md) — not Playwright. Browser-Use deprecated.
 - Graph structure: parent orchestrator + `search_subgraph` + `application_subgraph` with isolated state.

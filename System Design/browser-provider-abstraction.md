@@ -1,8 +1,9 @@
 # Browser Provider Abstraction — Modular Search Layer
 
-**Status:** Locked for MVP build (2026-07-02)  
-**Decision:** Ship **Browser-Use** first; swap to **Kimi WebBridge** later by changing one layer only.  
-**Related:** [`JobPilot-System-Design.md`](./JobPilot-System-Design.md) §4–5 · [`design-decisions.md`](./design-decisions.md) §2
+**Status:** Locked — **Kimi WebBridge** is the browser provider (replacing Browser-Use, 2026-07-05)  
+**Decision:** Ship **`WebBridgeProvider`** in the Search Helper; Browser-Use is deprecated.  
+**Primary guide:** [`kimi-webbridge-provider.md`](./kimi-webbridge-provider.md)  
+**Related:** [`JobPilot-System-Design.md`](./JobPilot-System-Design.md) §4–5 · [`design-decisions.md`](./design-decisions.md) §4
 
 ---
 
@@ -12,8 +13,9 @@
 |------|-----|
 | Search uses the user's **real Chrome** and **home IP** | Browser Worker runs on the user's machine |
 | Orchestrator can live on **ECS** | Worker pulls tasks from API; browser never runs on server |
-| **Browser-Use** for hackathon speed | v1 provider — Python SDK, no extension |
-| **WebBridge** later without rewriting the app | Same `BrowserProvider` interface + env flag |
+| **Kimi WebBridge** for real Chrome sessions | v1 provider — HTTP to `127.0.0.1:10086`, extension + daemon |
+| **Browser-Use** (deprecated) | Replaced 2026-07-05 — profile copy caused login/session failures |
+| Same interface for orchestrator | `BrowserProvider.search_listings()` + `health()` |
 | LangGraph stays provider-agnostic | Subgraph calls `browser.search_listings()` only |
 
 **Non-goals (this layer):** Playwright scripts, server-side scraping, Gmail send, HITL CV edit.
@@ -39,8 +41,8 @@ flowchart TB
 
   subgraph tier3 [Tier 3 — Swappable provider — ONLY LAYER THAT CHANGES]
     Factory[browser/factory.py get_browser_provider]
-    BU[BrowserUseProvider]
-    WB[WebBridgeProvider]
+    BU[BrowserUseProvider deprecated]
+    WB[WebBridgeProvider primary]
     Factory --> BU
     Factory --> WB
   end
@@ -151,49 +153,33 @@ def get_browser_provider() -> BrowserProvider:
 
 ## 4. Provider implementations
 
-### 4.1 v1 — `BrowserUseProvider` (`providers/browser_use.py`)
-
-| Aspect | Detail |
-|--------|--------|
-| Dependency | `browser-use` (pip) |
-| Chrome | `Browser.from_system_chrome(profile_directory=...)` |
-| Agent | `Agent(task=..., browser=browser, llm=...)` — one task string per search |
-| Extension | **None** |
-| User UX | Second Chrome window; **separate profile** from JobPilot tab (§7) |
-
-**Task prompt template (locked shape):**
-
-```
-Search {platform} for "{role}" jobs.
-Extract up to {max_listings} listings.
-For each return JSON objects with: title, company, url, description_text.
-Stop at {max_listings} results or {max_pages} pages.
-Return ONLY a JSON array.
-```
-
-**Parse:** Provider validates JSON array → `list[RawJobListing]`. On parse failure, return `warnings` + empty list (subgraph marks run partial/failed).
-
-### 4.2 v2 — `WebBridgeProvider` (`providers/webbridge.py`) — later
+### 4.1 — `WebBridgeProvider` (`providers/webbridge.py`) — v1
 
 | Aspect | Detail |
 |--------|--------|
 | Dependency | HTTP client to `http://127.0.0.1:10086` |
-| Chrome | User's extension + daemon |
-| Agent | LLM tool loop: `navigate`, `snapshot`, `click`, `fill` |
+| Chrome | User's real Chrome via extension + daemon |
+| Agent | Qwen ReAct loop: `navigate`, `snapshot`, `click`, `fill`, etc. |
 | Extension | **Required** (user install) |
-| User UX | Same browser / tab possible; no second profile required |
+| User UX | Same browser / tab; existing LinkedIn login |
 
-**Same `SearchListingsRequest` / `SearchListingsResult`.** Only `health()` and internal loop differ.
+**Full setup and API:** [`kimi-webbridge-provider.md`](./kimi-webbridge-provider.md)
+
+**Parse:** Provider validates JSON array → `list[RawJobListing]`. On parse failure, return `warnings` + empty list (subgraph marks run partial/failed).
+
+### 4.2 — `BrowserUseProvider` (`providers/browser_use.py`) — deprecated
+
+Replaced 2026-07-05. Was: `browser-use` pip package, separate Chrome profile, `Agent(task=...)`. Kept in repo only until WebBridge E2E passes.
 
 ### 4.3 Side-by-side
 
-| | Browser-Use (v1) | WebBridge (v2) |
-|---|------------------|----------------|
-| Build effort | ~5–8 h (browser slice) | ~12–16 h (browser slice) |
-| User install | Local worker + Chrome | Worker + extension + daemon |
-| JobPilot tab stays open | Yes (different Chrome profile) | Yes (same browser) |
-| LinkedIn login | Once in job-search profile | Uses existing session |
-| Swap cost | New file + factory branch | New file + factory branch |
+| | Kimi WebBridge (v1) | Browser-Use (deprecated) |
+|---|---------------------|---------------------------|
+| Build effort | ~12–16 h (browser slice) | Shipped as spike; unreliable sessions |
+| User install | Worker + extension + daemon | Worker + separate Chrome profile |
+| JobPilot tab stays open | Yes (same browser) | Required separate profile |
+| LinkedIn login | Existing Chrome session | Separate profile; copy issues |
+| Swap cost | N/A — this is the target | Remove after WebBridge E2E |
 
 ---
 
@@ -218,7 +204,7 @@ worker/
   main.py              # entry: poll API, heartbeat, run tasks
   config.py            # WORKER_TOKEN, API_BASE, BROWSER_PROVIDER
   browser_client.py    # get_browser_provider() + search_listings()
-  requirements.txt     # browser-use, httpx, pydantic
+  requirements.txt     # httpx, pydantic (no browser-use)
 ```
 
 **MVP loop:**
@@ -284,9 +270,11 @@ Task payload (server → worker):
 
 ---
 
-## 7. Chrome profile strategy (Browser-Use v1)
+## 7. Chrome profile strategy (deprecated — Browser-Use only)
 
-**Problem:** Same Chrome profile cannot be used by normal Chrome and Browser-Use at once.
+> **WebBridge (v1):** No separate Chrome profile. User logs into LinkedIn in their normal browser. See [`kimi-webbridge-provider.md`](./kimi-webbridge-provider.md).
+
+**Historical (Browser-Use):** Same Chrome profile could not be used by normal Chrome and Browser-Use at once.
 
 **Solution:** Two profiles — do **not** ask users to close JobPilot.
 
@@ -304,9 +292,9 @@ Task payload (server → worker):
 Store preference in DB: `profiles.browser_profile_directory` (optional column) default `"Profile 1"`.
 
 **Do not say:** "Close Chrome."  
-**Do say:** "We open your **job-search** Chrome window. JobPilot stays open in your main window."
+**Do say (WebBridge):** "Keep JobPilot open. Search uses your existing Chrome via Kimi WebBridge."
 
-WebBridge v2 can drop the second profile requirement.
+~~WebBridge v2 can drop the second profile requirement.~~ **Done** — WebBridge is v1; second profile no longer required.
 
 ---
 
@@ -346,26 +334,28 @@ async def invoke_browser_node(state: SearchState) -> SearchState:
 
 | Variable | Default | Where | Purpose |
 |----------|---------|-------|---------|
-| `BROWSER_PROVIDER` | `browser-use` | worker + local dev | `browser-use` \| `webbridge` |
+| `BROWSER_PROVIDER` | `webbridge` | worker + local dev | `webbridge` (default) \| `browser-use` (deprecated) |
 | `BROWSER_EXECUTION` | `worker` | API | `local` \| `worker` |
-| `BROWSER_CHROME_PROFILE` | `Profile 1` | worker | Chrome profile directory name |
+| `BROWSER_CHROME_PROFILE` | *(deprecated)* | worker | Browser-Use only — not used with WebBridge |
 | `WEBBRIDGE_URL` | `http://127.0.0.1:10086` | worker | WebBridge daemon base URL |
 | `BROWSER_SEARCH_MAX_LISTINGS` | `8` | API + worker | Cap per run |
 | `BROWSER_SEARCH_MAX_PAGES` | `3` | worker | Agent page cap |
 
-ECS `.env` does **not** need `browser-use` installed — only worker does.
+ECS `.env` does **not** need browser automation packages — only the Search Helper does.
 
 ### 9.2 Dependencies
 
 ```text
 # requirements.txt (API / ECS) — no browser-use
-# worker/requirements.txt
-browser-use>=0.12.0
+httpx>=0.27.0
+pydantic>=2.0
+
+# worker/requirements.txt — WebBridge via httpx; remove browser-use after migration
 httpx>=0.27.0
 pydantic>=2.0
 ```
 
-Add `webbridge` client deps only when implementing v2 (stdlib `urllib` or `httpx` is enough).
+WebBridge needs only `httpx` (or stdlib `urllib`) for `POST :10086/command`.
 
 ---
 
@@ -384,8 +374,8 @@ backend/app/
       normalize.py             # URL strip tracking params (used by subgraph)
       providers/
         __init__.py
-        browser_use.py         # v1
-        webbridge.py           # v2 (stub until implemented)
+        browser_use.py         # deprecated
+        webbridge.py           # v1 — Kimi WebBridge HTTP client + agent loop
   routes/
     search.py                  # POST /api/search
     runs.py                    # GET status
@@ -414,11 +404,11 @@ Search page shows **browser readiness** before enabling "Start search":
 | State | UI |
 |-------|-----|
 | Worker offline | "Install search helper on this computer" + link to `worker/README.md` |
-| Profile not set up | "Log into LinkedIn in your Job search Chrome profile" (v1) |
+| Profile not set up | "Install Kimi WebBridge extension + log into LinkedIn in Chrome" |
 | Ready | Enable "Start search" |
 | Searching | Redirect to `/runs/:runId` poll UI |
 
-**v2 WebBridge:** Replace profile setup card with "Install Kimi WebBridge extension" card. Same `GET /api/worker/health` shape.
+**WebBridge (v1):** Settings shows "Install Kimi WebBridge extension" card. Same `GET /api/worker/health` shape (`daemon_down`, `not_installed`, `ready`).
 
 ---
 
@@ -437,9 +427,11 @@ Providers map internal errors → these codes in worker `fail` payload.
 
 ---
 
-## 13. Swapping Browser-Use → WebBridge (checklist)
+## 13. Browser provider migration (Browser-Use → WebBridge)
 
-When adding WebBridge, **do not change:**
+**Completed decision (2026-07-05):** Replace Browser-Use with Kimi WebBridge. Full guide: [`kimi-webbridge-provider.md`](./kimi-webbridge-provider.md).
+
+**Do not change:**
 
 - React routes, `POST /api/search`, poll endpoints
 - `search_runs` / `job_packages` schema
@@ -481,9 +473,9 @@ CI runs unit only. Integration manual before demo.
 | 4 | 4 | `worker/main.py` poll loop + task result POST |
 | 5 | 4 | Search UI → run progress page |
 | 6 | 2 | Profile setup copy + `browser_profile_directory` setting |
-| **Total** | **~20 h** | End-to-end demo with Browser-Use |
+| **Total** | **~20 h** | End-to-end demo with Kimi WebBridge |
 
-WebBridge: add as Step 2b later (~+12 h), not blocking MVP.
+Browser-Use spike is deprecated; WebBridge implementation is the active browser slice (~12–16 h).
 
 ---
 
@@ -491,8 +483,8 @@ WebBridge: add as Step 2b later (~+12 h), not blocking MVP.
 
 | Date | Decision |
 |------|----------|
-| 2026-07-02 | v1 provider = **Browser-Use** (faster build, no extension) |
-| 2026-07-02 | v2 optional = **Kimi WebBridge** (same interface) |
+| 2026-07-05 | **v1 provider = Kimi WebBridge** — replaces Browser-Use (session/profile issues) |
+| 2026-07-02 | Browser-Use spike shipped; now deprecated |
 | 2026-07-02 | Browser Worker always on **user machine**; ECS orchestrates only |
 | 2026-07-02 | Separate Chrome **job-search profile** for v1; JobPilot tab stays open |
 | 2026-07-02 | LangGraph never imports provider SDKs — only `BrowserProvider` |
@@ -513,7 +505,7 @@ Full narrative, LangGraph build order, and API tables: **[`jobpilot-agent-build-
 | JobPilot website | Always on ECS — no local backend for users |
 | Chrome | **Job search** profile separate from main JobPilot window |
 | Hackathon judges | **Demo/mock search** on website; real LinkedIn on presenter PC |
-| WebBridge later | Same Helper + ECS protocol; swap `providers/webbridge.py` only |
+| WebBridge migration | Same Helper + ECS protocol; implement `providers/webbridge.py`, remove Browser-Use |
 
 ---
 

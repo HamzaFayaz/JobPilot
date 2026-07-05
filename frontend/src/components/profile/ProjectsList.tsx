@@ -3,7 +3,12 @@ import { useState } from 'react'
 import { useProfile } from '../../context/ProfileContext'
 import { Button } from '../ui/Button'
 
-export function ProjectsList() {
+interface ProjectsListProps {
+  /** When true, omit outer section chrome (used inside CollapsibleSection). */
+  embedded?: boolean
+}
+
+export function ProjectsList({ embedded = false }: ProjectsListProps) {
   const { profile, addProject, updateProject, removeProject } = useProfile()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -17,10 +22,8 @@ export function ProjectsList() {
     setDescription('')
   }
 
-  return (
-    <section className="rounded-lg border border-border bg-surface p-6 shadow-sm">
-      <h3 className="mb-4 text-base font-semibold text-text-primary">Projects</h3>
-
+  const inner = (
+    <>
       <div className="space-y-4">
         {profile.projects.map((project) => (
           <article
@@ -76,6 +79,17 @@ export function ProjectsList() {
           Add project
         </Button>
       </div>
+    </>
+  )
+
+  if (embedded) {
+    return inner
+  }
+
+  return (
+    <section className="rounded-xl border border-border bg-surface p-6 shadow-sm">
+      <h3 className="mb-4 text-base font-semibold text-text-primary">Projects</h3>
+      {inner}
     </section>
   )
 }

@@ -30,11 +30,12 @@ We **rejected** these alternatives after review:
 └────────────────────────────┬────────────────────────────────────┘
                              │
 ┌────────────────────────────┴────────────────────────────────────┐
-│  TIER 3 — Swappable provider (inside Helper only)                │
-│  v1: Browser-Use · v2: Kimi WebBridge — same interface           │
+│  TIER 3 — Kimi WebBridge (inside Helper only)                    │
+│  HTTP to 127.0.0.1:10086 · Qwen ReAct loop · real Chrome         │
+│  (replaces Browser-Use — see kimi-webbridge-provider.md)         │
 └────────────────────────────┬────────────────────────────────────┘
                              ▼
-              Chrome job-search profile → LinkedIn / Indeed
+              User's Chrome (LinkedIn already logged in)
 ```
 
 **Hackathon submission:** Judges use **website on ECS** (signup, CV, GitHub, **demo/mock search**). **Real** LinkedIn search is demonstrated from **your laptop** with Search Helper running. See [§8](#8-hackathon--qwen-cloud-alignment).
@@ -50,8 +51,8 @@ We **rejected** these alternatives after review:
 | `worker/` | **JobPilot Search Helper** |
 | `WORKER_TOKEN` | **Computer pairing code** |
 | `worker_offline` | “Search Helper not connected” |
-| `Profile 1` | **Job search browser** |
-| Browser-Use | *(do not mention)* |
+| `Profile 1` | *(deprecated — Browser-Use)* |
+| Kimi WebBridge | **Browser automation** (user-facing: extension + daemon) |
 
 ### 2.2 Install once vs every session
 
@@ -59,7 +60,7 @@ We **rejected** these alternatives after review:
 |--------|-----------|
 | Download & install Search Helper (`.exe` / installer) | **Once per computer** |
 | Pair with JobPilot account | **Once per computer** (until revoked in Settings) |
-| Chrome “Job search” profile + LinkedIn login | **Once** (until cookies cleared) |
+| Chrome + LinkedIn login | **Once** in normal Chrome (WebBridge uses existing session) |
 | **Run** Search Helper (tray / background) | **Each search session** — not reinstall |
 | Open JobPilot in browser | Anytime — no install |
 
@@ -69,12 +70,14 @@ We **rejected** these alternatives after review:
 2. Settings / Search → **Connect this computer for job search**.
 3. Download **JobPilot Search Helper** → install → tray shows *Waiting for JobPilot…*
 4. JobPilot shows pairing code → user confirms → Helper **Connected**.
-5. User adds Chrome profile **Job search**, logs into LinkedIn there once.
+5. Install **Kimi WebBridge** extension + daemon; log into LinkedIn in normal Chrome once.
 6. Search page shows **Ready to search**.
 
 **Copy (locked):**  
 - Do **not** say “Close Chrome.”  
-- Do say: “Keep JobPilot open. We’ll open your job-search window when needed.”
+- Do say: “Keep JobPilot open. Search uses your existing Chrome via Kimi WebBridge.”
+
+**Provider guide:** [`kimi-webbridge-provider.md`](./kimi-webbridge-provider.md)
 
 ### 2.4 Every search session
 
@@ -83,14 +86,14 @@ sequenceDiagram
   participant U as User browser
   participant ECS as JobPilot ECS
   participant H as Search Helper
-  participant C as Chrome job profile
+  participant C as Chrome (WebBridge)
 
   U->>ECS: POST /api/search { role, platform }
   ECS->>ECS: LangGraph init_run, enqueue browser task
   ECS-->>U: { runId, pending }
   H->>ECS: GET /api/worker/tasks/next
   ECS-->>H: search task
-  H->>C: Browser-Use search agent
+  H->>C: Kimi WebBridge + Qwen ReAct loop
   C-->>H: raw job listings JSON
   H->>ECS: POST task result
   ECS->>ECS: search_subgraph → prefilter → Send × N application_subgraph
@@ -122,7 +125,7 @@ sequenceDiagram
 
 ### 3.1 What to build (three LangGraph layers)
 
-Only **Layer 1** and **Layer 2** are LangGraph graphs in our repo. **Layer 3** is inside `BrowserProvider` (Browser-Use ReAct), invoked from the worker — not LangGraph nodes.
+Only **Layer 1** and **Layer 2** are LangGraph graphs in our repo. **Layer 3** is inside `BrowserProvider` (Kimi WebBridge + Qwen ReAct loop), invoked from the worker — not LangGraph nodes.
 
 ```mermaid
 flowchart TB
@@ -142,11 +145,11 @@ flowchart TB
     enrich --> gate --> pkg
   end
 
-  subgraph L3 ["Layer 3 — Browser agent opaque"]
-    bu[BrowserUseProvider in Search Helper]
+  subgraph L3 ["Layer 3 — Browser agent opaque (Kimi WebBridge)"]
+    wb[WebBridgeProvider in Search Helper]
   end
 
-  searchSG -.->|worker task / result| bu
+  searchSG -.->|worker task / result| wb
   fanout --> L2
 ```
 
@@ -214,8 +217,8 @@ backend/app/
       prompts.py              # Shared browser task prompt
       normalize.py            # URL normalize, dedupe keys
       providers/
-        browser_use.py        # v1 — runs IN Search Helper
-        webbridge.py          # v2 stub
+        browser_use.py        # deprecated
+        webbridge.py          # v1 — Kimi WebBridge
     search_store.py           # search_runs, worker_tasks, job_packages CRUD (new)
     qwen.py                   # extend for enrich_job (or profile_llm split)
   graph/
@@ -305,16 +308,18 @@ BROWSER_EXECUTION=worker
 ```env
 JOBPILOT_API_BASE=http://43.98.197.132
 WORKER_TOKEN=
-BROWSER_PROVIDER=browser-use
-BROWSER_CHROME_PROFILE=Profile 1
+BROWSER_PROVIDER=webbridge
+WEBBRIDGE_URL=http://127.0.0.1:10086
+DASHSCOPE_API_KEY=
+QWEN_MODEL=qwen-plus
 ```
 
 ### Local dev (API + browser same machine)
 
 ```env
 BROWSER_EXECUTION=local
-BROWSER_PROVIDER=browser-use
-BROWSER_CHROME_PROFILE=Profile 1
+BROWSER_PROVIDER=webbridge
+WEBBRIDGE_URL=http://127.0.0.1:10086
 ```
 
 ---
@@ -336,11 +341,15 @@ Use this order on `jobpilot-with-brosweruse`. Check off in PRs.
 - [ ] `worker/main.py` poll loop
 - [ ] Frontend `SearchHelperStatus.tsx`
 
-### Phase C — Browser-Use in Helper
+### Phase C — Kimi WebBridge in Helper
 
-- [ ] `providers/browser_use.py` — `search_listings()`
+- [ ] `providers/webbridge.py` — `search_listings()` + `agent_loop.py`
+- [ ] `WebBridgeProvider.health()` → ping `:10086`
 - [ ] `scripts/run_search_local.py` smoke test
 - [ ] End-to-end: Helper → LinkedIn → results in DB
+- [ ] Remove deprecated `browser_use` / `browser_client.py` Browser-Use path
+
+**Guide:** [`kimi-webbridge-provider.md`](./kimi-webbridge-provider.md)
 
 ### Phase D — LangGraph parent + search subgraph
 
@@ -359,11 +368,11 @@ Use this order on `jobpilot-with-brosweruse`. Check off in PRs.
 - [ ] **Demo mode** — mock jobs on ECS without Helper
 - [ ] Package Search Helper `.exe` for your demo machine
 
-### Phase G — WebBridge (post-hackathon, optional)
+### Phase G — Cleanup (post-WebBridge E2E)
 
-- [ ] `providers/webbridge.py`
-- [ ] `BROWSER_PROVIDER=webbridge` in Helper only
-- [ ] Update setup card in UI — **no ECS/LangGraph changes**
+- [ ] Remove `browser-use` from `worker/requirements.txt`
+- [ ] Remove `BROWSER_CHROME_PROFILE` from UI and worker config
+- [ ] Update Settings card — WebBridge install only
 
 ---
 
@@ -390,7 +399,7 @@ From **`Qwen Cloud Proof of Deployment.docx`**:
 | 2026-07-02 | Full local backend on user PC | Conflicts with ECS multi-user product |
 | 2026-07-02 | Browser automation on ECS only | Datacenter IP; no user LinkedIn session |
 
-**Locked:** ECS + Search Helper + Browser-Use v1 + WebBridge-swappable provider.
+**Locked:** ECS + Search Helper + **Kimi WebBridge v1** (replaces Browser-Use). Provider guide: [`kimi-webbridge-provider.md`](./kimi-webbridge-provider.md).
 
 ---
 

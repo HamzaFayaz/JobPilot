@@ -1,4 +1,4 @@
-"""Parse Browser-Use output into RawJobListing rows."""
+"""Parse browser agent output into RawJobListing rows (provider-agnostic)."""
 
 import json
 import re

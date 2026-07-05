@@ -72,7 +72,7 @@ Everything JobPilot will do at launch:
 - **Gmail API** — send approved emails with CV attachment
 - **GitHub API** — repo list, README fetch, project summarization
 - **Qwen Cloud (Dashscope)** — scoring, CV rewrite, email drafting, profile extraction
-- **Browser-Use** — control user's Chrome for platform search (no headless detection)
+- **Kimi WebBridge** — control user's real Chrome for platform search (replacing Browser-Use)
 
 ### Platform & ops (post-MVP)
 - CV storage on Alibaba Cloud OSS (optional; files on instance disk for MVP)
@@ -98,7 +98,7 @@ Everything JobPilot will do at launch:
          Qwen LLM    Gmail API    GitHub API
               │
               ▼
-    LangGraph agents + Browser-Use (planned)
+    LangGraph agents + Kimi WebBridge (Search Helper)
 ```
 
 **Principle:** Agent logic runs server-side; browser automation uses the user's real logged-in Chrome session on a residential IP.
@@ -114,7 +114,7 @@ Everything JobPilot will do at launch:
 | Database | SQLite (local MVP) → RDS (production) |
 | LLM | Qwen Cloud via OpenAI-compatible Dashscope API |
 | Agents | LangGraph (planned) |
-| Browser | Browser-Use (planned) |
+| Browser | Kimi WebBridge via Search Helper (replacing Browser-Use) |
 | Auth | Google OAuth (Gmail), GitHub OAuth |
 
 ---

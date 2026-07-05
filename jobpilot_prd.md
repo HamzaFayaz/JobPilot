@@ -1,5 +1,7 @@
 # JobPilot — Product Requirements Document (PRD)
 
+> **2026-07-05:** Browser automation uses **Kimi WebBridge** (replaces Browser-Use). See [`System Design/kimi-webbridge-provider.md`](System%20Design/kimi-webbridge-provider.md).
+
 **Version:** 1.0
 **Date:** June 27, 2026
 **Track:** Global AI Hackathon Series with Qwen Cloud — Track 4: Autopilot Agent

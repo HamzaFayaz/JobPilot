@@ -56,7 +56,7 @@ flowchart TD
 
     subgraph backend [JobPilot Backend]
         orch{{"Orchestrator (LangGraph)"}}
-        search["Search Agent (Browser-Use)"]
+        search["Search Agent (Kimi WebBridge)"]
         dedupeFilter[/"Drop already-applied URLs"/]
         matchGate{"Matches skills?"}
         dropJob["Discard job"]
@@ -95,7 +95,7 @@ flowchart TD
 flowchart LR
     subgraph userMachine [User Machine - always]
         chrome[("Real Chrome: user session + cookies")]
-        worker["Browser Worker (Browser-Use + CDP)"]
+        worker["Browser Worker (Kimi WebBridge + real Chrome)"]
         worker --> chrome
     end
 

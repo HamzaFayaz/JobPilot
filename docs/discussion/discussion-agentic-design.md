@@ -3,7 +3,9 @@
 **Purpose:** Living doc for design conversations before and during implementation.  
 **Status:** Discussion (2026-07-03) — nothing in `backend/app/graph/` yet.  
 **Authoritative specs (locked unless we change them here):**  
-[`System Design/jobpilot-agent-build-guide.md`](../../System%20Design/jobpilot-agent-build-guide.md) · [`System Design/JobPilot-System-Design.md`](../../System%20Design/JobPilot-System-Design.md) · [`System Design/browser-provider-abstraction.md`](../../System%20Design/browser-provider-abstraction.md)
+[`System Design/jobpilot-agent-build-guide.md`](../../System%20Design/jobpilot-agent-build-guide.md) · [`System Design/JobPilot-System-Design.md`](../../System%20Design/JobPilot-System-Design.md) · [`System Design/kimi-webbridge-provider.md`](../../System%20Design/kimi-webbridge-provider.md) · [`System Design/browser-provider-abstraction.md`](../../System%20Design/browser-provider-abstraction.md)
+
+> **2026-07-05:** Browser provider is **Kimi WebBridge** (replaces Browser-Use). Worker protocol unchanged.
 
 ---
 
@@ -45,7 +47,7 @@ See [`llm-routing-and-cost-plan.md`](../../System%20Design/llm-routing-and-cost-
 | **Parent orchestrator** | Fixed pipeline: `init_run` → `search_subgraph` → `prefilter` → `Send` × N → `persist` | **No** |
 | **search_subgraph** | Enqueue browser task, wait for listings, normalize, drop applied URLs | **No** (on ECS) |
 | **application_subgraph** | One structured `enrich_job` call per job → score gate → write `job_packages` | **Yes** |
-| **Browser agent (Layer 3)** | Browser-Use ReAct loop inside Search Helper | **Yes** (in worker) |
+| **Browser agent (Layer 3)** | Kimi WebBridge + Qwen ReAct loop inside Search Helper | **Yes** (in worker) |
 | **HITL** (CV edit, email refine, send) | FastAPI routes when user clicks — **outside** the graph | On demand |
 
 **Implication:** We are not building a “supervisor LLM” that decides what to do next. The workflow is a **deterministic graph** with one expensive LLM step per surviving job (`enrich_job`).
@@ -56,7 +58,7 @@ See [`llm-routing-and-cost-plan.md`](../../System%20Design/llm-routing-and-cost-
 |-------------|----------------------|
 | Orchestrator Agent controls flow | Code-based LangGraph parent graph |
 | Separate Scoring, CV Optimization, Email Drafting agents | **Merged** into one `enrich_job` structured call per job (MVP) |
-| LangGraph calls Browser-Use directly | Browser runs in **Search Helper** on user PC; ECS only sees task queue + JSON results |
+| LangGraph calls browser SDK directly | Browser runs in **Search Helper** on user PC (WebBridge HTTP); ECS only sees task queue + JSON results |
 | Gmail send in MVP | **Cancelled** for current scope (LinkedIn/Indeed focus) |
 
 If we want separate LLM nodes per concern (score → CV → email as three calls), that is a **scope/cost tradeoff** — see §6 open questions.
@@ -123,7 +125,7 @@ sequenceDiagram
     G->>API: insert worker_tasks (browser_search)
     H->>API: GET /api/worker/tasks/next
     API-->>H: task payload
-    H->>C: Browser-Use search
+    H->>C: Kimi WebBridge search
     C-->>H: RawJobListing[]
     H->>API: POST /api/worker/tasks/{id}/result
 
@@ -205,7 +207,8 @@ Use this section to record decisions. Strike or move rows to §7 when resolved.
 
 | Date | Topic | Decision | Rationale |
 |------|-------|----------|-----------|
-| 2026-07-02 | Deployment | ECS + Search Helper + Browser-Use v1 | Hackathon + real LinkedIn session |
+| 2026-07-05 | Browser provider | **Kimi WebBridge v1** (replaces Browser-Use) | Real Chrome sessions |
+| 2026-07-02 | Deployment | ECS + Search Helper + Browser-Use spike | Hackathon + real LinkedIn session |
 | 2026-07-02 | Orchestrator type | Code routing, not LLM | Cost, predictability |
 | 2026-07-03 | Repo status | **No orchestrator code yet** | Phase A–F not started |
 | | | | |
@@ -218,7 +221,7 @@ Does this order still feel right?
 
 1. **Phase A** — Types, DB (`worker_devices`, `worker_tasks`), stub APIs (mock data OK)
 2. **Phase B** — Worker pairing + poll loop (no Chrome)
-3. **Phase C** — Browser-Use in Helper (real listings)
+3. **Phase C** — Kimi WebBridge in Helper (real listings) — [`kimi-webbridge-provider.md`](../../System%20Design/kimi-webbridge-provider.md)
 4. **Phase D** — LangGraph parent + `search_subgraph` wired to worker queue
 5. **Phase E** — `application_subgraph` + `enrich_job` + `Send` fan-out
 6. **Phase F** — Run progress UI + demo mode
@@ -304,9 +307,9 @@ Same "search" for you — two roles behind the scenes.
 In **local dev** (`BROWSER_EXECUTION=local`), both can run on the same machine: `search_subgraph` calls the browser directly. Then it feels like one unit — but still two layers in code:
 
 1. **Workflow** (LangGraph) — what step comes next  
-2. **Browser tool** (Browser-Use) — how to click and scrape  
+2. **Browser tool** (Kimi WebBridge) — how to click and scrape  
 
-We don't put every click inside LangGraph; that would be hundreds of nodes. Browser-Use already has its own internal agent loop.
+We don't put every click inside LangGraph; that would be hundreds of nodes. WebBridge + Qwen ReAct loop runs inside the Search Helper.
 
 ## Short answer
 

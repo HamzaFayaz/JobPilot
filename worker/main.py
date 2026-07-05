@@ -11,7 +11,7 @@ if __name__ == "__main__":
         sys.path.insert(0, str(repo_root))
 
 from worker.api_client import JobPilotWorkerClient
-from worker.browser_client import run_search_task
+from worker.browser_client import check_browser_health, run_search_task
 from worker.config import WorkerSettings, get_settings
 
 logging.basicConfig(
@@ -57,7 +57,7 @@ async def _run_task(client: JobPilotWorkerClient, settings: WorkerSettings, task
             logger.exception("Failed to report task failure to JobPilot API")
     finally:
         try:
-            client.send_heartbeat(browser_health="ready")
+            client.send_heartbeat(browser_health=check_browser_health(settings))
         except Exception:
             logger.exception("Failed to send ready heartbeat after task")
 
@@ -65,14 +65,28 @@ async def _run_task(client: JobPilotWorkerClient, settings: WorkerSettings, task
 async def run_forever(settings: WorkerSettings) -> None:
     client = JobPilotWorkerClient(settings)
     logger.info("Connected to JobPilot at %s", settings.jobpilot_api_base)
-    logger.info("Using Qwen model: %s", settings.qwen_model)
+    logger.info("Browser provider: %s | Qwen model: %s", settings.browser_provider, settings.qwen_model)
 
     while True:
         try:
-            client.send_heartbeat(browser_health="ready")
+            health = check_browser_health(settings)
+            client.send_heartbeat(browser_health=health)
+            if health != "ready":
+                logger.debug("WebBridge not ready (%s) — waiting for Chrome/extension", health)
+
             task = client.fetch_next_task()
             if task:
-                await _run_task(client, settings, task)
+                if health != "ready":
+                    client.post_fail(
+                        task.task_id,
+                        error=(
+                            "Kimi WebBridge is not ready. "
+                            "Start the daemon and open Chrome with the extension connected."
+                        ),
+                        code="browser_not_ready",
+                    )
+                else:
+                    await _run_task(client, settings, task)
             else:
                 logger.debug("No pending tasks")
         except Exception:

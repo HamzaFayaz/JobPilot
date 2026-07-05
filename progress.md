@@ -42,7 +42,8 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | [`jobpilot_frontend_web_app_plan.md`](.agent/plans/jobpilot_frontend_web_app_plan.md) | Vite React app: Welcome, Profile, Search | `[x]` |
 | [`jobpilot_backend_profile_api_plan.md`](.agent/plans/jobpilot_backend_profile_api_plan.md) | FastAPI + SQLite + CV/GitHub (single-user MVP) | `[x]` |
 | [`jobpilot_multi_user_auth_plan.md`](.agent/plans/jobpilot_multi_user_auth_plan.md) | Login, signup, per-user profiles + encryption | `[x]` |
-| [`browser-provider-abstraction.md`](System%20Design/browser-provider-abstraction.md) | Swappable Browser-Use / WebBridge layer + worker protocol | `[x]` spec |
+| [`browser-provider-abstraction.md`](System%20Design/browser-provider-abstraction.md) | Kimi WebBridge provider layer + worker protocol (Browser-Use deprecated) | `[x]` spec |
+| [`kimi-webbridge-provider.md`](System%20Design/kimi-webbridge-provider.md) | **Active** — WebBridge setup, API, migration from Browser-Use | `[x]` spec |
 | [`jobpilot-agent-build-guide.md`](System%20Design/jobpilot-agent-build-guide.md) | **Active** — LangGraph + Search Helper build phases | `[x]` spec |
 
 **Active implementation:** [`docs/discussion/search-subgraph-discussion-and-finalization.md`](docs/discussion/search-subgraph-discussion-and-finalization.md) on branch `jobpilot-with-brosweruse`. Build guide: [`jobpilot-agent-build-guide.md`](System%20Design/jobpilot-agent-build-guide.md).
@@ -121,7 +122,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | `worker_tasks` + worker API routes | `[ ]` |
 | Wire `POST /api/search` → background graph | `[ ]` deferred |
 | `prefilter` node | `[ ]` |
-| JobPilot Search Helper (Browser-Use + PySide6 UI) | `[ ]` |
+| JobPilot Search Helper (Kimi WebBridge + Qwen) | `[ ]` migrating from Browser-Use |
 | Per-job application sub-agent (`enrich_job`) | `[ ]` |
 | Qwen / model integration | `[x]` profile LLM (CV skills, README) · `[ ]` enrich_job |
 
@@ -134,6 +135,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | `System Design/dev-time-hardening.md` | `[x]` |
 | `docs/discussion/search-subgraph-discussion-and-finalization.md` | `[x]` locked — search agent build agreement |
 | `docs/discussion/discussion-agentic-design.md` | `[x]` |
+| [`kimi-webbridge-provider.md`](System%20Design/kimi-webbridge-provider.md) | `[x]` — WebBridge replaces Browser-Use |
 | `System Design/JobPilot-Frontend-Design.md` | `[ ]` |
 
 ---
