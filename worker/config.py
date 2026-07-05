@@ -30,6 +30,7 @@ class WorkerSettings(BaseSettings):
     browser_chrome_profile: str = "Default"
     browser_user_data_dir: str = ""
     poll_interval_seconds: float = 3.0
+    agent_max_steps: int = 40
 
 
 def default_browser_user_data_dir() -> Path:

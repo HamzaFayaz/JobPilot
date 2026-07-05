@@ -29,10 +29,23 @@ Edit `worker/.env`:
 
 ## Kimi WebBridge one-time setup
 
-1. Install Kimi WebBridge + Chrome extension — see [kimi-webbridge-provider.md](../System%20Design/kimi-webbridge-provider.md)
-2. Start daemon: `kimi-webbridge.exe start`
-3. Verify: `kimi-webbridge.exe status` → `running: true`, `extension_connected: true`
-4. Log into LinkedIn in your normal Chrome (no separate profile needed)
+1. Install Kimi WebBridge + Chrome extension — [kimi-webbridge-provider.md](../System%20Design/kimi-webbridge-provider.md)
+2. Log into LinkedIn in your normal Chrome (no separate profile)
+3. Pair below in JobPilot Settings → paste `WORKER_TOKEN` into `worker/.env`
+4. Run the helper — it auto-starts the daemon and reports WebBridge health
+
+```powershell
+.\.venv\Scripts\pip.exe install -r requirements.txt
+.\.venv\Scripts\python.exe main.py
+```
+
+Daemon status (manual check):
+
+```powershell
+& "$env:USERPROFILE\.kimi-webbridge\bin\kimi-webbridge.exe" status
+```
+
+Expect `running: true` and `extension_connected: true` (open Chrome if extension is false).
 
 ## Run locally (test before .exe)
 
