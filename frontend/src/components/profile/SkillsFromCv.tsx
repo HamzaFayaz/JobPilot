@@ -1,17 +1,16 @@
 import { CodeBracketIcon } from '@heroicons/react/24/outline'
 import { useProfile } from '../../context/ProfileContext'
 
-export function SkillsFromCv() {
+interface SkillsFromCvProps {
+  embedded?: boolean
+}
+
+export function SkillsFromCv({ embedded = false }: SkillsFromCvProps) {
   const { profile } = useProfile()
   const { skills, skillsExtractionStatus, cvFilename } = profile
 
-  return (
-    <section className="rounded-lg border border-border bg-surface p-6 shadow-sm">
-      <div className="mb-4 flex items-center gap-2">
-        <CodeBracketIcon className="h-5 w-5 text-primary" aria-hidden="true" />
-        <h3 className="text-base font-semibold text-text-primary">Skills from CV</h3>
-      </div>
-
+  const content = (
+    <>
       {!cvFilename ? (
         <p className="text-sm text-text-secondary">
           Upload your CV to auto-extract skills. Skills cannot be edited manually.
@@ -45,6 +44,20 @@ export function SkillsFromCv() {
           {skills.length} skill{skills.length !== 1 ? 's' : ''} extracted (read-only).
         </p>
       ) : null}
+    </>
+  )
+
+  if (embedded) {
+    return content
+  }
+
+  return (
+    <section className="rounded-xl border border-border bg-surface p-6 shadow-sm">
+      <div className="mb-4 flex items-center gap-2">
+        <CodeBracketIcon className="h-5 w-5 text-primary" aria-hidden="true" />
+        <h3 className="text-base font-semibold text-text-primary">Skills from CV</h3>
+      </div>
+      {content}
     </section>
   )
 }

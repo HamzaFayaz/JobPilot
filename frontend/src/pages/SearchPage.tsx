@@ -22,7 +22,7 @@ export function SearchPage() {
   const [jobs, setJobs] = useState<JobPackage[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [pollError, setPollError] = useState<string | null>(null)
-  const [helperConnected, setHelperConnected] = useState(false)
+  const [helperReady, setHelperReady] = useState(false)
 
   useEffect(() => {
     if (profile.targetRoles.length === 0) {
@@ -88,14 +88,15 @@ export function SearchPage() {
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-2xl font-bold text-text-primary sm:text-3xl">New Search</h1>
+        <p className="text-sm font-medium text-primary">Search</p>
+        <h1 className="mt-1 text-2xl font-bold text-text-primary sm:text-3xl">New search</h1>
         <p className="mt-2 text-sm text-text-secondary">
-          Configure your AI agent to find and score relevant job opportunities.
+          Configure your agent to find and score jobs on LinkedIn or Indeed.
         </p>
       </header>
 
       <div className="mx-auto max-w-xl space-y-4">
-        <SearchHelperHint onConnectedChange={setHelperConnected} />
+        <SearchHelperHint onReadyChange={setHelperReady} />
 
         <div className="rounded-lg border border-border bg-surface p-6 shadow-sm">
           <div className="mb-6 flex items-start gap-3 rounded-lg bg-hitl-bg p-4 text-hitl-text">
@@ -211,14 +212,14 @@ export function SearchPage() {
               type="submit"
               className="w-full"
               disabled={
-                !profile.targetRoles.length || !profile.searchCountry || submitting || !helperConnected
+                !profile.targetRoles.length || !profile.searchCountry || submitting || !helperReady
               }
             >
               {submitting
                 ? 'Starting search...'
-                : helperConnected
+                : helperReady
                   ? 'Start search'
-                  : 'Connect Search Helper in Settings'}
+                  : 'Set up Search Helper in Settings'}
             </Button>
           </form>
         </div>
@@ -271,8 +272,8 @@ export function SearchPage() {
               <div className="rounded-lg border border-dashed border-primary/40 bg-chip-bg/30 p-4 text-sm text-text-secondary">
                 <p className="font-medium text-text-primary">Search in progress</p>
                 <p className="mt-1">
-                  Your Search Helper is working on this run. Keep the worker terminal open and
-                  close Chrome on the profile used for LinkedIn before starting a search.
+                  Your Search Helper is working on this run. Keep the worker running and Chrome open
+                  with the Kimi WebBridge extension connected.
                 </p>
               </div>
             ) : jobs.length === 0 ? (
