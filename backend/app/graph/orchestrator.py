@@ -5,6 +5,7 @@ from langgraph.types import Send
 
 from backend.app.graph.nodes.init_run import init_run
 from backend.app.graph.state import RunState
+from backend.app.services.search_store import get_search_run, save_raw_listings_as_packages, update_search_run
 from backend.app.graph.subgraphs.application.graph import build_application_subgraph
 from backend.app.graph.subgraphs.search.graph import build_search_subgraph
 from backend.app.graph.subgraphs.search.state import SearchState
@@ -51,6 +52,14 @@ def search_subgraph(state: RunState) -> dict:
     }
 
     if errors:
+        run = get_search_run(state["run_id"])
+        if run and run["status"] not in ("failed", "completed"):
+            update_search_run(
+                state["run_id"],
+                status="failed",
+                error=errors[0],
+                finished=True,
+            )
         updates["status"] = "failed"
         return updates
 
@@ -58,11 +67,37 @@ def search_subgraph(state: RunState) -> dict:
 
 
 def prefilter(state: RunState) -> dict:
-    pass
+    """Placeholder until listing normalization and scoring are implemented."""
+    return {}
 
 
 def persist(state: RunState) -> dict:
-    pass
+    """Save browser listings and mark the run complete for the current E2E slice."""
+    run_id = state["run_id"]
+    user_id = state["user_id"]
+    errors = state.get("errors") or []
+
+    if state.get("status") == "failed" or errors:
+        run = get_search_run(run_id)
+        if run and run["status"] not in ("failed", "completed"):
+            update_search_run(
+                run_id,
+                status="failed",
+                error=errors[0] if errors else "Search run failed.",
+                finished=True,
+            )
+        return {"status": "failed"}
+
+    raw_listings = state.get("raw_listings") or []
+    if raw_listings:
+        save_raw_listings_as_packages(run_id, user_id, raw_listings)
+        return {"status": "completed"}
+
+    run = get_search_run(run_id)
+    if run and run["status"] not in ("failed", "completed"):
+        update_search_run(run_id, status="completed", finished=True)
+
+    return {"status": "completed"}
 
 
 def fan_out_applications(state: RunState) -> list[Send] | str:
