@@ -38,14 +38,39 @@ def _trim_skills(skills: str, *, max_chars: int = 240) -> str:
 def _linkedin_steps(task: WorkerTask) -> str:
     date_filter = _LINKEDIN_DATE_FILTER[task.job_age]
     workplace = _WORK_MODE_LINKEDIN_FILTERS[task.work_mode]
-    return f"""Steps (one browser tab only — do not open new tabs):
-1. Go to https://www.linkedin.com/jobs/
-2. In the LinkedIn Jobs search bar, enter role "{task.role}" and location "{task.country}", then run the search.
-3. Open "All filters" (or the filter panel).
-4. Under "Date posted", select "{date_filter}".
-5. {workplace}
-6. Apply filters and wait for results to load.
-7. Open matching job cards one by one. Collect up to {task.max_listings} jobs posted within {_JOB_AGE_LABELS[task.job_age]}."""
+    age_label = _JOB_AGE_LABELS[task.job_age]
+    jobs_target = max(task.max_listings // 2, 1)
+    posts_target = max(task.max_listings - jobs_target, 0)
+
+    return f"""Use ONE browser tab for the whole task.
+
+PART A — LinkedIn Jobs section (official listings)
+1. Navigate to https://www.linkedin.com/ (home page). Confirm you are logged in.
+2. From the top navigation bar, click Jobs to open the Jobs area (prefer this over jumping straight to a deep URL).
+3. In the Jobs search bar, enter role "{task.role}" and location "{task.country}", then run the search.
+4. Open "All filters" (or the filter panel).
+5. Under "Date posted", select "{date_filter}".
+6. {workplace}
+7. Apply filters and wait for results.
+8. Open matching job cards. Collect up to {jobs_target} jobs posted within {age_label}.
+   For each: title, company, job listing URL, description text.
+
+PART B — LinkedIn Posts (hiring posts not in Jobs)
+Many hiring managers post only in the feed, not in Jobs.
+9. Go back to LinkedIn home or use the main top search bar.
+10. Search Posts (switch result type to Posts).
+11. Build the Posts query from THIS run only — role "{task.role}" and country "{task.country}".
+    - Include a hiring intent word (e.g. hiring, we're hiring, looking for).
+    - Use the user's actual role; you may add 1–2 close OR variants derived from "{task.role}".
+    - Do NOT reuse example queries from instructions (e.g. do not hard-code "AI Engineer" unless that is the role).
+    - Example shape only: hiring ("<role>" OR "<variant>") <country>
+12. Prefer posts from {age_label}. Use LinkedIn's post date filter if available.
+13. Open relevant posts. Extract title, company (or poster), post URL, and description from the post body.
+    Collect up to {posts_target} additional listings (or whatever remains to reach {task.max_listings} total).
+
+FINISH
+- Merge Part A + Part B. Deduplicate by URL.
+- Stop at {task.max_listings} total jobs OR when both sections are exhausted within {age_label}."""
 
 
 def _indeed_steps(task: WorkerTask) -> str:

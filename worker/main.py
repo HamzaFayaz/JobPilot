@@ -10,7 +10,7 @@ if __name__ == "__main__":
     if str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
 
-from worker.api_client import JobPilotWorkerClient
+from worker.api_client import JobPilotWorkerClient, RETRYABLE_API_ERRORS
 from worker.browser_client import check_browser_health, run_search_task
 from worker.config import WorkerSettings, get_settings
 
@@ -92,8 +92,11 @@ async def run_forever(settings: WorkerSettings) -> None:
                     await _run_task(client, settings, task)
             else:
                 logger.debug("No pending tasks")
-        except Exception:
-            logger.exception("Worker loop error")
+        except Exception as exc:
+            if isinstance(exc, RETRYABLE_API_ERRORS):
+                logger.warning("Worker loop: ECS unreachable (%s) — will retry", exc)
+            else:
+                logger.exception("Worker loop error")
             try:
                 client.send_heartbeat(browser_health="error")
             except Exception:
