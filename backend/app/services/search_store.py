@@ -21,6 +21,24 @@ def get_search_run(run_id: int) -> dict[str, Any] | None:
     return dict(row) if row else None
 
 
+def get_latest_search_run(user_id: int) -> dict[str, Any] | None:
+    """Most recent run for the user; in-progress runs take priority over finished ones."""
+    with get_connection() as conn:
+        row = conn.execute(
+            """
+            SELECT id, status, jobs_ready_count, error
+            FROM search_runs
+            WHERE user_id = ?
+            ORDER BY
+              CASE WHEN status IN ('pending', 'running') THEN 0 ELSE 1 END,
+              id DESC
+            LIMIT 1
+            """,
+            (user_id,),
+        ).fetchone()
+    return dict(row) if row else None
+
+
 def update_search_run(
     run_id: int,
     *,

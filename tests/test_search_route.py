@@ -77,3 +77,25 @@ def test_start_search_enqueues_graph(mock_run_graph, test_db, client):
     assert body["status"] == "pending"
     assert body["runId"] > 0
     mock_run_graph.assert_called_once_with(body["runId"], user["id"])
+
+
+def test_get_latest_run_returns_most_recent(test_db, client):
+    signup(client, "latest@example.com")
+    login(client, "latest@example.com")
+
+    empty = client.get("/api/runs/latest")
+    assert empty.status_code == 200
+    assert empty.json() is None
+
+    _seed_profile_for_search(client)
+    _pair_and_heartbeat(client)
+
+    first = client.post("/api/search")
+    assert first.status_code == 200
+    first_id = first.json()["runId"]
+
+    latest = client.get("/api/runs/latest")
+    assert latest.status_code == 200
+    body = latest.json()
+    assert body["runId"] == first_id
+    assert body["status"] == "pending"
