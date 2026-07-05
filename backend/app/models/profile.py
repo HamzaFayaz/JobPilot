@@ -6,6 +6,14 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend.app.models.browser import Platform
+from backend.app.models.search_prefs import (
+    DEFAULT_JOB_AGE,
+    DEFAULT_MAX_LISTINGS,
+    DEFAULT_WORK_MODE,
+    JobAgePreset,
+    WorkMode,
+    clamp_max_listings,
+)
 
 SkillsExtractionStatus = Literal["idle", "pending", "ready", "failed"]
 ProjectSource = Literal["manual", "github"]
@@ -49,6 +57,10 @@ class ProfileUpdate(BaseModel):
     target_roles: list[str] | None = Field(None, alias="targetRoles")
     search_role: str | None = Field(None, alias="searchRole")
     search_platform: Platform | None = Field(None, alias="searchPlatform")
+    search_country: str | None = Field(None, alias="searchCountry")
+    search_work_mode: WorkMode | None = Field(None, alias="searchWorkMode")
+    search_max_listings: int | None = Field(None, alias="searchMaxListings")
+    search_job_age: JobAgePreset | None = Field(None, alias="searchJobAge")
     projects: list[Project] | None = None
 
 
@@ -64,6 +76,10 @@ class ProfileResponse(BaseModel):
     target_roles: list[str] = Field(default_factory=list, alias="targetRoles")
     search_role: str | None = Field(None, alias="searchRole")
     search_platform: Platform = Field("linkedin", alias="searchPlatform")
+    search_country: str | None = Field(None, alias="searchCountry")
+    search_work_mode: WorkMode = Field(DEFAULT_WORK_MODE, alias="searchWorkMode")
+    search_max_listings: int = Field(DEFAULT_MAX_LISTINGS, alias="searchMaxListings")
+    search_job_age: JobAgePreset = Field(DEFAULT_JOB_AGE, alias="searchJobAge")
     projects: list[Project] = []
     gmail_connected: bool = Field(False, alias="gmailConnected")
     gmail_email: str | None = Field(None, alias="gmailEmail")

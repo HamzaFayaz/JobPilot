@@ -3,7 +3,8 @@
 import operator
 from typing import Annotated, TypedDict
 
-from backend.app.models.browser import Platform
+from backend.app.models.browser import Platform, RawJobListing
+from backend.app.models.search_prefs import JobAgePreset, WorkMode
 from backend.app.models.search import CvDecision, JobPackageStatus, RunStatus
 
 
@@ -72,8 +73,14 @@ class RunState(TypedDict):
     user_id: int
     role: str
     platform: Platform
+    country: str
+    work_mode: WorkMode
+    max_listings: int
+    job_age: JobAgePreset
     profile: ProfileState
     listings: list[JobListing]
+    raw_listings: list[RawJobListing]
+    warnings: list[str]
     matched_jobs: list[JobListing]
     packages: Annotated[list[JobPackageState], operator.add]
     errors: list[str]

@@ -23,11 +23,12 @@ description: Onboard  cursor  into the codebase
 
 
 Provide a brief summary:
-
+- list the below very short when there is follow up question when using that skill that time understanding is required for  You not for them  and focus on the questions or the work the developer want 
 - What this project does
 - Tech stack
 - How it's organised
 - Current branch and recent activity
+
 
 Breif summary Insturction:
 

@@ -13,10 +13,12 @@ def _seed_run(user_id: int, *, role: str = "Python Developer", status: str = "pe
     with get_connection() as conn:
         cursor = conn.execute(
             """
-            INSERT INTO search_runs (user_id, role, platform, status)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO search_runs (
+                user_id, role, platform, country, work_mode, max_listings, job_age, status
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (user_id, role, "linkedin", status),
+            (user_id, role, "linkedin", "Pakistan", "both", 8, "week", status),
         )
         conn.commit()
         return int(cursor.lastrowid)
@@ -53,8 +55,14 @@ def _run_state(run_id: int, user_id: int) -> RunState:
         user_id=user_id,
         role="",
         platform="linkedin",
+        country="",
+        work_mode="both",
+        max_listings=8,
+        job_age="week",
         profile={"cv_text": "", "skills": [], "target_roles": [], "projects": []},
         listings=[],
+        raw_listings=[],
+        warnings=[],
         matched_jobs=[],
         packages=[],
         errors=[],
@@ -73,6 +81,10 @@ def test_init_run_hydrates_profile_and_sets_running(test_db, client):
     assert result["status"] == "running"
     assert result["role"] == "Python Developer"
     assert result["platform"] == "linkedin"
+    assert result["country"] == "Pakistan"
+    assert result["work_mode"] == "both"
+    assert result["max_listings"] == 8
+    assert result["job_age"] == "week"
     assert result["profile"]["cv_text"]
     assert len(result["profile"]["skills"]) == 3
     assert len(result["profile"]["projects"]) == 1
@@ -96,6 +108,27 @@ def test_init_run_fails_without_cv(test_db, client):
     assert run is not None
     assert run["status"] == "failed"
     assert run["error"]
+
+
+def test_init_run_fails_without_country(test_db, client):
+    user = signup(client, "no-country@example.com")
+    user_id = user["id"]
+    _seed_profile(user_id)
+    with get_connection() as conn:
+        cursor = conn.execute(
+            """
+            INSERT INTO search_runs (user_id, role, platform, status)
+            VALUES (?, ?, ?, ?)
+            """,
+            (user_id, "Python Developer", "linkedin", "pending"),
+        )
+        conn.commit()
+        run_id = int(cursor.lastrowid)
+
+    result = init_run(_run_state(run_id, user_id))
+
+    assert result["status"] == "failed"
+    assert "country" in result["errors"][0].lower()
 
 
 def test_init_run_rejects_wrong_user(test_db, client):

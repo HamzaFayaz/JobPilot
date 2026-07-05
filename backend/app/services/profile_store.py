@@ -4,10 +4,18 @@ import json
 import os
 import uuid
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, NamedTuple
 
 from backend.app.db import get_connection
 from backend.app.models.profile import ProfileResponse, ProfileUpdate, Project, StoredProject
+from backend.app.models.search_prefs import (
+    DEFAULT_JOB_AGE,
+    DEFAULT_MAX_LISTINGS,
+    DEFAULT_WORK_MODE,
+    JobAgePreset,
+    WorkMode,
+    clamp_max_listings,
+)
 from backend.app.services import crypto
 
 
@@ -30,6 +38,33 @@ def _resolve_search_role(
     if search_role and search_role in target_roles:
         return search_role
     return target_roles[0] if target_roles else None
+
+
+class SearchPreferences(NamedTuple):
+    role: str | None
+    platform: str
+    country: str | None
+    work_mode: WorkMode
+    max_listings: int
+    job_age: JobAgePreset
+
+
+def _normalize_country(country: str | None) -> str | None:
+    if not country:
+        return None
+    trimmed = country.strip()
+    return trimmed or None
+
+
+def _row_search_prefs(row: dict, target_roles: list[str]) -> SearchPreferences:
+    return SearchPreferences(
+        role=_resolve_search_role(target_roles, row.get("search_role")),
+        platform=row.get("search_platform") or "linkedin",
+        country=_normalize_country(row.get("search_country")),
+        work_mode=row.get("search_work_mode") or DEFAULT_WORK_MODE,
+        max_listings=clamp_max_listings(row.get("search_max_listings") or DEFAULT_MAX_LISTINGS),
+        job_age=row.get("search_job_age") or DEFAULT_JOB_AGE,
+    )
 
 
 def _decrypt_cv_text(raw: str | None) -> str:
@@ -86,6 +121,12 @@ def _row_to_profile(row: dict, oauth: dict[str, dict | None]) -> ProfileResponse
         target_roles=target_roles,
         search_role=search_role,
         search_platform=row.get("search_platform") or "linkedin",
+        search_country=_normalize_country(row.get("search_country")),
+        search_work_mode=row.get("search_work_mode") or DEFAULT_WORK_MODE,
+        search_max_listings=clamp_max_listings(
+            row.get("search_max_listings") or DEFAULT_MAX_LISTINGS
+        ),
+        search_job_age=row.get("search_job_age") or DEFAULT_JOB_AGE,
         projects=_stored_projects_to_api(stored_projects),
         gmail_connected=google is not None,
         gmail_email=google.get("email") if google else None,
@@ -114,22 +155,28 @@ def get_profile(user_id: int) -> ProfileResponse:
     return _row_to_profile(dict(row), _get_oauth_flags(user_id))
 
 
-def get_search_preferences(user_id: int) -> tuple[str | None, str]:
+def get_search_preferences(user_id: int) -> SearchPreferences:
     with get_connection() as conn:
         row = conn.execute(
             """
-            SELECT target_roles, search_role, search_platform
+            SELECT target_roles, search_role, search_platform,
+                   search_country, search_work_mode, search_max_listings, search_job_age
             FROM profiles
             WHERE user_id = ?
             """,
             (user_id,),
         ).fetchone()
     if not row:
-        return None, "linkedin"
+        return SearchPreferences(
+            role=None,
+            platform="linkedin",
+            country=None,
+            work_mode=DEFAULT_WORK_MODE,
+            max_listings=DEFAULT_MAX_LISTINGS,
+            job_age=DEFAULT_JOB_AGE,
+        )
     target_roles = _parse_json_list(row["target_roles"])
-    role = _resolve_search_role(target_roles, row["search_role"])
-    platform = row["search_platform"] or "linkedin"
-    return role, platform
+    return _row_search_prefs(dict(row), target_roles)
 
 
 def get_stored_projects(user_id: int) -> list[StoredProject]:
@@ -171,6 +218,18 @@ def update_profile(user_id: int, data: ProfileUpdate) -> ProfileResponse:
     if data.search_platform is not None:
         fields.append("search_platform = ?")
         values.append(data.search_platform)
+    if data.search_country is not None:
+        fields.append("search_country = ?")
+        values.append(_normalize_country(data.search_country))
+    if data.search_work_mode is not None:
+        fields.append("search_work_mode = ?")
+        values.append(data.search_work_mode)
+    if data.search_max_listings is not None:
+        fields.append("search_max_listings = ?")
+        values.append(clamp_max_listings(data.search_max_listings))
+    if data.search_job_age is not None:
+        fields.append("search_job_age = ?")
+        values.append(data.search_job_age)
     if data.projects is not None:
         existing_by_id = {p.id: p for p in get_stored_projects(user_id)}
         merged_projects = [

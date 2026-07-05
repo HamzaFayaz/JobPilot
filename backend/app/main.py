@@ -19,6 +19,7 @@ from backend.app.routes import (
     profile,
     runs,
     search,
+    worker,
 )
 
 app = FastAPI(title="JobPilot API", version="0.2.0")
@@ -39,6 +40,7 @@ app.include_router(github.router)
 app.include_router(search.router)
 app.include_router(runs.router)
 app.include_router(jobs.router)
+app.include_router(worker.router)
 
 
 @app.on_event("startup")

@@ -6,7 +6,10 @@ import {
 import { useCallback, useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { getRunStatus, listRunJobs, startSearch, type JobPackage, type SearchRunStatusResponse } from '../api/search'
+import { type WorkerStatusResponse } from '../api/worker'
 import { Button } from '../components/ui/Button'
+import { SearchHelperStatus } from '../components/search/SearchHelperStatus'
+import { SearchPreferencesFields } from '../components/search/SearchPreferencesFields'
 import { useProfile } from '../context/ProfileContext'
 import type { SearchPlatform } from '../types/profile'
 
@@ -20,6 +23,7 @@ export function SearchPage() {
   const [jobs, setJobs] = useState<JobPackage[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [pollError, setPollError] = useState<string | null>(null)
+  const [helperConnected, setHelperConnected] = useState(false)
 
   useEffect(() => {
     if (profile.targetRoles.length === 0) {
@@ -91,7 +95,9 @@ export function SearchPage() {
         </p>
       </header>
 
-      <div className="mx-auto max-w-xl">
+      <div className="mx-auto max-w-xl space-y-6">
+        <SearchHelperStatus onStatusChange={(status: WorkerStatusResponse) => setHelperConnected(status.connected)} />
+
         <div className="rounded-lg border border-border bg-surface p-6 shadow-sm">
           <div className="mb-6 flex items-start gap-3 rounded-lg bg-hitl-bg p-4 text-hitl-text">
             <ShieldCheckIcon className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
@@ -189,6 +195,14 @@ export function SearchPage() {
               </div>
             </fieldset>
 
+            <SearchPreferencesFields
+              profile={profile}
+              onChange={(patch) => {
+                void updateProfile(patch)
+              }}
+              compact
+            />
+
             <p className="flex items-center gap-2 text-sm text-text-secondary">
               <MagnifyingGlassIcon className="h-4 w-4" aria-hidden="true" />
               {summaryParts.join(' · ')}
@@ -197,9 +211,15 @@ export function SearchPage() {
             <Button
               type="submit"
               className="w-full"
-              disabled={!profile.targetRoles.length || submitting}
+              disabled={
+                !profile.targetRoles.length || !profile.searchCountry || submitting || !helperConnected
+              }
             >
-              {submitting ? 'Starting search...' : 'Start search'}
+              {submitting
+                ? 'Starting search...'
+                : helperConnected
+                  ? 'Start search'
+                  : 'Connect Search Helper first'}
             </Button>
           </form>
         </div>
@@ -257,6 +277,19 @@ export function SearchPage() {
                     <p className="mt-2 text-sm text-text-secondary">Match score: {job.matchScore}</p>
                   ) : null}
                   {job.summary ? <p className="mt-2 text-sm text-text-secondary">{job.summary}</p> : null}
+                  {job.descriptionText ? (
+                    <p className="mt-2 line-clamp-3 text-sm text-text-secondary">{job.descriptionText}</p>
+                  ) : null}
+                  {job.url ? (
+                    <a
+                      href={job.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-2 inline-block text-sm font-medium text-primary hover:underline"
+                    >
+                      View listing
+                    </a>
+                  ) : null}
                   {job.error ? <p className="mt-2 text-sm text-red-600">{job.error}</p> : null}
                 </article>
               ))

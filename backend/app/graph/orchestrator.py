@@ -5,8 +5,12 @@ from langgraph.types import Send
 
 from backend.app.graph.nodes.init_run import init_run
 from backend.app.graph.state import RunState
+from backend.app.services.search_store import get_search_run, save_raw_listings_as_packages, update_search_run
 from backend.app.graph.subgraphs.application.graph import build_application_subgraph
 from backend.app.graph.subgraphs.search.graph import build_search_subgraph
+from backend.app.graph.subgraphs.search.state import SearchState
+
+_compiled_search_subgraph = build_search_subgraph()
 
 
 def _route_after_init(state: RunState) -> str:
@@ -15,16 +19,85 @@ def _route_after_init(state: RunState) -> str:
     return "search_subgraph"
 
 
+def _skills_summary(profile: RunState["profile"]) -> str:
+    skills = profile.get("skills") or []
+    return ", ".join(skills)
+
+
 def search_subgraph(state: RunState) -> dict:
-    pass
+    search_input: SearchState = {
+        "run_id": state["run_id"],
+        "user_id": state["user_id"],
+        "role": state["role"],
+        "platform": state["platform"],
+        "country": state["country"],
+        "work_mode": state["work_mode"],
+        "max_listings": state["max_listings"],
+        "job_age": state["job_age"],
+        "skills_summary": _skills_summary(state["profile"]),
+        "task_id": "",
+        "raw_listings": [],
+        "listings": [],
+        "warnings": [],
+        "errors": [],
+    }
+    result = _compiled_search_subgraph.invoke(search_input)
+
+    errors = (state.get("errors") or []) + (result.get("errors") or [])
+    updates: dict = {
+        "raw_listings": result.get("raw_listings") or [],
+        "listings": [],
+        "warnings": result.get("warnings") or [],
+        "errors": errors,
+    }
+
+    if errors:
+        run = get_search_run(state["run_id"])
+        if run and run["status"] not in ("failed", "completed"):
+            update_search_run(
+                state["run_id"],
+                status="failed",
+                error=errors[0],
+                finished=True,
+            )
+        updates["status"] = "failed"
+        return updates
+
+    return updates
 
 
 def prefilter(state: RunState) -> dict:
-    pass
+    """Placeholder until listing normalization and scoring are implemented."""
+    return {}
 
 
 def persist(state: RunState) -> dict:
-    pass
+    """Save browser listings and mark the run complete for the current E2E slice."""
+    run_id = state["run_id"]
+    user_id = state["user_id"]
+    errors = state.get("errors") or []
+
+    if state.get("status") == "failed" or errors:
+        run = get_search_run(run_id)
+        if run and run["status"] not in ("failed", "completed"):
+            update_search_run(
+                run_id,
+                status="failed",
+                error=errors[0] if errors else "Search run failed.",
+                finished=True,
+            )
+        return {"status": "failed"}
+
+    raw_listings = state.get("raw_listings") or []
+    if raw_listings:
+        save_raw_listings_as_packages(run_id, user_id, raw_listings)
+        return {"status": "completed"}
+
+    run = get_search_run(run_id)
+    if run and run["status"] not in ("failed", "completed"):
+        update_search_run(run_id, status="completed", finished=True)
+
+    return {"status": "completed"}
 
 
 def fan_out_applications(state: RunState) -> list[Send] | str:

@@ -7,6 +7,8 @@ export interface Project {
 
 export type SkillsExtractionStatus = 'idle' | 'pending' | 'ready' | 'failed'
 export type SearchPlatform = 'linkedin' | 'indeed'
+export type SearchWorkMode = 'remote' | 'onsite' | 'both'
+export type SearchJobAge = '24h' | 'week' | 'month'
 
 export interface Profile {
   cvFilename: string | null
@@ -16,6 +18,10 @@ export interface Profile {
   targetRoles: string[]
   searchRole: string | null
   searchPlatform: SearchPlatform
+  searchCountry: string | null
+  searchWorkMode: SearchWorkMode
+  searchMaxListings: number
+  searchJobAge: SearchJobAge
   projects: Project[]
   gmailConnected: boolean
   gmailEmail: string | null
@@ -31,6 +37,10 @@ export const EMPTY_PROFILE: Profile = {
   targetRoles: [],
   searchRole: null,
   searchPlatform: 'linkedin',
+  searchCountry: null,
+  searchWorkMode: 'both',
+  searchMaxListings: 8,
+  searchJobAge: 'week',
   projects: [],
   gmailConnected: false,
   gmailEmail: null,

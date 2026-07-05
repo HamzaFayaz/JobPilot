@@ -5,6 +5,12 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from backend.app.models.search_prefs import (
+    DEFAULT_JOB_AGE,
+    DEFAULT_MAX_LISTINGS,
+    job_age_to_days,
+)
+
 Platform = Literal["linkedin", "indeed"]
 
 
@@ -34,7 +40,14 @@ class SearchListingsRequest(BaseModel):
 
     role: str
     platform: Platform
-    max_listings: int = Field(8, alias="maxListings")
+    country: str = ""
+    work_mode: str = "both"
+    max_listings: int = Field(DEFAULT_MAX_LISTINGS, alias="maxListings")
+    job_age: str = Field(DEFAULT_JOB_AGE, alias="jobAge")
+    max_job_age_days: int = Field(
+        job_age_to_days(DEFAULT_JOB_AGE),
+        alias="maxJobAgeDays",
+    )
     max_pages: int = Field(3, alias="maxPages")
     skills_summary: str = Field(default="", alias="skillsSummary")
     chrome_profile_directory: str | None = Field(
