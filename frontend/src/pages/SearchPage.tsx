@@ -68,6 +68,19 @@ export function SearchPage() {
     `${profile.projects.length} projects`,
   ]
 
+  const searchBlockers: string[] = []
+  if (!profile.targetRoles.length) {
+    searchBlockers.push('Add at least one target role on your profile.')
+  }
+  if (!profile.searchCountry) {
+    searchBlockers.push('Select a country in search preferences below.')
+  }
+  if (!helperReady) {
+    searchBlockers.push('Connect Search Helper in Settings and open Chrome with WebBridge.')
+  }
+
+  const canStartSearch = searchBlockers.length === 0 && !submitting
+
   useEffect(() => {
     if (!activeRunId || !runStatus) {
       return
@@ -208,18 +221,35 @@ export function SearchPage() {
               {summaryParts.join(' · ')}
             </p>
 
+            {searchBlockers.length > 0 ? (
+              <div className="rounded-lg border border-warning/30 bg-hitl-bg/60 px-4 py-3 text-sm text-hitl-text">
+                <p className="font-semibold">Before you can search:</p>
+                <ul className="mt-2 list-disc space-y-1 pl-5">
+                  {searchBlockers.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {pollError ? (
+              <div className="rounded-lg border border-error/30 bg-error/5 px-4 py-3 text-sm text-error">
+                {pollError}
+              </div>
+            ) : null}
+
             <Button
               type="submit"
               className="w-full"
-              disabled={
-                !profile.targetRoles.length || !profile.searchCountry || submitting || !helperReady
-              }
+              disabled={!canStartSearch}
             >
               {submitting
                 ? 'Starting search...'
-                : helperReady
-                  ? 'Start search'
-                  : 'Set up Search Helper in Settings'}
+                : !profile.searchCountry
+                  ? 'Select a country to search'
+                  : !helperReady
+                    ? 'Set up Search Helper in Settings'
+                    : 'Start search'}
             </Button>
           </form>
         </div>
