@@ -9,6 +9,7 @@ from backend.app.deps.worker import get_worker_device
 from backend.app.models.worker import (
     WorkerHeartbeatRequest,
     WorkerPairResponse,
+    WorkerStatusResponse,
     WorkerTaskFailRequest,
     WorkerTaskResponse,
     WorkerTaskResultRequest,
@@ -18,6 +19,7 @@ from backend.app.services.worker_store import (
     complete_worker_task,
     create_worker_device,
     fail_worker_task,
+    get_active_worker_device,
     get_worker_task,
     revoke_worker_devices,
     update_worker_heartbeat,
@@ -36,6 +38,20 @@ def pair_worker(current_user: dict = Depends(get_current_user)) -> WorkerPairRes
 @router.delete("/pair", status_code=status.HTTP_204_NO_CONTENT)
 def unpair_worker(current_user: dict = Depends(get_current_user)) -> None:
     revoke_worker_devices(current_user["id"])
+
+
+@router.get("/status", response_model=WorkerStatusResponse)
+def get_worker_status(current_user: dict = Depends(get_current_user)) -> WorkerStatusResponse:
+    device = get_active_worker_device(current_user["id"])
+    if not device:
+        return WorkerStatusResponse(connected=False)
+
+    return WorkerStatusResponse(
+        connected=True,
+        browser_health=device.get("browser_health"),
+        last_seen_at=device.get("last_seen_at"),
+        label=device.get("label"),
+    )
 
 
 @router.post("/heartbeat", status_code=status.HTTP_204_NO_CONTENT)

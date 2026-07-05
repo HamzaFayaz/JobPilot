@@ -12,6 +12,15 @@ class WorkerPairResponse(BaseModel):
     worker_token: str = Field(alias="workerToken")
 
 
+class WorkerStatusResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, serialize_by_alias=True)
+
+    connected: bool
+    browser_health: BrowserHealth | None = Field(default=None, alias="browserHealth")
+    last_seen_at: str | None = Field(default=None, alias="lastSeenAt")
+    label: str | None = None
+
+
 class WorkerHeartbeatRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True, serialize_by_alias=True)
 
