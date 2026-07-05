@@ -4,7 +4,7 @@ Local app in `worker/` — runs on the **user's PC**, not on ECS.
 
 Polls JobPilot cloud for search tasks, runs **Kimi WebBridge** + **Qwen (`qwen-plus`)** ReAct loop against the user's **real Chrome** (existing LinkedIn login), and posts raw listings back.
 
-> **Migration:** Browser-Use is deprecated. Setup and architecture: [`System Design/kimi-webbridge-provider.md`](../System%20Design/kimi-webbridge-provider.md)
+> **Migration:** Browser-Use removed. Setup: [`System Design/kimi-webbridge-provider.md`](../System%20Design/kimi-webbridge-provider.md)
 
 ## Dev setup (use `worker/.venv` — not global Python)
 

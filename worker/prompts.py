@@ -1,8 +1,4 @@
-"""Search task prompts for the browser agent (WebBridge ReAct loop).
-
-Browser-Use one-shot task strings are deprecated — prompts feed Qwen tool-calling loop.
-See System Design/kimi-webbridge-provider.md
-"""
+"""Search task prompts for the WebBridge + Qwen ReAct agent loop."""
 
 from worker.models import JobAge, Platform, WorkerTask
 

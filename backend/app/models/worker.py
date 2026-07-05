@@ -40,7 +40,6 @@ class WorkerTaskResponse(BaseModel):
     job_age: JobAgePreset = Field(alias="jobAge")
     max_job_age_days: int = Field(alias="maxJobAgeDays")
     skills_summary: str = Field(alias="skillsSummary")
-    chrome_profile_directory: str = Field(alias="chromeProfileDirectory")
 
 
 class WorkerTaskResultRequest(BaseModel):

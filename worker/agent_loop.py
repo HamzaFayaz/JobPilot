@@ -21,6 +21,7 @@ _SYSTEM_PROMPT = """You are JobPilot Search Helper — a browser agent that sear
 Rules:
 - Use WebBridge tools to navigate, read pages (snapshot), click, and fill fields.
 - Prefer @e refs from snapshot for click/fill — they survive layout changes.
+- Use ONE browser tab for the entire task — navigate with newTab=false after the first page load.
 - One session per task: keep using the same browser tab group.
 - Follow the user task steps exactly (filters, date posted, workplace type).
 - When you have enough jobs, respond with ONLY a JSON array of job objects — no markdown fences.
@@ -109,9 +110,10 @@ async def run_search_agent(
                 if not isinstance(fn_args, dict):
                     fn_args = {}
 
-                if fn_name == "navigate" and "group_title" not in fn_args:
+                if fn_name == "navigate":
                     fn_args.setdefault("group_title", "JobPilot search")
-                    fn_args.setdefault("newTab", True)
+                    # Reuse the user's Chrome tab — do not spawn extra windows/tabs.
+                    fn_args.setdefault("newTab", False)
 
                 logger.info("WebBridge step %s: %s %s", step + 1, fn_name, list(fn_args.keys()))
                 tool_result = await _run_tool(webbridge, fn_name, fn_args, session=session)

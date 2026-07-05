@@ -18,6 +18,9 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s [Search Helper] %(message)s",
 )
+# Idle poll hits ECS + WebBridge every few seconds — keep HTTP noise at WARNING.
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 logger = logging.getLogger("worker.main")
 
 

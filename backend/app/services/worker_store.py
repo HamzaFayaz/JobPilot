@@ -308,5 +308,4 @@ def build_task_payload(
         "jobAge": job_age,
         "maxJobAgeDays": job_age_to_days(job_age),
         "skillsSummary": skills_summary,
-        "chromeProfileDirectory": settings.browser_chrome_profile,
     }

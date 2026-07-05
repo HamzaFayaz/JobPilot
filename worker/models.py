@@ -10,7 +10,7 @@ JobAge = Literal["24h", "week", "month"]
 
 
 class WorkerTask(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
 
     task_id: str = Field(alias="taskId")
     run_id: int = Field(alias="runId")
@@ -22,7 +22,6 @@ class WorkerTask(BaseModel):
     job_age: JobAge = Field(alias="jobAge")
     max_job_age_days: int = Field(alias="maxJobAgeDays")
     skills_summary: str = Field(alias="skillsSummary")
-    chrome_profile_directory: str = Field(alias="chromeProfileDirectory")
 
 
 class RawJobListing(BaseModel):
