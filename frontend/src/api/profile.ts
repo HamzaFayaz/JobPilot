@@ -14,6 +14,10 @@ function normalize(profile: Partial<Profile>): Profile {
     targetRoles: profile.targetRoles ?? [],
     searchRole: profile.searchRole ?? null,
     searchPlatform: profile.searchPlatform ?? 'linkedin',
+    searchCountry: profile.searchCountry ?? null,
+    searchWorkMode: profile.searchWorkMode ?? 'both',
+    searchMaxListings: profile.searchMaxListings ?? 8,
+    searchJobAge: profile.searchJobAge ?? 'week',
     projects: profile.projects ?? [],
   }
 }
@@ -36,6 +40,10 @@ export async function updateProfile(patch: Partial<Profile>): Promise<Profile> {
   if (patch.targetRoles !== undefined) body.targetRoles = patch.targetRoles
   if (patch.searchRole !== undefined) body.searchRole = patch.searchRole
   if (patch.searchPlatform !== undefined) body.searchPlatform = patch.searchPlatform
+  if (patch.searchCountry !== undefined) body.searchCountry = patch.searchCountry
+  if (patch.searchWorkMode !== undefined) body.searchWorkMode = patch.searchWorkMode
+  if (patch.searchMaxListings !== undefined) body.searchMaxListings = patch.searchMaxListings
+  if (patch.searchJobAge !== undefined) body.searchJobAge = patch.searchJobAge
   if (patch.projects !== undefined) body.projects = patch.projects
   return normalize(
     await apiFetch<Profile>('/api/profile', {

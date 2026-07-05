@@ -12,21 +12,36 @@ router = APIRouter(prefix="/api/search", tags=["search"])
 
 @router.post("", response_model=SearchStartResponse)
 def start_search(current_user: dict = Depends(get_current_user)) -> SearchStartResponse:
-    # Connection 1: frontend asks backend to create a new search run.
-    role, platform = get_search_preferences(current_user["id"])
-    if not role:
+    prefs = get_search_preferences(current_user["id"])
+    if not prefs.role:
         raise HTTPException(
             status_code=400,
             detail="No saved search role. Add a target role first.",
+        )
+    if not prefs.country:
+        raise HTTPException(
+            status_code=400,
+            detail="No saved search country. Set a country in search preferences first.",
         )
 
     with get_connection() as conn:
         cursor = conn.execute(
             """
-            INSERT INTO search_runs (user_id, role, platform, status)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO search_runs (
+                user_id, role, platform, country, work_mode, max_listings, job_age, status
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (current_user["id"], role, platform, "pending"),
+            (
+                current_user["id"],
+                prefs.role,
+                prefs.platform,
+                prefs.country,
+                prefs.work_mode,
+                prefs.max_listings,
+                prefs.job_age,
+                "pending",
+            ),
         )
         conn.commit()
 

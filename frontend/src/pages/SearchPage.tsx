@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { getRunStatus, listRunJobs, startSearch, type JobPackage, type SearchRunStatusResponse } from '../api/search'
 import { Button } from '../components/ui/Button'
+import { SearchPreferencesFields } from '../components/search/SearchPreferencesFields'
 import { useProfile } from '../context/ProfileContext'
 import type { SearchPlatform } from '../types/profile'
 
@@ -189,6 +190,14 @@ export function SearchPage() {
               </div>
             </fieldset>
 
+            <SearchPreferencesFields
+              profile={profile}
+              onChange={(patch) => {
+                void updateProfile(patch)
+              }}
+              compact
+            />
+
             <p className="flex items-center gap-2 text-sm text-text-secondary">
               <MagnifyingGlassIcon className="h-4 w-4" aria-hidden="true" />
               {summaryParts.join(' · ')}
@@ -197,7 +206,7 @@ export function SearchPage() {
             <Button
               type="submit"
               className="w-full"
-              disabled={!profile.targetRoles.length || submitting}
+              disabled={!profile.targetRoles.length || !profile.searchCountry || submitting}
             >
               {submitting ? 'Starting search...' : 'Start search'}
             </Button>

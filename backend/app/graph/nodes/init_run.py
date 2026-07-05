@@ -2,6 +2,14 @@
 
 from backend.app.graph.state import ProfileState, ProjectState, RunState
 from backend.app.models.browser import Platform
+from backend.app.models.search_prefs import (
+    DEFAULT_JOB_AGE,
+    DEFAULT_MAX_LISTINGS,
+    DEFAULT_WORK_MODE,
+    JobAgePreset,
+    WorkMode,
+    clamp_max_listings,
+)
 from backend.app.services.profile_store import (
     get_cv_text,
     get_profile,
@@ -79,12 +87,23 @@ def init_run(state: RunState) -> dict:
         return _fail_run(run_id, "Search run is missing a target role.")
 
     platform: Platform = run["platform"] or "linkedin"
+    country = (run.get("country") or "").strip()
+    if not country:
+        return _fail_run(run_id, "Search run is missing a target country.")
+
+    work_mode: WorkMode = run.get("work_mode") or DEFAULT_WORK_MODE
+    max_listings = clamp_max_listings(run.get("max_listings") or DEFAULT_MAX_LISTINGS)
+    job_age: JobAgePreset = run.get("job_age") or DEFAULT_JOB_AGE
 
     update_search_run(run_id, status="running")
 
     return {
         "role": role,
         "platform": platform,
+        "country": country,
+        "work_mode": work_mode,
+        "max_listings": max_listings,
+        "job_age": job_age,
         "profile": profile_state,
         "listings": [],
         "matched_jobs": [],

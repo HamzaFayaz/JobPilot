@@ -4,12 +4,13 @@ import { CvUpload } from '../components/profile/CvUpload'
 import { GitHubImport } from '../components/profile/GitHubImport'
 import { ProfileDerivedStatus } from '../components/profile/ProfileDerivedStatus'
 import { RolesInput } from '../components/profile/RolesInput'
+import { SearchPreferencesFields } from '../components/search/SearchPreferencesFields'
 import { Button } from '../components/ui/Button'
 import { ProgressBar } from '../components/ui/ProgressBar'
 import { useProfile } from '../context/ProfileContext'
 
 export function ProfilePage() {
-  const { gate, refreshProfile } = useProfile()
+  const { gate, refreshProfile, profile, updateProfile } = useProfile()
   const [searchParams] = useSearchParams()
   const completeness = Math.round((gate.requiredComplete / gate.requiredTotal) * 100)
 
@@ -45,6 +46,22 @@ export function ProfilePage() {
 
       <CvUpload />
       <RolesInput />
+
+      <section className="rounded-lg border border-border bg-surface p-6 shadow-sm">
+        <h2 className="text-base font-semibold text-text-primary">Search preferences</h2>
+        <p className="mt-1 text-sm text-text-secondary">
+          Saved for your next search. One country per run keeps the agent fast.
+        </p>
+        <div className="mt-4">
+          <SearchPreferencesFields
+            profile={profile}
+            onChange={(patch) => {
+              void updateProfile(patch)
+            }}
+          />
+        </div>
+      </section>
+
       <GitHubImport />
       <ProfileDerivedStatus />
 

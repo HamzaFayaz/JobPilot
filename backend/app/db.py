@@ -27,6 +27,10 @@ CREATE TABLE IF NOT EXISTS profiles (
     target_roles TEXT NOT NULL DEFAULT '[]',
     search_role TEXT,
     search_platform TEXT NOT NULL DEFAULT 'linkedin',
+    search_country TEXT,
+    search_work_mode TEXT NOT NULL DEFAULT 'both',
+    search_max_listings INTEGER NOT NULL DEFAULT 8,
+    search_job_age TEXT NOT NULL DEFAULT 'week',
     projects TEXT NOT NULL DEFAULT '[]',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -47,6 +51,10 @@ CREATE TABLE IF NOT EXISTS search_runs (
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     role TEXT,
     platform TEXT,
+    country TEXT,
+    work_mode TEXT,
+    max_listings INTEGER,
+    job_age TEXT,
     status TEXT NOT NULL DEFAULT 'pending',
     error TEXT,
     jobs_ready_count INTEGER NOT NULL DEFAULT 0,
@@ -92,6 +100,33 @@ CREATE TABLE IF NOT EXISTS job_applications (
     sent_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS worker_devices (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash TEXT NOT NULL UNIQUE,
+    label TEXT NOT NULL DEFAULT 'Search Helper',
+    browser_health TEXT NOT NULL DEFAULT 'not_installed',
+    last_seen_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    revoked_at TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS worker_tasks (
+    id TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    run_id INTEGER NOT NULL REFERENCES search_runs(id) ON DELETE CASCADE,
+    type TEXT NOT NULL DEFAULT 'browser_search',
+    status TEXT NOT NULL DEFAULT 'pending',
+    payload_json TEXT NOT NULL,
+    result_json TEXT,
+    error TEXT,
+    error_code TEXT,
+    warnings_json TEXT,
+    claimed_at TIMESTAMP,
+    completed_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 
@@ -125,6 +160,10 @@ def _ensure_search_schema(conn: sqlite3.Connection) -> None:
         {
             "search_role": "search_role TEXT",
             "search_platform": "search_platform TEXT NOT NULL DEFAULT 'linkedin'",
+            "search_country": "search_country TEXT",
+            "search_work_mode": "search_work_mode TEXT NOT NULL DEFAULT 'both'",
+            "search_max_listings": "search_max_listings INTEGER NOT NULL DEFAULT 8",
+            "search_job_age": "search_job_age TEXT NOT NULL DEFAULT 'week'",
         },
     )
     _ensure_columns(
@@ -135,6 +174,10 @@ def _ensure_search_schema(conn: sqlite3.Connection) -> None:
             "jobs_ready_count": "jobs_ready_count INTEGER NOT NULL DEFAULT 0",
             "updated_at": "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
             "finished_at": "finished_at TIMESTAMP",
+            "country": "country TEXT",
+            "work_mode": "work_mode TEXT",
+            "max_listings": "max_listings INTEGER",
+            "job_age": "job_age TEXT",
         },
     )
     _ensure_columns(
