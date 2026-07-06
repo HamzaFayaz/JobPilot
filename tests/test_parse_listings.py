@@ -48,6 +48,16 @@ RUN40_POSTS_COMPRESSED_FIXTURE = (
     / "step-02-snapshot.json"
 )
 
+RUN47_JOB_DETAIL_FIXTURE = (
+    Path(__file__).resolve().parents[1]
+    / "worker"
+    / "debug_snapshots"
+    / "run-47"
+    / "jobs"
+    / "full"
+    / "step-03-snapshot.json"
+)
+
 
 def _load_snapshot(path: Path) -> dict:
     payload = json.loads(path.read_text(encoding="utf-8"))
@@ -202,6 +212,34 @@ def test_sanitize_drops_job_without_description_when_no_snapshot_text():
     ]
     enriched = sanitize_and_enrich_listings(listings, phase="jobs", last_snapshot=None)
     assert enriched == []
+
+
+def test_sanitize_fills_description_from_current_job_id_search_url():
+    snapshot = _load_snapshot(RUN47_JOB_DETAIL_FIXTURE)
+    job_id = "4433930433"
+    search_url = (
+        "https://www.linkedin.com/jobs/search/?currentJobId=4433930433"
+        "&keywords=AI%20Engineer&location=Pakistan"
+    )
+    descriptions = {job_id: extract_job_description_from_snapshot(snapshot)}
+    listings = [
+        RawJobListing(
+            title="AI Engineer",
+            company="Hyphen Connect",
+            url=search_url,
+            description_text="",
+            source_platform="linkedin",
+        )
+    ]
+    enriched = sanitize_and_enrich_listings(
+        listings,
+        phase="jobs",
+        last_snapshot=snapshot,
+        job_descriptions=descriptions,
+    )
+    assert len(enriched) == 1
+    assert len(enriched[0].description_text) >= 500
+    assert enriched[0].url == f"https://www.linkedin.com/jobs/view/{job_id}/"
 
 
 def test_merge_jobs_agent_with_extraction_injects_worker_jd():

@@ -21,7 +21,8 @@ WAIT_PAINT_JS = "await new Promise(r => setTimeout(r, 1500))"
 
 MAX_POST_SCROLLS = 5
 MAX_JOB_SCROLLS = 3
-MAX_JOB_DETAIL_RETRIES = 3
+MAX_JOB_DETAIL_RETRIES = 6
+JOB_DETAIL_WAIT_MS = 2000
 
 
 async def scroll_page(

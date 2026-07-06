@@ -170,6 +170,15 @@ def _job_id_from_listing_url(url: str) -> str:
     return slug if slug.isdigit() else ""
 
 
+def job_id_from_listing_url(url: str) -> str:
+    """Numeric LinkedIn job id from a listing or search URL, if present."""
+    job_id = _job_id_from_listing_url(url)
+    if job_id:
+        return job_id
+    current = _current_job_id_from_url(url)
+    return current or ""
+
+
 def sanitize_and_enrich_listings(
     listings: list[RawJobListing],
     *,
@@ -195,7 +204,7 @@ def sanitize_and_enrich_listings(
     enriched: list[RawJobListing] = []
     for item in listings:
         description = item.description_text.strip()
-        listing_job_id = _job_id_from_listing_url(item.url)
+        listing_job_id = job_id_from_listing_url(item.url)
 
         worker_description = ""
         if job_descriptions and listing_job_id:

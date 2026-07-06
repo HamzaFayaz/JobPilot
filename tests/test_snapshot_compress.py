@@ -7,6 +7,7 @@ from worker.snapshot_compress import (
     compress_snapshot,
     count_jobs_in_search_snapshot,
     extract_job_description_from_snapshot,
+    extract_jobs_from_search_snapshot,
     extract_posts_from_search_snapshot,
     job_detail_metadata,
     snapshot_has_job_detail_panel,

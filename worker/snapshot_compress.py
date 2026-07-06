@@ -326,17 +326,22 @@ def count_hiring_openings_in_snapshot(data: dict[str, Any]) -> int:
     )
 
 
-def count_jobs_in_search_snapshot(data: dict[str, Any]) -> int:
-    """Count left-rail job result rows on a Jobs search page."""
+def extract_jobs_from_search_snapshot(data: dict[str, Any]) -> list[dict[str, str]]:
+    """Left-rail job result rows on a Jobs search page (ref + display name)."""
     snapshot = _normalize_snapshot_data(data)
     url = str(snapshot.get("url") or "")
     title = str(snapshot.get("title") or "")
     if not _is_jobs_search_page(url, title):
-        return 0
+        return []
     nodes: list[dict[str, str]] = []
     seen_refs: set[str] = set()
     _collect_jobs_search_results(snapshot.get("tree") or [], nodes, seen_refs)
-    return len(nodes)
+    return nodes
+
+
+def count_jobs_in_search_snapshot(data: dict[str, Any]) -> int:
+    """Count left-rail job result rows on a Jobs search page."""
+    return len(extract_jobs_from_search_snapshot(data))
 
 
 def _truncate_snippet(text: str, *, max_len: int = 100) -> str:

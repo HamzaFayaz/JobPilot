@@ -14,9 +14,16 @@ from worker.prompts import (
 
 
 def test_listing_targets_split():
-    assert listing_targets(4) == (2, 2)
+    assert listing_targets(4) == (2, 0)
     assert listing_targets(1) == (1, 0)
-    assert listing_targets(8) == (4, 4)
+    assert listing_targets(8) == (4, 0)
+
+
+def test_linkedin_jobs_listing_target_is_half_cap():
+    from worker.prompts import linkedin_jobs_listing_target
+
+    assert linkedin_jobs_listing_target(6) == 3
+    assert linkedin_jobs_listing_target(1) == 1
 
 
 def test_max_steps_for_target_scales_with_listings():
@@ -67,10 +74,13 @@ def test_jobs_prompt_worker_extracts_jd_and_may_pre_scroll():
         skillsSummary="Python",
     )
     prompt = build_linkedin_jobs_task(task, target=2)
-    assert "jobDetailReady" in prompt
+    assert "job view page" in prompt
     assert "window.location.href" in prompt
+    assert "url from evaluate immediately after" in prompt
     assert "Do NOT copy full JD into JSON" in prompt
     assert "pre-scroll" in prompt
+    assert "ALL jobs collected so far" in prompt
+    assert "currentJobId" in prompt
 
 
 def test_posts_prompt_worker_fills_description_and_may_pre_scroll():

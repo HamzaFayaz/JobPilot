@@ -58,3 +58,50 @@ def save_tool_result(
     except OSError as exc:
         logger.warning("Failed to save snapshot debug file: %s", exc)
         return None
+
+
+def save_job_enrich_result(
+    base_dir: Path,
+    *,
+    run_id: int,
+    job_id: str,
+    tool_name: str,
+    args: dict[str, Any],
+    result: Any,
+    compressed_result: Any | None = None,
+) -> Path | None:
+    """Persist worker-owned job view page captures under jobs/enrich/job-{id}/."""
+    try:
+        job_dir = base_dir / f"run-{run_id}" / "jobs" / "enrich" / f"job-{job_id}"
+        job_dir.mkdir(parents=True, exist_ok=True)
+        path = job_dir / f"{tool_name}.json"
+        payload: dict[str, Any] = {
+            "runId": run_id,
+            "jobId": job_id,
+            "tool": tool_name,
+            "args": args,
+            "result": result,
+        }
+        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        logger.info("Saved job enrich debug file: %s", path)
+
+        if tool_name == "snapshot" and compressed_result is not None:
+            compressed_path = job_dir / "snapshot-compressed.json"
+            compressed_path.write_text(
+                json.dumps(
+                    {
+                        "runId": run_id,
+                        "jobId": job_id,
+                        "compressed": compressed_result,
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
+            logger.info("Saved job enrich compressed file: %s", compressed_path)
+
+        return path
+    except OSError as exc:
+        logger.warning("Failed to save job enrich debug file: %s", exc)
+        return None

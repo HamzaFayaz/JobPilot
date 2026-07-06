@@ -14,15 +14,18 @@ from worker.models import RawJobListing, WorkerTask
 from worker.parse import (
     current_job_id_from_url,
     enrich_agent_listings_json,
+    job_id_from_listing_url,
     merge_jobs_agent_with_extraction,
     merge_listings,
     merge_posts_agent_with_extraction,
     parse_listings_from_agent_output,
 )
 from worker.prompts import (
+    LINKEDIN_POSTS_PHASE_ENABLED,
     build_indeed_task,
     build_linkedin_jobs_task,
     build_linkedin_posts_task,
+    linkedin_jobs_listing_target,
     linkedin_jobs_steps,
     linkedin_posts_steps,
     listing_targets,
@@ -40,13 +43,15 @@ from worker.snapshot_compress import (
     count_hiring_openings_in_snapshot,
     count_jobs_in_search_snapshot,
     extract_job_description_from_snapshot,
+    extract_jobs_from_search_snapshot,
     extract_posts_from_search_snapshot,
     job_detail_metadata,
     snapshot_has_job_detail_panel,
 )
-from worker.snapshot_store import save_tool_result
+from worker.snapshot_store import save_job_enrich_result, save_tool_result
 from worker.webbridge_tools import WEBBRIDGE_TOOL_DEFINITIONS
 from worker.webbridge_scroll import (
+    JOB_DETAIL_WAIT_MS,
     MAX_JOB_DETAIL_RETRIES,
     MAX_JOB_SCROLLS,
     MAX_POST_SCROLLS,
@@ -149,25 +154,89 @@ def _reject_incomplete_jobs_reply(
     raw_text: str,
     platform: str,
     last_snapshot: dict[str, Any] | None,
+    accumulated_jobs: dict[str, RawJobListing] | None = None,
+    job_descriptions: dict[str, str] | None = None,
 ) -> bool:
     """True when jobs JSON is incomplete and the agent should keep working."""
     if phase != "jobs" or llm_step >= max_steps or target <= 0:
         return False
-    if listings_found < target and job_rows_visible > listings_found:
-        return True
-    if listings_found > 0 and _job_listings_missing_description(
-        raw_text,
-        platform=platform,
-        last_snapshot=last_snapshot,
-    ):
-        return True
-    if listings_found > 0 and _job_detail_not_ready(
-        last_snapshot,
-        raw_text=raw_text,
-        platform=platform,
-    ):
+    effective_found = listings_found
+    if accumulated_jobs is not None:
+        effective_found = max(effective_found, len(accumulated_jobs))
+    if effective_found < target and job_rows_visible > effective_found:
         return True
     return False
+
+
+def _accumulated_jobs_missing_description(
+    accumulated_jobs: dict[str, RawJobListing],
+    job_descriptions: dict[str, str],
+) -> bool:
+    for job_id, item in accumulated_jobs.items():
+        if item.description_text.strip():
+            continue
+        if not job_descriptions.get(job_id, "").strip():
+            return True
+    return False
+
+
+def _listing_storage_key(
+    item: RawJobListing,
+    last_snapshot: dict[str, Any] | None,
+) -> str:
+    if item.company.strip() and item.title.strip():
+        return f"{item.company.strip().lower()}::{item.title.strip().lower()}"
+    key = job_id_from_listing_url(item.url)
+    if key:
+        return key
+    if last_snapshot:
+        snapshot_id = current_job_id_from_url(str(last_snapshot.get("url") or ""))
+        if snapshot_id:
+            return snapshot_id
+    return item.url.strip().lower() or "unknown-job"
+
+
+def _merge_jobs_into_accumulated(
+    accumulated_jobs: dict[str, RawJobListing],
+    raw_text: str,
+    *,
+    platform: str,
+    last_snapshot: dict[str, Any] | None,
+) -> None:
+    for item in parse_listings_from_agent_output(raw_text, platform=platform):
+        accumulated_jobs[_listing_storage_key(item, last_snapshot)] = item
+
+
+def _company_from_job_row_name(name: str) -> str:
+    parts = [part.strip() for part in name.split("|")]
+    if len(parts) >= 2:
+        return parts[1].lower()
+    return ""
+
+
+def _next_job_click_hints(
+    last_snapshot: dict[str, Any] | None,
+    accumulated_jobs: dict[str, RawJobListing],
+    *,
+    limit: int = 2,
+) -> list[str]:
+    if not last_snapshot:
+        return []
+    collected_companies = {
+        item.company.strip().lower() for item in accumulated_jobs.values() if item.company
+    }
+    hints: list[str] = []
+    for row in extract_jobs_from_search_snapshot(last_snapshot):
+        company = _company_from_job_row_name(row.get("name", ""))
+        if company and company in collected_companies:
+            continue
+        ref = row.get("ref", "")
+        name = row.get("name", "")
+        if ref and name:
+            hints.append(f"{ref} ({name})")
+        if len(hints) >= limit:
+            break
+    return hints
 
 
 def _incomplete_jobs_nudge(
@@ -177,7 +246,12 @@ def _incomplete_jobs_nudge(
     job_rows_visible: int,
     missing_description: bool,
     job_detail_not_ready: bool,
+    accumulated_jobs: dict[str, RawJobListing] | None = None,
+    next_refs: list[str] | None = None,
 ) -> str:
+    effective_found = listings_found
+    if accumulated_jobs is not None:
+        effective_found = max(effective_found, len(accumulated_jobs))
     if job_detail_not_ready:
         return (
             "The job detail panel did not load (jobDetailReady is false). "
@@ -188,10 +262,26 @@ def _incomplete_jobs_nudge(
             "One or more jobs are missing descriptionText. The worker extracts JD from "
             "the snapshot — ensure the 'About the job' heading is visible, then snapshot again."
         )
+    collected = ""
+    if accumulated_jobs:
+        names = [
+            f"{item.title} @ {item.company}".strip()
+            for item in accumulated_jobs.values()
+        ]
+        if names:
+            collected = f" Already collected: {', '.join(names)}."
+    next_hint = ""
+    if next_refs:
+        next_hint = f" Next click: {next_refs[0]}."
+        if len(next_refs) > 1:
+            next_hint += f" Then: {next_refs[1]}."
+    elif effective_found < target:
+        next_hint = " Pick a different list row you have not collected yet."
     return (
-        f"You returned {listings_found} job(s) but this phase needs up to {target}. "
-        f"The snapshot shows {job_rows_visible} job row(s) — open more cards, "
-        "snapshot the detail panel for each, then return JSON."
+        f"Worker has {effective_found}/{target} job(s); snapshot shows {job_rows_visible} row(s)."
+        f"{collected}{next_hint} "
+        "Open the next card, evaluate window.location.href for that job's url, "
+        "then return JSON with ALL collected jobs in one array."
     )
 
 
@@ -221,6 +311,7 @@ def _empty_json_nudge(
 
 _ACTION_LOG_MARKER = "Action log:"
 _SNAPSHOT_OMITTED = "[snapshot omitted — see latest]"
+_JOBS_PROGRESS_MARKER = "Jobs progress:"
 
 _SYSTEM_PROMPT = """You are JobPilot Search Helper — a browser agent that searches job sites.
 
@@ -240,10 +331,12 @@ def _system_prompt(phase: Phase) -> str:
         return (
             _SYSTEM_PROMPT
             + "\n- This phase is LinkedIn Jobs only. Do not search Posts."
-            + "\n- Snapshot before every click; the worker extracts descriptionText from 'About the job'."
-            + "\n- Snapshots include jobDetailReady and jobDescriptionChars — do not copy full JD into JSON."
+            + "\n- Snapshot before every click; collect title, company, and url only."
+            + "\n- After you return JSON, the worker visits each job view page to extract the full JD."
             + "\n- Use evaluate only for window.location.href — not CSS selectors for description."
-            + "\n- Job url must be /jobs/view/ and match the list row title/company."
+            + "\n- Job url from evaluate may be a search URL with currentJobId — the worker normalizes it."
+            + "\n- Return ALL jobs collected so far in every JSON reply — do not re-submit only the latest card."
+            + "\n- Job url must match the list row title/company."
         )
     if phase == "posts":
         return (
@@ -309,6 +402,35 @@ def _sync_action_log_message(messages: list[dict[str, Any]], action_log: list[st
         messages[2]["content"] = content
         return
     messages.insert(2, {"role": "user", "content": content})
+
+
+def _sync_jobs_progress_message(messages: list[dict[str, Any]], content: str) -> None:
+    """Replace the jobs progress hint in-place so rejections do not grow token history."""
+    full = f"{_JOBS_PROGRESS_MARKER}\n{content}"
+    for message in messages:
+        if message.get("role") == "user" and str(message.get("content", "")).startswith(
+            _JOBS_PROGRESS_MARKER
+        ):
+            message["content"] = full
+            return
+    messages.append({"role": "user", "content": full})
+
+
+def _jobs_phase_raw_text(
+    accumulated_jobs: dict[str, RawJobListing],
+    *,
+    fallback_text: str,
+    target: int,
+    platform: str,
+) -> str:
+    if accumulated_jobs:
+        jobs = list(accumulated_jobs.values())[:target]
+        if jobs:
+            return _listings_to_json(jobs)
+    parsed = parse_listings_from_agent_output(fallback_text, platform=platform)
+    if parsed:
+        return _listings_to_json(parsed[:target])
+    return fallback_text
 
 
 def _omit_old_snapshot_messages(
@@ -438,29 +560,10 @@ async def _run_tool(
             if phase == "jobs" and isinstance(snapshot_source, dict):
                 page_url = str(snapshot_source.get("url") or "")
                 job_id = current_job_id_from_url(page_url)
-                if job_id and not snapshot_has_job_detail_panel(snapshot_source):
-                    for retry in range(MAX_JOB_DETAIL_RETRIES):
-                        await wait_for_paint(client, session=session)
-                        retry_result = await client.command("snapshot", {}, session=session)
-                        if isinstance(retry_result, dict):
-                            result = retry_result
-                            if isinstance(retry_result.get("data"), dict):
-                                snapshot_source = retry_result["data"]
-                        if snapshot_has_job_detail_panel(snapshot_source):
-                            logger.info(
-                                "Job detail panel ready after %s retries",
-                                retry + 1,
-                            )
-                            break
-                    else:
-                        logger.warning(
-                            "Job detail panel not ready after %s retries (jobId=%s)",
-                            MAX_JOB_DETAIL_RETRIES,
-                            job_id,
-                        )
-
-                if job_descriptions is not None and snapshot_has_job_detail_panel(
-                    snapshot_source
+                if (
+                    job_id
+                    and job_descriptions is not None
+                    and snapshot_has_job_detail_panel(snapshot_source)
                 ):
                     active_job_id = current_job_id_from_url(
                         str(snapshot_source.get("url") or "")
@@ -674,6 +777,174 @@ async def _auto_scroll_after_bootstrap(
     return scroll_attempts, step
 
 
+def _snapshot_data_from_result(result: Any) -> dict[str, Any] | None:
+    if not isinstance(result, dict):
+        return None
+    data = result.get("data")
+    if isinstance(data, dict) and data.get("tree") is not None:
+        return data
+    if result.get("tree") is not None:
+        return result
+    return None
+
+
+async def _enrich_jobs_from_view_pages(
+    *,
+    webbridge: WebBridgeClient,
+    settings: WorkerSettings,
+    session: str,
+    task: WorkerTask,
+    accumulated_jobs: dict[str, RawJobListing],
+    job_descriptions: dict[str, str],
+    target: int,
+) -> int:
+    """Visit each collected job on /jobs/view/{id}/ and extract JD text."""
+    jobs = list(accumulated_jobs.values())[:target]
+    if not jobs:
+        return 0
+
+    enriched = 0
+    logger.info(
+        "Worker job enrich starting: %s job(s) to visit (run_id=%s)",
+        len(jobs),
+        task.run_id,
+    )
+
+    for index, item in enumerate(jobs, start=1):
+        job_id = job_id_from_listing_url(item.url)
+        if not job_id:
+            logger.warning(
+                "Skipping enrich — no job id for %s @ %s",
+                item.title,
+                item.company,
+            )
+            continue
+        if job_descriptions.get(job_id, "").strip():
+            enriched += 1
+            continue
+
+        view_url = f"https://www.linkedin.com/jobs/view/{job_id}/"
+        nav_args = {"url": view_url, "newTab": False}
+        logger.info(
+            "Worker enrich [%s/%s] navigate → %s (%s @ %s)",
+            index,
+            len(jobs),
+            view_url,
+            item.title,
+            item.company,
+        )
+        try:
+            nav_result = await webbridge.command("navigate", nav_args, session=session)
+        except Exception as exc:
+            logger.warning("Enrich navigate failed for job %s: %s", job_id, exc)
+            continue
+
+        if settings.save_snapshots:
+            save_job_enrich_result(
+                settings.snapshot_dir,
+                run_id=task.run_id,
+                job_id=job_id,
+                tool_name="navigate",
+                args=nav_args,
+                result=nav_result,
+            )
+
+        snapshot_source: dict[str, Any] | None = None
+        snapshot_result: Any = None
+        for retry in range(MAX_JOB_DETAIL_RETRIES):
+            await wait_for_paint(
+                webbridge,
+                session=session,
+                ms=JOB_DETAIL_WAIT_MS,
+            )
+            try:
+                snapshot_result = await webbridge.command("snapshot", {}, session=session)
+            except Exception as exc:
+                logger.warning("Enrich snapshot failed for job %s: %s", job_id, exc)
+                break
+            snapshot_source = _snapshot_data_from_result(snapshot_result)
+            if snapshot_source and snapshot_has_job_detail_panel(snapshot_source):
+                logger.info(
+                    "Job view page ready for %s after %s attempt(s)",
+                    job_id,
+                    retry + 1,
+                )
+                break
+        else:
+            logger.warning(
+                "Job view page not ready after %s attempts (jobId=%s)",
+                MAX_JOB_DETAIL_RETRIES,
+                job_id,
+            )
+
+        compressed_result = None
+        if snapshot_source:
+            compressed_result = compress_snapshot(snapshot_source)
+            compressed_result.update(job_detail_metadata(snapshot_source))
+            description = extract_job_description_from_snapshot(snapshot_source)
+            if description:
+                job_descriptions[job_id] = description
+                enriched += 1
+                logger.info(
+                    "Extracted %s chars for job %s (%s @ %s)",
+                    len(description),
+                    job_id,
+                    item.title,
+                    item.company,
+                )
+
+        if settings.save_snapshots and snapshot_result is not None:
+            save_job_enrich_result(
+                settings.snapshot_dir,
+                run_id=task.run_id,
+                job_id=job_id,
+                tool_name="snapshot",
+                args={},
+                result=snapshot_result,
+                compressed_result=compressed_result,
+            )
+
+    logger.info(
+        "Worker job enrich finished: %s/%s with description (run_id=%s)",
+        enriched,
+        len(jobs),
+        task.run_id,
+    )
+    return enriched
+
+
+async def _finalize_jobs_phase_output(
+    *,
+    raw_text: str,
+    task: WorkerTask,
+    target: int,
+    last_snapshot_holder: list[dict[str, Any]],
+    accumulated_jobs: dict[str, RawJobListing],
+    job_descriptions: dict[str, str],
+    webbridge: WebBridgeClient,
+    settings: WorkerSettings,
+    session: str,
+) -> str:
+    if accumulated_jobs:
+        await _enrich_jobs_from_view_pages(
+            webbridge=webbridge,
+            settings=settings,
+            session=session,
+            task=task,
+            accumulated_jobs=accumulated_jobs,
+            job_descriptions=job_descriptions,
+            target=target,
+        )
+    return _finalize_phase_output(
+        raw_text=raw_text,
+        task=task,
+        phase="jobs",
+        target=target,
+        last_snapshot_holder=last_snapshot_holder,
+        job_descriptions=job_descriptions,
+    )
+
+
 def _finalize_phase_output(
     *,
     raw_text: str,
@@ -758,9 +1029,12 @@ async def _run_agent_phase(
     last_snapshot_holder: list[dict[str, Any]] = []
     best_posts_snapshot_holder: list[dict[str, Any]] = []
     job_descriptions: dict[str, str] = {}
+    accumulated_jobs: dict[str, RawJobListing] = {}
     last_hiring_openings = 0
     last_job_rows = 0
     bootstrap_step = 0
+    last_rejected_jobs_json = ""
+    repeat_incomplete_jobs_json = 0
 
     logger.info(
         "Starting agent phase=%s max_steps=%s session=%s run_id=%s",
@@ -1091,6 +1365,14 @@ async def _run_agent_phase(
                 continue
 
             snapshot = last_snapshot_holder[0] if last_snapshot_holder else None
+            if phase == "jobs":
+                _merge_jobs_into_accumulated(
+                    accumulated_jobs,
+                    final_text,
+                    platform=task.platform,
+                    last_snapshot=snapshot,
+                )
+            effective_listings_found = len(accumulated_jobs) if phase == "jobs" else listings_found
             if _reject_incomplete_jobs_reply(
                 phase=phase,
                 target=target,
@@ -1101,50 +1383,85 @@ async def _run_agent_phase(
                 raw_text=final_text,
                 platform=task.platform,
                 last_snapshot=snapshot,
+                accumulated_jobs=accumulated_jobs if phase == "jobs" else None,
+                job_descriptions=job_descriptions if phase == "jobs" else None,
             ):
                 logger.info(
                     "Agent phase=%s rejected incomplete jobs JSON at llm_step %s "
-                    "(found=%s, target=%s, job_rows=%s)",
+                    "(found=%s, target=%s, job_rows=%s, accumulated=%s)",
                     phase,
                     llm_step,
                     listings_found,
                     target,
                     last_job_rows,
+                    effective_listings_found,
                 )
-                messages.append({"role": "assistant", "content": final_text})
-                messages.append(
-                    {
-                        "role": "user",
-                        "content": _incomplete_jobs_nudge(
-                            target=target,
-                            listings_found=listings_found,
-                            job_rows_visible=last_job_rows,
-                            missing_description=_job_listings_missing_description(
-                                final_text,
-                                platform=task.platform,
-                                last_snapshot=snapshot,
-                            ),
-                            job_detail_not_ready=_job_detail_not_ready(
-                                snapshot,
-                                raw_text=final_text,
-                                platform=task.platform,
-                            ),
-                        ),
-                    }
-                )
+                if phase == "jobs":
+                    if final_text == last_rejected_jobs_json:
+                        repeat_incomplete_jobs_json += 1
+                    else:
+                        last_rejected_jobs_json = final_text
+                        repeat_incomplete_jobs_json = 1
+                    next_refs = _next_job_click_hints(snapshot, accumulated_jobs)
+                    nudge = _incomplete_jobs_nudge(
+                        target=target,
+                        listings_found=listings_found,
+                        job_rows_visible=last_job_rows,
+                        missing_description=False,
+                        job_detail_not_ready=False,
+                        accumulated_jobs=accumulated_jobs,
+                        next_refs=next_refs,
+                    )
+                    messages.append({"role": "assistant", "content": final_text})
+                    _sync_jobs_progress_message(messages, nudge)
+                    if repeat_incomplete_jobs_json >= 2 and next_refs:
+                        messages.append(
+                            {
+                                "role": "user",
+                                "content": (
+                                    "You returned the same incomplete JSON without using tools. "
+                                    f"Do NOT reply with JSON yet — call click on {next_refs[0]}, "
+                                    "evaluate window.location.href for the url, "
+                                    "then return JSON with all collected jobs."
+                                ),
+                            }
+                        )
                 continue
 
-            raw_text = _finalize_phase_output(
-                raw_text=final_text,
-                task=task,
-                phase=phase,
-                target=target,
-                last_snapshot_holder=last_snapshot_holder,
-                best_posts_snapshot_holder=(
-                    best_posts_snapshot_holder if phase == "posts" else None
-                ),
-                job_descriptions=job_descriptions if phase == "jobs" else None,
+            phase_raw_text = (
+                _jobs_phase_raw_text(
+                    accumulated_jobs,
+                    fallback_text=final_text,
+                    target=target,
+                    platform=task.platform,
+                )
+                if phase == "jobs"
+                else final_text
             )
+            if phase == "jobs":
+                raw_text = await _finalize_jobs_phase_output(
+                    raw_text=phase_raw_text,
+                    task=task,
+                    target=target,
+                    last_snapshot_holder=last_snapshot_holder,
+                    accumulated_jobs=accumulated_jobs,
+                    job_descriptions=job_descriptions,
+                    webbridge=webbridge,
+                    settings=settings,
+                    session=session,
+                )
+            else:
+                raw_text = _finalize_phase_output(
+                    raw_text=phase_raw_text,
+                    task=task,
+                    phase=phase,
+                    target=target,
+                    last_snapshot_holder=last_snapshot_holder,
+                    best_posts_snapshot_holder=(
+                        best_posts_snapshot_holder if phase == "posts" else None
+                    ),
+                    job_descriptions=None,
+                )
             metrics.stop_reason = "completed_json"
             metrics.last_tool = last_tool
             metrics.listings_found = len(
@@ -1169,17 +1486,36 @@ async def _run_agent_phase(
 
     metrics.stop_reason = "exceeded_max_steps"
     metrics.last_tool = last_tool
-    raw_text = _finalize_phase_output(
-        raw_text=raw_text,
-        task=task,
-        phase=phase,
+    raw_text = _jobs_phase_raw_text(
+        accumulated_jobs,
+        fallback_text=raw_text,
         target=target,
-        last_snapshot_holder=last_snapshot_holder,
-        best_posts_snapshot_holder=(
-            best_posts_snapshot_holder if phase == "posts" else None
-        ),
-        job_descriptions=job_descriptions if phase == "jobs" else None,
-    )
+        platform=task.platform,
+    ) if phase == "jobs" else raw_text
+    if phase == "jobs":
+        raw_text = await _finalize_jobs_phase_output(
+            raw_text=raw_text,
+            task=task,
+            target=target,
+            last_snapshot_holder=last_snapshot_holder,
+            accumulated_jobs=accumulated_jobs,
+            job_descriptions=job_descriptions,
+            webbridge=webbridge,
+            settings=settings,
+            session=session,
+        )
+    else:
+        raw_text = _finalize_phase_output(
+            raw_text=raw_text,
+            task=task,
+            phase=phase,
+            target=target,
+            last_snapshot_holder=last_snapshot_holder,
+            best_posts_snapshot_holder=(
+                best_posts_snapshot_holder if phase == "posts" else None
+            ),
+            job_descriptions=None,
+        )
     metrics.listings_found = len(
         parse_listings_from_agent_output(raw_text, platform=task.platform)
     )
@@ -1198,14 +1534,18 @@ async def _run_linkedin_search(
     settings: WorkerSettings,
     webbridge: WebBridgeClient,
 ) -> str:
-    jobs_target, posts_target = listing_targets(task.max_listings)
+    jobs_target = linkedin_jobs_listing_target(task.max_listings)
+    posts_target = 0
+    if LINKEDIN_POSTS_PHASE_ENABLED:
+        _, posts_target = listing_targets(task.max_listings)
     # Testing mode: generous shared cap from agent_max_steps — no tuned per-phase floors.
     phase_max_steps = settings.agent_max_steps
 
     logger.info(
-        "LinkedIn sequential run: jobs_target=%s posts_target=%s phase_max_steps=%s",
+        "LinkedIn sequential run: jobs_target=%s posts_target=%s posts_enabled=%s phase_max_steps=%s",
         jobs_target,
         posts_target,
+        LINKEDIN_POSTS_PHASE_ENABLED,
         phase_max_steps,
     )
 
@@ -1231,7 +1571,7 @@ async def _run_linkedin_search(
             )
         )
 
-    if posts_target > 0:
+    if posts_target > 0 and LINKEDIN_POSTS_PHASE_ENABLED:
         logger.info("LinkedIn phase starting: posts")
         phase_results.append(
             await _run_agent_phase(
@@ -1265,8 +1605,9 @@ async def _run_linkedin_search(
         )
         all_listings.extend(listings)
 
-    merged = merge_listings(all_listings, max_listings=task.max_listings)
-    logger.info("Merged LinkedIn listings: %s (cap %s)", len(merged), task.max_listings)
+    merged = merge_listings(all_listings, max_listings=jobs_target if not LINKEDIN_POSTS_PHASE_ENABLED else task.max_listings)
+    cap = jobs_target if not LINKEDIN_POSTS_PHASE_ENABLED else task.max_listings
+    logger.info("Merged LinkedIn listings: %s (cap %s)", len(merged), cap)
 
     save_run_summary(
         settings.snapshot_dir,

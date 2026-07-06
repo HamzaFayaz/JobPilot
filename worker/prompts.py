@@ -24,6 +24,8 @@ _LINKEDIN_DATE_FILTER = {
 # max_listings from the ECS task. Listing target still comes from the system task.
 LINKEDIN_JOBS_STEP_FLOOR = 12
 LINKEDIN_POSTS_STEP_FLOOR = 8
+# Posts phase disabled while jobs extraction is stabilized.
+LINKEDIN_POSTS_PHASE_ENABLED = False
 
 _INDEED_DATE_FILTER = {
     "24h": "Last 24 hours",
@@ -34,9 +36,14 @@ _INDEED_DATE_FILTER = {
 
 def listing_targets(max_listings: int) -> tuple[int, int]:
     """Split max_listings between LinkedIn Jobs and Posts sections."""
-    jobs = max(max_listings // 2, 1)
-    posts = max(max_listings - jobs, 0)
+    jobs = linkedin_jobs_listing_target(max_listings)
+    posts = max(max_listings - jobs, 0) if LINKEDIN_POSTS_PHASE_ENABLED else 0
     return jobs, posts
+
+
+def linkedin_jobs_listing_target(max_listings: int) -> int:
+    """Jobs-only target: half of the run cap (the jobs share of a full search)."""
+    return max(max_listings // 2, 1)
 
 
 def max_steps_for_target(target: int, *, ceiling: int = 15) -> int:
@@ -87,9 +94,10 @@ You may return `[]` — the worker will fill listings from `posts[]` when needed
 For each job return one JSON object with:
   title, company, url, descriptionText, sourcePlatform="{task.platform}"
 
-descriptionText is optional — the worker extracts full JD from the snapshot "About the job" panel.
-For url, use window.location.href via evaluate after opening the job (must be a /jobs/view/ link).
+descriptionText is optional — leave it empty; the worker visits each job view page after collection to extract the full JD.
+For url, use evaluate on window.location.href after opening the job (search URL with currentJobId is fine — the worker normalizes it).
 title and company must match the list row you clicked.
+Each reply must include ALL jobs collected so far in one JSON array — not only the job you just opened.
 
 When finished, return ONLY a JSON array of job objects. No markdown fences or extra text.
 Example shape (use each job's real listing URL):
@@ -114,18 +122,18 @@ LinkedIn Jobs section (official job listings)
 You start on a pre-filtered Jobs search results page for "{task.role}" in {task.country}
 ({age_label}, most relevant sort, {workplace.lower()}).
 
-Workflow for each job (repeat until you have {target} or none remain):
+Workflow for each NEW job (repeat until you have {target} or none remain):
 1. Snapshot the left results list — refs change after every click.
-2. Click ONE job card from the fresh snapshot.
-3. Snapshot again — check jobDetailReady in the snapshot metadata.
-4. Use evaluate ONLY to read window.location.href — that is the job url (must contain /jobs/view/).
-5. Go back to the results list before the next job.
+2. Click ONE job card you have NOT collected yet (see worker progress hints).
+3. Use evaluate ONLY to read window.location.href for that job's url.
+4. Add this job to your running JSON array, then open the next uncollected card.
 
 Rules:
-- Do NOT copy full JD into JSON — the worker extracts descriptionText from the snapshot.
+- Do NOT re-click a job you already returned in JSON — pick the next list row.
+- Do NOT copy full JD into JSON — the worker fetches descriptions from each job view page after you finish.
 - Do NOT use evaluate with CSS selectors for description.
 - The worker may pre-scroll the job list — you do not need to scroll unless asked.
-- title and company in JSON must match the list row you clicked.
+- Each job in JSON must have the url from evaluate immediately after clicking that specific card — do not reuse another job's url.
 - Collect up to {target} jobs posted within {age_label}.
 
 Do NOT search Posts in this phase — Jobs section only."""
