@@ -12,7 +12,9 @@ from worker.config import WorkerSettings
 from worker.linkedin_urls import linkedin_jobs_search_url, linkedin_posts_search_url
 from worker.models import RawJobListing, WorkerTask
 from worker.parse import (
+    current_job_id_from_url,
     enrich_agent_listings_json,
+    merge_jobs_agent_with_extraction,
     merge_listings,
     merge_posts_agent_with_extraction,
     parse_listings_from_agent_output,
@@ -35,12 +37,22 @@ from worker.run_metrics import (
 from worker.snapshot_compress import (
     POST_ACTIVITY_URLS_JS,
     compress_snapshot,
+    count_hiring_openings_in_snapshot,
     count_jobs_in_search_snapshot,
     extract_job_description_from_snapshot,
     extract_posts_from_search_snapshot,
+    job_detail_metadata,
+    snapshot_has_job_detail_panel,
 )
 from worker.snapshot_store import save_tool_result
 from worker.webbridge_tools import WEBBRIDGE_TOOL_DEFINITIONS
+from worker.webbridge_scroll import (
+    MAX_JOB_DETAIL_RETRIES,
+    MAX_JOB_SCROLLS,
+    MAX_POST_SCROLLS,
+    scroll_page,
+    wait_for_paint,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +105,23 @@ def _reject_empty_json_reply(
     return llm_step < min_steps
 
 
+def _job_detail_not_ready(
+    last_snapshot: dict[str, Any] | None,
+    *,
+    raw_text: str,
+    platform: str,
+) -> bool:
+    if not last_snapshot:
+        return False
+    url = str(last_snapshot.get("url") or "")
+    if not current_job_id_from_url(url):
+        return False
+    if job_detail_metadata(last_snapshot).get("jobDetailReady"):
+        return False
+    listings = parse_listings_from_agent_output(raw_text, platform=platform)
+    return bool(listings)
+
+
 def _job_listings_missing_description(
     raw_text: str,
     *,
@@ -100,6 +129,8 @@ def _job_listings_missing_description(
     last_snapshot: dict[str, Any] | None,
 ) -> bool:
     if not last_snapshot:
+        return False
+    if not snapshot_has_job_detail_panel(last_snapshot):
         return False
     if not extract_job_description_from_snapshot(last_snapshot):
         return False
@@ -130,6 +161,12 @@ def _reject_incomplete_jobs_reply(
         last_snapshot=last_snapshot,
     ):
         return True
+    if listings_found > 0 and _job_detail_not_ready(
+        last_snapshot,
+        raw_text=raw_text,
+        platform=platform,
+    ):
+        return True
     return False
 
 
@@ -139,12 +176,17 @@ def _incomplete_jobs_nudge(
     listings_found: int,
     job_rows_visible: int,
     missing_description: bool,
+    job_detail_not_ready: bool,
 ) -> str:
+    if job_detail_not_ready:
+        return (
+            "The job detail panel did not load (jobDetailReady is false). "
+            "Click the job card again, wait for the right-rail panel, then snapshot."
+        )
     if missing_description:
         return (
-            "One or more jobs are missing descriptionText. After clicking a job card, "
-            "snapshot again and copy the full text under the 'About the job' heading "
-            "before returning JSON."
+            "One or more jobs are missing descriptionText. The worker extracts JD from "
+            "the snapshot — ensure the 'About the job' heading is visible, then snapshot again."
         )
     return (
         f"You returned {listings_found} job(s) but this phase needs up to {target}. "
@@ -198,7 +240,8 @@ def _system_prompt(phase: Phase) -> str:
         return (
             _SYSTEM_PROMPT
             + "\n- This phase is LinkedIn Jobs only. Do not search Posts."
-            + "\n- Snapshot before every click; read description from the snapshot 'About the job' section."
+            + "\n- Snapshot before every click; the worker extracts descriptionText from 'About the job'."
+            + "\n- Snapshots include jobDetailReady and jobDescriptionChars — do not copy full JD into JSON."
             + "\n- Use evaluate only for window.location.href — not CSS selectors for description."
             + "\n- Job url must be /jobs/view/ and match the list row title/company."
         )
@@ -210,7 +253,7 @@ def _system_prompt(phase: Phase) -> str:
             + "\n- Read hiring posts from the snapshot `posts[]` array — do NOT click posts or author links."
             + "\n- `descriptionText` must be the entire post body (apply email, phone, requirements — all visible text)."
             + "\n- Post `url` is optional when contact/apply info is in descriptionText."
-            + "\n- Scroll with evaluate if you need more results below the fold."
+            + "\n- The worker may pre-scroll — you do not need to scroll unless asked."
         )
     return _SYSTEM_PROMPT
 
@@ -380,6 +423,7 @@ async def _run_tool(
     phase: Phase,
     step: int,
     last_snapshot: list[dict[str, Any]] | None = None,
+    job_descriptions: dict[str, str] | None = None,
 ) -> str:
     try:
         result = await client.command(name, args, session=session)
@@ -390,6 +434,42 @@ async def _run_tool(
             snapshot_source = result
             if isinstance(result, dict) and isinstance(result.get("data"), dict):
                 snapshot_source = result["data"]
+
+            if phase == "jobs" and isinstance(snapshot_source, dict):
+                page_url = str(snapshot_source.get("url") or "")
+                job_id = current_job_id_from_url(page_url)
+                if job_id and not snapshot_has_job_detail_panel(snapshot_source):
+                    for retry in range(MAX_JOB_DETAIL_RETRIES):
+                        await wait_for_paint(client, session=session)
+                        retry_result = await client.command("snapshot", {}, session=session)
+                        if isinstance(retry_result, dict):
+                            result = retry_result
+                            if isinstance(retry_result.get("data"), dict):
+                                snapshot_source = retry_result["data"]
+                        if snapshot_has_job_detail_panel(snapshot_source):
+                            logger.info(
+                                "Job detail panel ready after %s retries",
+                                retry + 1,
+                            )
+                            break
+                    else:
+                        logger.warning(
+                            "Job detail panel not ready after %s retries (jobId=%s)",
+                            MAX_JOB_DETAIL_RETRIES,
+                            job_id,
+                        )
+
+                if job_descriptions is not None and snapshot_has_job_detail_panel(
+                    snapshot_source
+                ):
+                    active_job_id = current_job_id_from_url(
+                        str(snapshot_source.get("url") or "")
+                    )
+                    if active_job_id:
+                        description = extract_job_description_from_snapshot(snapshot_source)
+                        if description:
+                            job_descriptions[active_job_id] = description
+
             if last_snapshot is not None and isinstance(snapshot_source, dict):
                 last_snapshot.clear()
                 last_snapshot.append(snapshot_source)
@@ -399,6 +479,8 @@ async def _run_tool(
             compressed_result = compress_snapshot(
                 snapshot_source if isinstance(snapshot_source, dict) else {}
             )
+            if phase == "jobs" and isinstance(snapshot_source, dict):
+                compressed_result.update(job_detail_metadata(snapshot_source))
             if phase == "posts" and isinstance(compressed_result, dict):
                 posts = extract_posts_from_search_snapshot(
                     snapshot_source if isinstance(snapshot_source, dict) else {},
@@ -445,6 +527,7 @@ async def _bootstrap_search_page(
     action_log: list[str],
     messages: list[dict[str, Any]],
     last_snapshot: list[dict[str, Any]] | None = None,
+    job_descriptions: dict[str, str] | None = None,
 ) -> int:
     """Navigate to pre-built search URL and snapshot before the LLM loop. Returns steps used."""
     nav_args: dict[str, Any] = {
@@ -481,6 +564,7 @@ async def _bootstrap_search_page(
         phase=phase,
         step=2,
         last_snapshot=last_snapshot,
+        job_descriptions=job_descriptions,
     )
     _append_action_log_line(
         action_log,
@@ -502,6 +586,94 @@ async def _bootstrap_search_page(
     return 2
 
 
+async def _auto_scroll_after_bootstrap(
+    *,
+    webbridge: WebBridgeClient,
+    settings: WorkerSettings,
+    session: str,
+    phase: Phase,
+    task: WorkerTask,
+    target: int,
+    start_step: int,
+    last_snapshot_holder: list[dict[str, Any]],
+    action_log: list[str],
+    job_descriptions: dict[str, str] | None = None,
+    best_posts_snapshot_holder: list[dict[str, Any]] | None = None,
+) -> tuple[int, int]:
+    """Worker-owned scroll until target visible or no new content. Returns (attempts, next_step)."""
+    if not last_snapshot_holder:
+        return 0, start_step
+
+    if phase == "posts":
+        count_fn = count_hiring_openings_in_snapshot
+        max_scrolls = MAX_POST_SCROLLS
+        jobs_list = False
+    elif phase == "jobs":
+        count_fn = count_jobs_in_search_snapshot
+        max_scrolls = MAX_JOB_SCROLLS
+        jobs_list = True
+    else:
+        return 0, start_step
+
+    step = start_step
+    count = count_fn(last_snapshot_holder[0])
+    if count >= target:
+        if best_posts_snapshot_holder is not None:
+            best_posts_snapshot_holder.clear()
+            best_posts_snapshot_holder.append(last_snapshot_holder[0])
+        return 0, start_step
+
+    scroll_attempts = 0
+    best_count = count
+    if best_posts_snapshot_holder is not None:
+        best_posts_snapshot_holder.clear()
+        best_posts_snapshot_holder.append(last_snapshot_holder[0])
+
+    while count < target and scroll_attempts < max_scrolls:
+        scroll_attempts += 1
+        step += 1
+        await scroll_page(webbridge, session=session, jobs_list=jobs_list)
+        step += 1
+        snap_result = await _run_tool(
+            webbridge,
+            "snapshot",
+            {},
+            session=session,
+            settings=settings,
+            run_id=task.run_id,
+            phase=phase,
+            step=step,
+            last_snapshot=last_snapshot_holder,
+            job_descriptions=job_descriptions,
+        )
+        _append_action_log_line(
+            action_log,
+            step=step,
+            tool_name="snapshot",
+            args={},
+            llm_content=snap_result,
+        )
+        new_count = count_fn(last_snapshot_holder[0])
+        action_log.append(f"scroll → {count}→{new_count}")
+        logger.info(
+            "Worker scroll [%s] attempt %s: %s → %s (target=%s)",
+            phase,
+            scroll_attempts,
+            count,
+            new_count,
+            target,
+        )
+        if new_count <= count:
+            break
+        count = new_count
+        if best_posts_snapshot_holder is not None and new_count > best_count:
+            best_count = new_count
+            best_posts_snapshot_holder.clear()
+            best_posts_snapshot_holder.append(last_snapshot_holder[0])
+
+    return scroll_attempts, step
+
+
 def _finalize_phase_output(
     *,
     raw_text: str,
@@ -509,20 +681,36 @@ def _finalize_phase_output(
     phase: Phase,
     target: int,
     last_snapshot_holder: list[dict[str, Any]],
+    best_posts_snapshot_holder: list[dict[str, Any]] | None = None,
+    job_descriptions: dict[str, str] | None = None,
 ) -> str:
     snapshot = last_snapshot_holder[0] if last_snapshot_holder else None
     if phase == "posts":
+        posts_snapshot = (
+            best_posts_snapshot_holder[0]
+            if best_posts_snapshot_holder
+            else snapshot
+        )
         raw_text = merge_posts_agent_with_extraction(
             raw_text,
             platform=task.platform,
-            last_snapshot=snapshot,
+            last_snapshot=posts_snapshot,
             target=target,
         )
+    elif phase == "jobs" and job_descriptions:
+        raw_text = merge_jobs_agent_with_extraction(
+            raw_text,
+            platform=task.platform,
+            job_descriptions=job_descriptions,
+            last_snapshot=snapshot,
+        )
+
     text = enrich_agent_listings_json(
         raw_text,
         platform=task.platform,
         phase=phase,
         last_snapshot=snapshot,
+        job_descriptions=job_descriptions if phase == "jobs" else None,
     )
     return text
 
@@ -568,8 +756,11 @@ async def _run_agent_phase(
     bootstrap_steps = 0
     bootstrapped = start_url is not None
     last_snapshot_holder: list[dict[str, Any]] = []
+    best_posts_snapshot_holder: list[dict[str, Any]] = []
+    job_descriptions: dict[str, str] = {}
     last_hiring_openings = 0
     last_job_rows = 0
+    bootstrap_step = 0
 
     logger.info(
         "Starting agent phase=%s max_steps=%s session=%s run_id=%s",
@@ -591,11 +782,70 @@ async def _run_agent_phase(
             action_log=action_log,
             messages=messages,
             last_snapshot=last_snapshot_holder,
+            job_descriptions=job_descriptions,
         )
         _sync_action_log_message(messages, action_log)
         last_tool = "snapshot"
+        bootstrap_step = bootstrap_steps
         if phase == "jobs" and last_snapshot_holder:
             last_job_rows = count_jobs_in_search_snapshot(last_snapshot_holder[0])
+        if phase == "posts" and last_snapshot_holder:
+            last_hiring_openings = count_hiring_openings_in_snapshot(
+                last_snapshot_holder[0]
+            )
+            best_posts_snapshot_holder.clear()
+            best_posts_snapshot_holder.append(last_snapshot_holder[0])
+
+        scroll_attempts, bootstrap_step = await _auto_scroll_after_bootstrap(
+            webbridge=webbridge,
+            settings=settings,
+            session=session,
+            phase=phase,
+            task=task,
+            target=target,
+            start_step=bootstrap_steps,
+            last_snapshot_holder=last_snapshot_holder,
+            action_log=action_log,
+            job_descriptions=job_descriptions,
+            best_posts_snapshot_holder=(
+                best_posts_snapshot_holder if phase == "posts" else None
+            ),
+        )
+        if scroll_attempts:
+            _sync_action_log_message(messages, action_log)
+            if phase == "posts" and last_snapshot_holder:
+                last_hiring_openings = count_hiring_openings_in_snapshot(
+                    last_snapshot_holder[0]
+                )
+            elif phase == "jobs" and last_snapshot_holder:
+                last_job_rows = count_jobs_in_search_snapshot(last_snapshot_holder[0])
+            compressed = compress_snapshot(last_snapshot_holder[0])
+            if phase == "posts":
+                posts = extract_posts_from_search_snapshot(last_snapshot_holder[0])
+                compressed["posts"] = posts
+                compressed["hiringOpenings"] = sum(
+                    1 for post in posts if post.get("isJobOpening")
+                )
+            elif phase == "jobs":
+                compressed.update(job_detail_metadata(last_snapshot_holder[0]))
+            snap_preview = _truncate(
+                json.dumps({"ok": True, "data": compressed}, ensure_ascii=False),
+                settings.snapshot_max_chars,
+            )
+            messages.append(
+                {
+                    "role": "user",
+                    "content": (
+                        f"Worker pre-scrolled {scroll_attempts} time(s) to load more results.\n"
+                        f"Latest snapshot:\n{snap_preview}"
+                    ),
+                }
+            )
+        if phase == "jobs":
+            metrics.scroll_attempts_jobs = scroll_attempts
+        elif phase == "posts":
+            metrics.scroll_attempts_posts = scroll_attempts
+        bootstrap_steps = bootstrap_step
 
     for step in range(max_steps):
         metrics.steps_used = bootstrap_steps + step + 1
@@ -754,6 +1004,7 @@ async def _run_agent_phase(
                     phase=phase,
                     step=bootstrap_steps + step + 1,
                     last_snapshot=last_snapshot_holder,
+                    job_descriptions=job_descriptions,
                 )
                 _append_action_log_line(
                     action_log,
@@ -873,6 +1124,11 @@ async def _run_agent_phase(
                                 platform=task.platform,
                                 last_snapshot=snapshot,
                             ),
+                            job_detail_not_ready=_job_detail_not_ready(
+                                snapshot,
+                                raw_text=final_text,
+                                platform=task.platform,
+                            ),
                         ),
                     }
                 )
@@ -884,6 +1140,10 @@ async def _run_agent_phase(
                 phase=phase,
                 target=target,
                 last_snapshot_holder=last_snapshot_holder,
+                best_posts_snapshot_holder=(
+                    best_posts_snapshot_holder if phase == "posts" else None
+                ),
+                job_descriptions=job_descriptions if phase == "jobs" else None,
             )
             metrics.stop_reason = "completed_json"
             metrics.last_tool = last_tool
@@ -915,6 +1175,10 @@ async def _run_agent_phase(
         phase=phase,
         target=target,
         last_snapshot_holder=last_snapshot_holder,
+        best_posts_snapshot_holder=(
+            best_posts_snapshot_holder if phase == "posts" else None
+        ),
+        job_descriptions=job_descriptions if phase == "jobs" else None,
     )
     metrics.listings_found = len(
         parse_listings_from_agent_output(raw_text, platform=task.platform)

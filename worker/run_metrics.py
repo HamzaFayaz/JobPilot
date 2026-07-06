@@ -32,6 +32,8 @@ class PhaseMetrics:
     stop_reason: StopReason
     listings_found: int
     session: str
+    scroll_attempts_jobs: int = 0
+    scroll_attempts_posts: int = 0
     last_tool: str | None = None
     llm_calls: list[LlmCallMetrics] = field(default_factory=list)
     total_prompt_tokens: int = 0

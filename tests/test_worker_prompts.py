@@ -53,7 +53,7 @@ def test_posts_prompt_forbids_renavigate_and_requires_snapshot_before_click():
     assert "Do NOT click post rows" in prompt
 
 
-def test_jobs_prompt_reads_description_from_snapshot():
+def test_jobs_prompt_worker_extracts_jd_and_may_pre_scroll():
     task = WorkerTask(
         taskId="t1",
         runId=34,
@@ -67,13 +67,13 @@ def test_jobs_prompt_reads_description_from_snapshot():
         skillsSummary="Python",
     )
     prompt = build_linkedin_jobs_task(task, target=2)
-    assert "About the job" in prompt
+    assert "jobDetailReady" in prompt
     assert "window.location.href" in prompt
-    assert "Do NOT use evaluate with CSS selectors" in prompt
-    assert "scrollBy" in prompt
+    assert "Do NOT copy full JD into JSON" in prompt
+    assert "pre-scroll" in prompt
 
 
-def test_posts_prompt_emphasizes_full_body_and_optional_url():
+def test_posts_prompt_worker_fills_description_and_may_pre_scroll():
     task = WorkerTask(
         taskId="t1",
         runId=36,
@@ -87,7 +87,8 @@ def test_posts_prompt_emphasizes_full_body_and_optional_url():
         skillsSummary="Python",
     )
     prompt = build_linkedin_posts_task(task, target=2)
-    assert "entire post body" in prompt
+    assert "worker fills descriptionText" in prompt
+    assert "pre-scroll" in prompt
     assert "url is optional" in prompt.lower()
 
 

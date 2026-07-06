@@ -6,7 +6,10 @@ from pathlib import Path
 from worker.snapshot_compress import (
     compress_snapshot,
     count_jobs_in_search_snapshot,
+    extract_job_description_from_snapshot,
     extract_posts_from_search_snapshot,
+    job_detail_metadata,
+    snapshot_has_job_detail_panel,
 )
 
 RUN28_FIXTURE = (
@@ -56,6 +59,26 @@ RUN36_POSTS_SEARCH_FIXTURE = (
     / "posts"
     / "full"
     / "step-09-snapshot.json"
+)
+
+RUN33_JOB_DETAIL_FIXTURE = (
+    Path(__file__).resolve().parents[1]
+    / "worker"
+    / "debug_snapshots"
+    / "run-33"
+    / "jobs"
+    / "full"
+    / "step-07-snapshot.json"
+)
+
+RUN40_JOB_DETAIL_FIXTURE = (
+    Path(__file__).resolve().parents[1]
+    / "worker"
+    / "debug_snapshots"
+    / "run-40"
+    / "jobs"
+    / "full"
+    / "step-04-snapshot.json"
 )
 
 
@@ -161,4 +184,24 @@ def test_compress_output_shape_has_no_children():
     for node in compressed["nodes"]:
         assert set(node.keys()) == {"ref", "role", "name"}
         assert node["ref"].startswith("@e")
+
+
+def test_run33_has_job_detail_panel_and_full_jd():
+    snapshot = _load_fixture_snapshot(RUN33_JOB_DETAIL_FIXTURE)
+    assert snapshot_has_job_detail_panel(snapshot)
+    description = extract_job_description_from_snapshot(snapshot)
+    assert len(description) >= 500
+    assert "machine learning" in description.lower()
+    meta = job_detail_metadata(snapshot)
+    assert meta["jobDetailReady"] is True
+    assert meta["jobDescriptionChars"] == len(description)
+
+
+def test_run40_job_detail_panel_missing_before_retry():
+    snapshot = _load_fixture_snapshot(RUN40_JOB_DETAIL_FIXTURE)
+    assert not snapshot_has_job_detail_panel(snapshot)
+    assert extract_job_description_from_snapshot(snapshot) == ""
+    meta = job_detail_metadata(snapshot)
+    assert meta["jobDetailReady"] is False
+    assert meta["jobDescriptionChars"] == 0
 

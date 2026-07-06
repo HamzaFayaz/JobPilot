@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from worker.agent_loop import (
+    _job_detail_not_ready,
     _job_listings_missing_description,
     _reject_empty_json_reply,
     _reject_incomplete_jobs_reply,
@@ -18,6 +19,16 @@ RUN33_JOB_DETAIL_FIXTURE = (
     / "jobs"
     / "full"
     / "step-07-snapshot.json"
+)
+
+RUN40_JOB_DETAIL_FIXTURE = (
+    Path(__file__).resolve().parents[1]
+    / "worker"
+    / "debug_snapshots"
+    / "run-40"
+    / "jobs"
+    / "full"
+    / "step-04-snapshot.json"
 )
 
 
@@ -109,6 +120,33 @@ def test_jobs_rejects_when_description_missing_but_about_job_in_snapshot():
         ]
     )
     assert _job_listings_missing_description(raw, platform="linkedin", last_snapshot=snapshot)
+    assert _reject_incomplete_jobs_reply(
+        phase="jobs",
+        target=1,
+        listings_found=1,
+        llm_step=10,
+        max_steps=40,
+        job_rows_visible=1,
+        raw_text=raw,
+        platform="linkedin",
+        last_snapshot=snapshot,
+    )
+
+
+def test_jobs_rejects_when_detail_panel_not_ready_run40():
+    snapshot = _load_snapshot(RUN40_JOB_DETAIL_FIXTURE)
+    raw = json.dumps(
+        [
+            {
+                "title": "AI Engineer",
+                "company": "Hyphen Connect",
+                "url": "https://www.linkedin.com/jobs/view/4433930433/",
+                "descriptionText": "",
+                "sourcePlatform": "linkedin",
+            }
+        ]
+    )
+    assert _job_detail_not_ready(snapshot, raw_text=raw, platform="linkedin")
     assert _reject_incomplete_jobs_reply(
         phase="jobs",
         target=1,

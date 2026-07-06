@@ -13,6 +13,7 @@ from worker.models import Platform, RawJobListing
 from worker.snapshot_compress import (
     extract_job_description_from_snapshot,
     extract_posts_from_search_snapshot,
+    snapshot_has_job_detail_panel,
 )
 
 logger = logging.getLogger(__name__)
@@ -131,6 +132,10 @@ def _title_words_in_slug(title: str, slug: str) -> bool:
     return hits >= min(2, len(words))
 
 
+def current_job_id_from_url(url: str) -> str | None:
+    return _current_job_id_from_url(url)
+
+
 def _current_job_id_from_url(url: str) -> str | None:
     parsed = urlparse(url)
     values = parse_qs(parsed.query).get("currentJobId")
@@ -160,11 +165,17 @@ def is_valid_linkedin_post_url(url: str) -> bool:
     )
 
 
+def _job_id_from_listing_url(url: str) -> str:
+    slug = _slug_from_job_url(url)
+    return slug if slug.isdigit() else ""
+
+
 def sanitize_and_enrich_listings(
     listings: list[RawJobListing],
     *,
     phase: PhaseHint,
     last_snapshot: dict[str, Any] | None = None,
+    job_descriptions: dict[str, str] | None = None,
 ) -> list[RawJobListing]:
     """Fill missing descriptions, fix job URLs, and drop invalid post/job links."""
     snapshot_url = ""
@@ -176,15 +187,27 @@ def sanitize_and_enrich_listings(
             snapshot_url = str(last_snapshot.get("url") or "")
 
     current_job_id = _current_job_id_from_url(snapshot_url)
-    fallback_description = ""
+    snapshot_description = ""
     if last_snapshot and phase in {"jobs", "mixed"}:
-        fallback_description = extract_job_description_from_snapshot(last_snapshot)
+        if snapshot_has_job_detail_panel(last_snapshot):
+            snapshot_description = extract_job_description_from_snapshot(last_snapshot)
 
     enriched: list[RawJobListing] = []
     for item in listings:
         description = item.description_text.strip()
-        if not description and fallback_description:
-            description = fallback_description
+        listing_job_id = _job_id_from_listing_url(item.url)
+
+        worker_description = ""
+        if job_descriptions and listing_job_id:
+            worker_description = job_descriptions.get(listing_job_id, "")
+        if not worker_description and snapshot_description:
+            if listing_job_id and listing_job_id == current_job_id:
+                worker_description = snapshot_description
+            elif not job_descriptions and not description:
+                worker_description = snapshot_description
+
+        if worker_description:
+            description = worker_description
 
         url = item.url.strip()
         company_lower = item.company.strip().lower()
@@ -253,6 +276,7 @@ def enrich_agent_listings_json(
     platform: Platform,
     phase: PhaseHint,
     last_snapshot: dict[str, Any] | None,
+    job_descriptions: dict[str, str] | None = None,
 ) -> str:
     listings = parse_listings_from_agent_output(text, platform=platform)
     if not listings:
@@ -261,6 +285,7 @@ def enrich_agent_listings_json(
         listings,
         phase=phase,
         last_snapshot=last_snapshot,
+        job_descriptions=job_descriptions,
     )
     return json.dumps(
         [item.model_dump(by_alias=True) for item in enriched],
@@ -301,6 +326,38 @@ def listings_from_extracted_posts(
     return listings
 
 
+def _posts_from_snapshot(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
+    posts = snapshot.get("posts")
+    if isinstance(posts, list) and posts:
+        return posts
+    return extract_posts_from_search_snapshot(snapshot)
+
+
+def merge_jobs_agent_with_extraction(
+    text: str,
+    *,
+    platform: Platform,
+    job_descriptions: dict[str, str],
+    last_snapshot: dict[str, Any] | None,
+) -> str:
+    """Inject worker-extracted JD text; agent supplies title/company/url only."""
+    agent_listings = parse_listings_from_agent_output(text, platform=platform)
+    if not agent_listings:
+        return text
+    enriched = sanitize_and_enrich_listings(
+        agent_listings,
+        phase="jobs",
+        last_snapshot=last_snapshot,
+        job_descriptions=job_descriptions,
+    )
+    if not enriched:
+        return text
+    return json.dumps(
+        [item.model_dump(by_alias=True) for item in enriched],
+        ensure_ascii=False,
+    )
+
+
 def merge_posts_agent_with_extraction(
     text: str,
     *,
@@ -312,7 +369,7 @@ def merge_posts_agent_with_extraction(
     if not last_snapshot:
         return text
 
-    extracted = extract_posts_from_search_snapshot(last_snapshot)
+    extracted = _posts_from_snapshot(last_snapshot)
     extracted_listings = listings_from_extracted_posts(
         extracted,
         platform=platform,

@@ -76,7 +76,7 @@ def _json_output_footer(task: WorkerTask, *, target: int, phase: str = "jobs") -
 For each opening return one JSON object with:
   title, company, url, descriptionText, sourcePlatform="{task.platform}"
 
-descriptionText is required — copy the entire post body from snapshot `posts[]` (apply email, phone, WhatsApp, requirements — everything visible).
+descriptionText is required — the worker fills it from snapshot `posts[]` when you return `[]`.
 url is optional when apply/contact details are in descriptionText.
 
 When finished, return ONLY a JSON array of job objects. No markdown fences or extra text.
@@ -87,7 +87,7 @@ You may return `[]` — the worker will fill listings from `posts[]` when needed
 For each job return one JSON object with:
   title, company, url, descriptionText, sourcePlatform="{task.platform}"
 
-descriptionText is required — copy it from the snapshot "About the job" section after opening a job card.
+descriptionText is optional — the worker extracts full JD from the snapshot "About the job" panel.
 For url, use window.location.href via evaluate after opening the job (must be a /jobs/view/ link).
 title and company must match the list row you clicked.
 
@@ -98,7 +98,7 @@ Example shape (use each job's real listing URL):
     "title": "Python Developer",
     "company": "Acme",
     "url": "https://example.com/job-listing",
-    "descriptionText": "Build APIs with FastAPI",
+    "descriptionText": "",
     "sourcePlatform": "{task.platform}"
   }}
 ]"""
@@ -117,14 +117,14 @@ You start on a pre-filtered Jobs search results page for "{task.role}" in {task.
 Workflow for each job (repeat until you have {target} or none remain):
 1. Snapshot the left results list — refs change after every click.
 2. Click ONE job card from the fresh snapshot.
-3. Snapshot again and read title, company, and description from the right-rail detail panel
-   (look for the "About the job" heading and text below it).
+3. Snapshot again — check jobDetailReady in the snapshot metadata.
 4. Use evaluate ONLY to read window.location.href — that is the job url (must contain /jobs/view/).
 5. Go back to the results list before the next job.
-6. If you need more rows, scroll the list with evaluate: `window.scrollBy(0, window.innerHeight)` then snapshot again.
 
 Rules:
-- Do NOT use evaluate with CSS selectors for description — read it from the snapshot.
+- Do NOT copy full JD into JSON — the worker extracts descriptionText from the snapshot.
+- Do NOT use evaluate with CSS selectors for description.
+- The worker may pre-scroll the job list — you do not need to scroll unless asked.
 - title and company in JSON must match the list row you clicked.
 - Collect up to {target} jobs posted within {age_label}.
 
@@ -151,13 +151,11 @@ Workflow:
    title, company, location, descriptionText, and url (when available). Read from `posts[]`.
 2. Do NOT click post rows, author names, or timestamps — that opens profiles, not posts.
 3. Build JSON from hiring posts where `isJobOpening` is true (skip debate/rant posts).
-4. If you have fewer than {target} openings, use evaluate to scroll:
-   `window.scrollBy(0, window.innerHeight)` then snapshot again and merge new posts.
+4. The worker may pre-scroll to load more posts — you do not need to scroll unless asked.
 5. Stop when you have {target} openings or no new posts appear after scrolling.
 
 Rules:
-- Extract all fields from `posts[]` in the snapshot — do not open individual posts.
-- `descriptionText` must be the complete post body (not a summary).
+- Extract title, company, url from `posts[]` — the worker fills descriptionText at finalize.
 - `url` from `posts[]` is optional when apply info is in descriptionText. Never use profile /in/ URLs.
 - Collect up to {target} job openings.
 

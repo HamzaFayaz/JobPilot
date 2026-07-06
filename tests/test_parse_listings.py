@@ -9,6 +9,7 @@ from worker.parse import (
     is_synthetic_post_url,
     is_valid_linkedin_post_url,
     listings_from_extracted_posts,
+    merge_jobs_agent_with_extraction,
     merge_posts_agent_with_extraction,
     sanitize_and_enrich_listings,
 )
@@ -37,6 +38,16 @@ RUN36_POSTS_SEARCH_FIXTURE = (
     / "step-09-snapshot.json"
 )
 
+RUN40_POSTS_COMPRESSED_FIXTURE = (
+    Path(__file__).resolve().parents[1]
+    / "worker"
+    / "debug_snapshots"
+    / "run-40"
+    / "posts"
+    / "compressed"
+    / "step-02-snapshot.json"
+)
+
 
 def _load_snapshot(path: Path) -> dict:
     payload = json.loads(path.read_text(encoding="utf-8"))
@@ -48,6 +59,7 @@ def _load_snapshot(path: Path) -> dict:
 def test_extract_job_description_from_snapshot_fixture():
     snapshot = _load_snapshot(RUN33_JOB_DETAIL_FIXTURE)
     description = extract_job_description_from_snapshot(snapshot)
+    assert len(description) >= 500
     assert "AI Engineer" in description
     assert "machine learning" in description.lower()
 
@@ -190,3 +202,43 @@ def test_sanitize_drops_job_without_description_when_no_snapshot_text():
     ]
     enriched = sanitize_and_enrich_listings(listings, phase="jobs", last_snapshot=None)
     assert enriched == []
+
+
+def test_merge_jobs_agent_with_extraction_injects_worker_jd():
+    snapshot = _load_snapshot(RUN33_JOB_DETAIL_FIXTURE)
+    job_id = "4433930433"
+    descriptions = {job_id: extract_job_description_from_snapshot(snapshot)}
+    merged = merge_jobs_agent_with_extraction(
+        json.dumps(
+            [
+                {
+                    "title": "AI Engineer",
+                    "company": "Hyphen Connect",
+                    "url": f"https://www.linkedin.com/jobs/view/{job_id}/",
+                    "descriptionText": "Short LLM guess",
+                    "sourcePlatform": "linkedin",
+                }
+            ]
+        ),
+        platform="linkedin",
+        job_descriptions=descriptions,
+        last_snapshot=snapshot,
+    )
+    payload = json.loads(merged)
+    assert len(payload) == 1
+    assert len(payload[0]["descriptionText"]) >= 500
+    assert "Short LLM guess" not in payload[0]["descriptionText"]
+
+
+def test_merge_posts_run40_compressed_fixture():
+    payload = json.loads(RUN40_POSTS_COMPRESSED_FIXTURE.read_text(encoding="utf-8"))
+    snapshot = payload["compressed"]
+    merged = merge_posts_agent_with_extraction(
+        "[]",
+        platform="linkedin",
+        last_snapshot=snapshot,
+        target=2,
+    )
+    listings = json.loads(merged)
+    assert len(listings) == 2
+    assert all(item["descriptionText"] for item in listings)

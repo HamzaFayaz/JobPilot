@@ -107,6 +107,7 @@ _JOB_OPENING_PHRASES = (
 )
 
 POST_DESCRIPTION_MAX_CHARS = 12000
+JOB_DESCRIPTION_MAX_CHARS = 12000
 
 POST_ACTIVITY_URLS_JS = """(() => {
   const urls = [];
@@ -674,7 +675,31 @@ def compress_snapshot(data: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def extract_job_description_from_snapshot(data: dict[str, Any], *, max_chars: int = 4000) -> str:
+def snapshot_has_job_detail_panel(data: dict[str, Any]) -> bool:
+    """True when accessibility tree contains an 'About the job' heading."""
+    snapshot = _normalize_snapshot_data(data)
+    for node in _flatten_nodes(snapshot.get("tree") or []):
+        role = node.get("role") or ""
+        name = (node.get("name") or "").strip()
+        if role == "heading" and name.lower() == "about the job":
+            return True
+    return False
+
+
+def job_detail_metadata(data: dict[str, Any]) -> dict[str, bool | int]:
+    """LLM-facing metadata only — not the full job description body."""
+    ready = snapshot_has_job_detail_panel(data)
+    chars = (
+        len(extract_job_description_from_snapshot(data, max_chars=JOB_DESCRIPTION_MAX_CHARS))
+        if ready
+        else 0
+    )
+    return {"jobDetailReady": ready, "jobDescriptionChars": chars}
+
+
+def extract_job_description_from_snapshot(
+    data: dict[str, Any], *, max_chars: int = JOB_DESCRIPTION_MAX_CHARS
+) -> str:
     """Read job description text from the right-rail 'About the job' section."""
     snapshot = _normalize_snapshot_data(data)
     tree = snapshot.get("tree") or []
