@@ -49,7 +49,8 @@ def test_posts_prompt_forbids_renavigate_and_requires_snapshot_before_click():
     )
     prompt = build_linkedin_posts_task(task, target=2)
     assert "do NOT call navigate to the search URL again" in prompt
-    assert "snapshot the results list" in prompt.lower()
+    assert "posts[]" in prompt
+    assert "Do NOT click post rows" in prompt
 
 
 def test_jobs_prompt_reads_description_from_snapshot():
@@ -69,6 +70,25 @@ def test_jobs_prompt_reads_description_from_snapshot():
     assert "About the job" in prompt
     assert "window.location.href" in prompt
     assert "Do NOT use evaluate with CSS selectors" in prompt
+    assert "scrollBy" in prompt
+
+
+def test_posts_prompt_emphasizes_full_body_and_optional_url():
+    task = WorkerTask(
+        taskId="t1",
+        runId=36,
+        role="AI Engineer",
+        platform="linkedin",
+        country="Pakistan",
+        workMode="both",
+        maxListings=4,
+        jobAge="week",
+        maxJobAgeDays=7,
+        skillsSummary="Python",
+    )
+    prompt = build_linkedin_posts_task(task, target=2)
+    assert "entire post body" in prompt
+    assert "url is optional" in prompt.lower()
 
 
 def test_merge_listings_dedupes_by_url():

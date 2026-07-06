@@ -69,7 +69,19 @@ def _trim_skills(skills: str, *, max_chars: int = 240) -> str:
     return f"{trimmed}, ..." if trimmed else skills[:max_chars]
 
 
-def _json_output_footer(task: WorkerTask, *, target: int) -> str:
+def _json_output_footer(task: WorkerTask, *, target: int, phase: str = "jobs") -> str:
+    if phase == "posts":
+        return f"""Stop when you have {target} matching job openings OR there are no more results in scope.
+
+For each opening return one JSON object with:
+  title, company, url, descriptionText, sourcePlatform="{task.platform}"
+
+descriptionText is required — copy the entire post body from snapshot `posts[]` (apply email, phone, WhatsApp, requirements — everything visible).
+url is optional when apply/contact details are in descriptionText.
+
+When finished, return ONLY a JSON array of job objects. No markdown fences or extra text.
+You may return `[]` — the worker will fill listings from `posts[]` when needed."""
+
     return f"""Stop when you have {target} matching jobs OR there are no more results in scope.
 
 For each job return one JSON object with:
@@ -109,6 +121,7 @@ Workflow for each job (repeat until you have {target} or none remain):
    (look for the "About the job" heading and text below it).
 4. Use evaluate ONLY to read window.location.href — that is the job url (must contain /jobs/view/).
 5. Go back to the results list before the next job.
+6. If you need more rows, scroll the list with evaluate: `window.scrollBy(0, window.innerHeight)` then snapshot again.
 
 Rules:
 - Do NOT use evaluate with CSS selectors for description — read it from the snapshot.
@@ -128,24 +141,25 @@ def _linkedin_posts_steps(task: WorkerTask, *, target: int) -> str:
 
     return f"""Use ONE browser tab dedicated to this phase only (isolated from the other LinkedIn phase).
 
-LinkedIn Posts (hiring posts not listed in Jobs)
-You start on a pre-filtered Posts search results page for hiring posts about
+LinkedIn Posts (hiring posts on the search results page)
+You start on a pre-filtered Posts search page for hiring posts about
 "{task.role}" in {task.country} ({age_label}, top match sort).{remote_hint}
 The browser is already on that page — do NOT call navigate to the search URL again.
 
-Workflow for each hiring post (repeat until you have {target} or none remain):
-1. Snapshot the results list — refs like @e56 change after every navigation; never click a ref from an old snapshot.
-2. Click ONE post row whose name mentions hiring, "we're hiring", open role, or job opening.
-3. Snapshot again on the opened post and copy title, company/poster, post URL, and body text from the snapshot.
-   Use evaluate to read window.location.href — url must be a /feed/update/ or /posts/ activity link, not a profile.
-4. Go back to the results list (browser back or click a visible search-result link) before the next post.
+Workflow:
+1. Snapshot the results page — each snapshot includes a structured `posts[]` array with
+   title, company, location, descriptionText, and url (when available). Read from `posts[]`.
+2. Do NOT click post rows, author names, or timestamps — that opens profiles, not posts.
+3. Build JSON from hiring posts where `isJobOpening` is true (skip debate/rant posts).
+4. If you have fewer than {target} openings, use evaluate to scroll:
+   `window.scrollBy(0, window.innerHeight)` then snapshot again and merge new posts.
+5. Stop when you have {target} openings or no new posts appear after scrolling.
 
 Rules:
-- Do NOT call navigate to re-open the Posts search page — you are already there.
-- Do NOT click the Jobs navigation link — stay on Posts search results.
-- If click fails with a stale ref, snapshot immediately and use refs from that fresh snapshot.
-- Skip debate/rant posts that are not actual job openings.
-- Collect up to {target} listings.
+- Extract all fields from `posts[]` in the snapshot — do not open individual posts.
+- `descriptionText` must be the complete post body (not a summary).
+- `url` from `posts[]` is optional when apply info is in descriptionText. Never use profile /in/ URLs.
+- Collect up to {target} job openings.
 
 Do NOT return to the Jobs section in this phase — Posts only."""
 
@@ -171,7 +185,7 @@ def build_linkedin_jobs_task(task: WorkerTask, *, target: int) -> str:
 
 {_linkedin_jobs_steps(task, target=target)}
 
-{skills_line}{_json_output_footer(task, target=target)}"""
+{skills_line}{_json_output_footer(task, target=target, phase="jobs")}"""
 
 
 def build_linkedin_posts_task(task: WorkerTask, *, target: int) -> str:
@@ -181,7 +195,7 @@ def build_linkedin_posts_task(task: WorkerTask, *, target: int) -> str:
 
 {_linkedin_posts_steps(task, target=target)}
 
-{skills_line}{_json_output_footer(task, target=target)}"""
+{skills_line}{_json_output_footer(task, target=target, phase="posts")}"""
 
 
 def build_indeed_task(task: WorkerTask) -> str:

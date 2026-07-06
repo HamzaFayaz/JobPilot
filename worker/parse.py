@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import re
@@ -9,7 +10,10 @@ from typing import Any, Literal
 from urllib.parse import parse_qs, urlparse
 
 from worker.models import Platform, RawJobListing
-from worker.snapshot_compress import extract_job_description_from_snapshot
+from worker.snapshot_compress import (
+    extract_job_description_from_snapshot,
+    extract_posts_from_search_snapshot,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +27,17 @@ _LINKEDIN_POST_URL_MARKERS = (
     "urn:li:share:",
 )
 _AGGREGATOR_COMPANIES = frozenset({"hire feed"})
+_SYNTHETIC_POST_URL_PREFIX = "linkedin-post://"
+
+
+def _synthetic_post_url(author: str, title: str, description: str) -> str:
+    key = f"{author}|{title}|{description[:200]}"
+    digest = hashlib.sha256(key.encode()).hexdigest()[:16]
+    return f"{_SYNTHETIC_POST_URL_PREFIX}{digest}"
+
+
+def is_synthetic_post_url(url: str) -> bool:
+    return url.strip().lower().startswith(_SYNTHETIC_POST_URL_PREFIX)
 
 
 def _extract_json_array(text: str) -> list[dict]:
@@ -202,12 +217,23 @@ def sanitize_and_enrich_listings(
                 logger.warning("Job URL slug may not match title: %s / %s", item.title, url)
 
         if phase in {"posts", "mixed"} and not is_valid_linkedin_job_url(url):
-            if not is_valid_linkedin_post_url(url):
+            if is_synthetic_post_url(url):
+                pass
+            elif not is_valid_linkedin_post_url(url):
                 logger.warning("Dropping post with invalid URL: %s", url)
                 continue
 
-        if not description:
-            logger.warning("Listing missing descriptionText: %s @ %s", item.title, item.company)
+        if phase in {"jobs", "mixed"} and not description:
+            logger.warning(
+                "Dropping job missing descriptionText: %s @ %s",
+                item.title,
+                item.company,
+            )
+            continue
+
+        if phase == "posts" and not description:
+            logger.warning("Dropping post missing descriptionText: %s @ %s", item.title, item.company)
+            continue
 
         enriched.append(
             RawJobListing(
@@ -238,5 +264,65 @@ def enrich_agent_listings_json(
     )
     return json.dumps(
         [item.model_dump(by_alias=True) for item in enriched],
+        ensure_ascii=False,
+    )
+
+
+def listings_from_extracted_posts(
+    posts: list[dict[str, Any]],
+    *,
+    platform: Platform,
+    max_listings: int | None = None,
+) -> list[RawJobListing]:
+    listings: list[RawJobListing] = []
+    for post in posts:
+        if not post.get("isJobOpening"):
+            continue
+        title = str(post.get("title") or "").strip()
+        company = str(post.get("company") or "").strip()
+        url = str(post.get("url") or "").strip()
+        description = str(post.get("descriptionText") or "").strip()
+        if not title or not description:
+            continue
+        if not url:
+            author = str(post.get("author") or "").strip()
+            url = _synthetic_post_url(author, title, description)
+        listings.append(
+            RawJobListing(
+                title=title,
+                company=company or "Unknown",
+                url=url,
+                description_text=description,
+                source_platform=platform,
+            )
+        )
+        if max_listings is not None and len(listings) >= max_listings:
+            break
+    return listings
+
+
+def merge_posts_agent_with_extraction(
+    text: str,
+    *,
+    platform: Platform,
+    last_snapshot: dict[str, Any] | None,
+    target: int,
+) -> str:
+    agent_listings = parse_listings_from_agent_output(text, platform=platform)
+    if not last_snapshot:
+        return text
+
+    extracted = extract_posts_from_search_snapshot(last_snapshot)
+    extracted_listings = listings_from_extracted_posts(
+        extracted,
+        platform=platform,
+        max_listings=target,
+    )
+    if not extracted_listings:
+        return text
+
+    merged = merge_listings(extracted_listings + agent_listings, max_listings=target)
+    return json.dumps(
+        [item.model_dump(by_alias=True) for item in merged],
         ensure_ascii=False,
     )

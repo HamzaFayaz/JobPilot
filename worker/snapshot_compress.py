@@ -76,6 +76,48 @@ _POSTS_FILTER_PHRASES = _FILTER_PHRASES + (
     "all filters",
 )
 
+_SKIP_POST_LINK_NAMES = frozenset(
+    {
+        "send",
+        "like",
+        "comment",
+        "repost",
+        "open reactions menu",
+        "view job",
+    }
+)
+
+_POST_TIMESTAMP = re.compile(r"^\d+[hdwm]\s*•", re.IGNORECASE)
+_DEBATE_PHRASES = (
+    "a question to",
+    "let's discuss",
+    "what do you think",
+    "industry, software houses",
+)
+_JOB_OPENING_PHRASES = (
+    "we're hiring",
+    "we are hiring",
+    "position:",
+    "apply today",
+    "send your resume",
+    "send their resume",
+    "interested candidates",
+    "open role",
+    "view job",
+)
+
+POST_DESCRIPTION_MAX_CHARS = 12000
+
+POST_ACTIVITY_URLS_JS = """(() => {
+  const urls = [];
+  const roots = document.querySelectorAll('[data-urn*="urn:li:activity"]');
+  roots.forEach(el => {
+    const a = el.querySelector('a[href*="/feed/update/"], a[href*="/posts/"]');
+    if (a && a.href) urls.push(a.href);
+  });
+  return urls;
+})()"""
+
 
 def _normalize_snapshot_data(data: dict[str, Any]) -> dict[str, Any]:
     """Accept raw WebBridge envelope or bare {url, title, tree}."""
@@ -100,6 +142,200 @@ def _is_posts_search_page(url: str) -> bool:
 def _has_hiring_intent(text: str) -> bool:
     lower = text.lower()
     return any(keyword in lower for keyword in _HIRING_SNIPPET_KEYWORDS)
+
+
+def _is_job_opening_post(combined: str) -> bool:
+    lower = combined.lower()
+    if any(phrase in lower for phrase in _DEBATE_PHRASES):
+        if not any(phrase in lower for phrase in _JOB_OPENING_PHRASES):
+            return False
+    return _has_hiring_intent(lower)
+
+
+def _collect_feed_post_listitems(node: Any, out: list[dict[str, Any]]) -> None:
+    if isinstance(node, list):
+        for item in node:
+            _collect_feed_post_listitems(item, out)
+        return
+    if not isinstance(node, dict):
+        return
+    if node.get("role") == "listitem":
+        flat = list(_flatten_nodes(node))
+        if any(
+            item.get("role") == "heading" and (item.get("name") or "").strip() == "Feed post"
+            for item in flat
+        ):
+            out.append(node)
+    for child in _iter_child_nodes(node.get("children")):
+        _collect_feed_post_listitems(child, out)
+
+
+def _extract_post_author(nodes: list[dict[str, Any]]) -> tuple[str, str]:
+    author = ""
+    headline = ""
+    for node in nodes:
+        role = node.get("role") or ""
+        name = (node.get("name") or "").strip()
+        if role != "link" or not name:
+            continue
+        if _AUTHOR_CONNECTION.search(name):
+            author = name.split("•", 1)[0].strip()
+            continue
+        if not author and 1 < len(name) < 80 and "notification" not in name.lower():
+            author = name
+            continue
+        if author and not headline and len(name) > 25 and name != author:
+            headline = name
+    return author, headline
+
+
+def _extract_post_title(body_texts: list[str]) -> str:
+    for text in body_texts:
+        if re.search(r"we['']re hiring|we are hiring", text, re.IGNORECASE):
+            return text.split(".")[0].strip()[:200]
+    for text in body_texts:
+        match = re.search(r"💼\s*Position:\s*(.+)", text, re.IGNORECASE)
+        if match:
+            return match.group(1).strip()[:200]
+    for text in body_texts:
+        if "#hiring" in text.lower() and len(text) > 25:
+            return text[:200]
+    return body_texts[0][:200] if body_texts else "Hiring post"
+
+
+def _extract_post_company(author: str, body_texts: list[str]) -> str:
+    for text in body_texts:
+        match = re.match(
+            r"^([A-Za-z0-9][\w\s&'.-]{1,50})\s+is\s+(looking|hiring)",
+            text,
+            re.IGNORECASE,
+        )
+        if match:
+            return match.group(1).strip()
+    if author:
+        return author.split("•", 1)[0].strip()
+    return "Unknown"
+
+
+def _extract_post_location(body_texts: list[str]) -> str:
+    for text in body_texts:
+        match = re.search(r"📍\s*Location:\s*(.+)", text, re.IGNORECASE)
+        if match:
+            return match.group(1).strip()
+    for text in body_texts:
+        if "|" in text and re.search(r"\(.*\)", text):
+            return text.split("|")[-1].strip()[:120]
+    return ""
+
+
+def _parse_feed_post_listitem(listitem: dict[str, Any]) -> dict[str, Any] | None:
+    nodes = list(_flatten_nodes(listitem))
+    author, author_headline = _extract_post_author(nodes)
+    posted_ago = ""
+    body_texts: list[str] = []
+
+    for node in nodes:
+        role = node.get("role") or ""
+        name = (node.get("name") or "").strip()
+        if role == "link" and name:
+            lower = name.lower()
+            if lower in _SKIP_POST_LINK_NAMES:
+                continue
+            if name not in body_texts:
+                body_texts.append(name)
+            continue
+        if role != "StaticText" or not name:
+            continue
+        if name == "Feed post":
+            continue
+        if _AUTHOR_CONNECTION.search(name):
+            continue
+        if _POST_TIMESTAMP.match(name):
+            posted_ago = name.replace("•", "").strip()
+            continue
+        if len(name) < 8:
+            continue
+        if name.endswith("•") or name.endswith("• "):
+            continue
+        if name == author or name == author_headline:
+            continue
+        if name not in body_texts:
+            body_texts.append(name)
+
+    if not body_texts:
+        return None
+
+    combined = " ".join(body_texts)
+    if not _has_hiring_intent(combined):
+        return None
+
+    title = _extract_post_title(body_texts)
+    company = _extract_post_company(author, body_texts)
+    location = _extract_post_location(body_texts)
+    description = " ".join(body_texts).strip()
+    if len(description) > POST_DESCRIPTION_MAX_CHARS:
+        description = (
+            description[: POST_DESCRIPTION_MAX_CHARS - 1].rsplit(" ", 1)[0] + "…"
+        )
+
+    return {
+        "author": author,
+        "authorHeadline": author_headline,
+        "postedAgo": posted_ago,
+        "title": title,
+        "company": company,
+        "location": location,
+        "descriptionText": description,
+        "isJobOpening": _is_job_opening_post(combined),
+        "url": "",
+    }
+
+
+def extract_posts_from_search_snapshot(
+    data: dict[str, Any],
+    *,
+    activity_urls: list[str] | None = None,
+) -> list[dict[str, Any]]:
+    """Structured hiring posts from the posts search listing page (no clicks)."""
+    snapshot = _normalize_snapshot_data(data)
+    url = str(snapshot.get("url") or "")
+    if not _is_posts_search_page(url):
+        return []
+
+    listitems: list[dict[str, Any]] = []
+    _collect_feed_post_listitems(snapshot.get("tree") or [], listitems)
+
+    posts: list[dict[str, Any]] = []
+    for listitem in listitems:
+        parsed = _parse_feed_post_listitem(listitem)
+        if parsed:
+            posts.append(parsed)
+
+    if activity_urls:
+        for index, post in enumerate(posts):
+            if index < len(activity_urls) and activity_urls[index]:
+                post["url"] = activity_urls[index]
+
+    return posts
+
+
+def count_hiring_openings_in_snapshot(data: dict[str, Any]) -> int:
+    return sum(
+        1 for post in extract_posts_from_search_snapshot(data) if post.get("isJobOpening")
+    )
+
+
+def count_jobs_in_search_snapshot(data: dict[str, Any]) -> int:
+    """Count left-rail job result rows on a Jobs search page."""
+    snapshot = _normalize_snapshot_data(data)
+    url = str(snapshot.get("url") or "")
+    title = str(snapshot.get("title") or "")
+    if not _is_jobs_search_page(url, title):
+        return 0
+    nodes: list[dict[str, str]] = []
+    seen_refs: set[str] = set()
+    _collect_jobs_search_results(snapshot.get("tree") or [], nodes, seen_refs)
+    return len(nodes)
 
 
 def _truncate_snippet(text: str, *, max_len: int = 100) -> str:
@@ -420,14 +656,22 @@ def compress_snapshot(data: dict[str, Any]) -> dict[str, Any]:
         _collect_jobs_search_results(tree, nodes, seen_refs)
 
     if posts_page:
-        _collect_posts_search_results(tree, nodes, seen_refs)
+        extracted_posts = extract_posts_from_search_snapshot(snapshot)
+    else:
+        extracted_posts = []
 
     _walk_tree(tree, nodes, seen_refs=seen_refs, posts_page=posts_page)
-    return {
+    result: dict[str, Any] = {
         "url": url,
         "title": title,
         "nodes": nodes,
     }
+    if posts_page:
+        result["posts"] = extracted_posts
+        result["hiringOpenings"] = sum(
+            1 for post in extracted_posts if post.get("isJobOpening")
+        )
+    return result
 
 
 def extract_job_description_from_snapshot(data: dict[str, Any], *, max_chars: int = 4000) -> str:

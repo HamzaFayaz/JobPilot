@@ -3,7 +3,11 @@
 import json
 from pathlib import Path
 
-from worker.snapshot_compress import compress_snapshot
+from worker.snapshot_compress import (
+    compress_snapshot,
+    count_jobs_in_search_snapshot,
+    extract_posts_from_search_snapshot,
+)
 
 RUN28_FIXTURE = (
     Path(__file__).resolve().parents[1]
@@ -32,6 +36,26 @@ RUN33_POSTS_SEARCH_FIXTURE = (
     / "posts"
     / "full"
     / "step-06-snapshot.json"
+)
+
+RUN35_POSTS_SEARCH_FIXTURE = (
+    Path(__file__).resolve().parents[1]
+    / "worker"
+    / "debug_snapshots"
+    / "run-35"
+    / "posts"
+    / "full"
+    / "step-02-snapshot.json"
+)
+
+RUN36_POSTS_SEARCH_FIXTURE = (
+    Path(__file__).resolve().parents[1]
+    / "worker"
+    / "debug_snapshots"
+    / "run-36"
+    / "posts"
+    / "full"
+    / "step-09-snapshot.json"
 )
 
 
@@ -80,15 +104,54 @@ def test_compress_run32_jobs_search_retains_all_result_rows():
 
 def test_compress_run33_posts_search_retains_hiring_posts():
     compressed = compress_snapshot(_load_fixture_snapshot(RUN33_POSTS_SEARCH_FIXTURE))
-    refs = {node["ref"] for node in compressed["nodes"]}
     blob = json.dumps(compressed, ensure_ascii=False)
 
     assert "search/results/content" in compressed["url"].lower()
-    assert "We're Hiring" in blob
-    assert "AI Engineer | Lahore" in blob
-    assert "@e130" in refs
+    assert "posts" in compressed
+    assert compressed["hiringOpenings"] >= 1
+    assert any("We're Hiring" in post.get("title", "") for post in compressed["posts"])
     assert "Jobs, 0 new notifications" not in blob
     assert len(compressed["nodes"]) < 40
+
+
+def test_extract_posts_run35_includes_company_page_and_filters_debate():
+    posts = extract_posts_from_search_snapshot(_load_fixture_snapshot(RUN35_POSTS_SEARCH_FIXTURE))
+    titles = [post["title"] for post in posts]
+    openings = [post for post in posts if post["isJobOpening"]]
+
+    assert any("Physicist-ML" in title or "CyberWissen" in post["company"] for title, post in zip(titles, posts))
+    assert any("We're Hiring" in title for title in titles)
+    assert all(not post["isJobOpening"] or "Question to Pakistan" not in post["descriptionText"] for post in posts)
+    assert len(openings) >= 2
+
+
+def test_extract_posts_run36_preserves_full_post_body_not_capped_at_2000():
+    posts = extract_posts_from_search_snapshot(_load_fixture_snapshot(RUN36_POSTS_SEARCH_FIXTURE))
+    hashmove = next(
+        post
+        for post in posts
+        if "HashMove" in post.get("descriptionText", "") and post.get("isJobOpening")
+    )
+    assert len(hashmove["descriptionText"]) > 1900
+    assert not hashmove["descriptionText"].endswith("…")
+    assert "#FutureOfAI" in hashmove["descriptionText"]
+
+
+def test_compress_run36_posts_search_reports_hiring_openings():
+    compressed = compress_snapshot(_load_fixture_snapshot(RUN36_POSTS_SEARCH_FIXTURE))
+    assert compressed["hiringOpenings"] >= 2
+    devorbis_posts = [
+        post
+        for post in compressed["posts"]
+        if "devorbis.com" in post.get("descriptionText", "").lower()
+    ]
+    assert devorbis_posts
+    assert all(len(post["descriptionText"]) > 200 for post in devorbis_posts)
+
+
+def test_count_jobs_in_search_snapshot_run32():
+    count = count_jobs_in_search_snapshot(_load_fixture_snapshot(RUN32_JOBS_SEARCH_FIXTURE))
+    assert count >= 7
 
 
 def test_compress_output_shape_has_no_children():

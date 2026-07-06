@@ -14,6 +14,7 @@ from worker.models import RawJobListing, WorkerTask
 from worker.parse import (
     enrich_agent_listings_json,
     merge_listings,
+    merge_posts_agent_with_extraction,
     parse_listings_from_agent_output,
 )
 from worker.prompts import (
@@ -31,7 +32,13 @@ from worker.run_metrics import (
     PhaseRunResult,
     save_run_summary,
 )
-from worker.snapshot_compress import compress_snapshot
+from worker.snapshot_compress import (
+    POST_ACTIVITY_URLS_JS,
+    compress_snapshot,
+    count_jobs_in_search_snapshot,
+    extract_job_description_from_snapshot,
+    extract_posts_from_search_snapshot,
+)
 from worker.snapshot_store import save_tool_result
 from worker.webbridge_tools import WEBBRIDGE_TOOL_DEFINITIONS
 
@@ -76,28 +83,93 @@ def _reject_empty_json_reply(
     llm_step: int,
     max_steps: int,
     min_steps: int,
-    successful_post_clicks: int,
+    hiring_openings_visible: int,
 ) -> bool:
     """True when the agent must keep working instead of returning an empty array."""
     if target <= 0 or listings_found > 0:
         return False
-    if phase == "posts" and successful_post_clicks == 0 and llm_step < max_steps:
+    if phase == "posts" and hiring_openings_visible > 0 and llm_step < max_steps:
         return True
     return llm_step < min_steps
+
+
+def _job_listings_missing_description(
+    raw_text: str,
+    *,
+    platform: str,
+    last_snapshot: dict[str, Any] | None,
+) -> bool:
+    if not last_snapshot:
+        return False
+    if not extract_job_description_from_snapshot(last_snapshot):
+        return False
+    listings = parse_listings_from_agent_output(raw_text, platform=platform)
+    return any(not item.description_text.strip() for item in listings)
+
+
+def _reject_incomplete_jobs_reply(
+    *,
+    phase: Phase,
+    target: int,
+    listings_found: int,
+    llm_step: int,
+    max_steps: int,
+    job_rows_visible: int,
+    raw_text: str,
+    platform: str,
+    last_snapshot: dict[str, Any] | None,
+) -> bool:
+    """True when jobs JSON is incomplete and the agent should keep working."""
+    if phase != "jobs" or llm_step >= max_steps or target <= 0:
+        return False
+    if listings_found < target and job_rows_visible > listings_found:
+        return True
+    if listings_found > 0 and _job_listings_missing_description(
+        raw_text,
+        platform=platform,
+        last_snapshot=last_snapshot,
+    ):
+        return True
+    return False
+
+
+def _incomplete_jobs_nudge(
+    *,
+    target: int,
+    listings_found: int,
+    job_rows_visible: int,
+    missing_description: bool,
+) -> str:
+    if missing_description:
+        return (
+            "One or more jobs are missing descriptionText. After clicking a job card, "
+            "snapshot again and copy the full text under the 'About the job' heading "
+            "before returning JSON."
+        )
+    return (
+        f"You returned {listings_found} job(s) but this phase needs up to {target}. "
+        f"The snapshot shows {job_rows_visible} job row(s) — open more cards, "
+        "snapshot the detail panel for each, then return JSON."
+    )
 
 
 def _empty_json_nudge(
     *,
     phase: Phase,
     target: int,
-    successful_post_clicks: int,
+    hiring_openings_visible: int,
 ) -> str:
-    if phase == "posts" and successful_post_clicks == 0:
+    if phase == "posts" and hiring_openings_visible > 0:
+        return (
+            f"You returned 0 listings but the snapshot shows {hiring_openings_visible} "
+            f"hiring opening(s). Read fields from the snapshot `posts[]` array — do NOT click posts. "
+            f"Return up to {target} openings as JSON, or scroll and snapshot if you need more."
+        )
+    if phase == "posts":
         return (
             f"You returned 0 listings but this phase needs up to {target}. "
-            "You have not successfully opened a hiring post yet. "
-            "Snapshot the results list, click a hiring post from the fresh refs, "
-            "snapshot the opened post, extract fields, then return JSON only when done."
+            "Snapshot the results page, read hiring posts from `posts[]`, "
+            "scroll with evaluate if needed, then return JSON."
         )
     return (
         f"You returned 0 listings but this phase needs up to {target}. "
@@ -135,9 +207,10 @@ def _system_prompt(phase: Phase) -> str:
             _SYSTEM_PROMPT
             + "\n- This phase is LinkedIn Posts only. Do not return to the Jobs section."
             + "\n- The search page is pre-loaded — do not navigate to the Posts search URL again."
-            + "\n- Snapshot before every click; refs go stale after navigation or DOM updates."
-            + "\n- Open hiring posts from the list, snapshot the post body, then extract JSON fields."
-            + "\n- Post url must be a /feed/update/ or /posts/ activity link — use evaluate for location.href."
+            + "\n- Read hiring posts from the snapshot `posts[]` array — do NOT click posts or author links."
+            + "\n- `descriptionText` must be the entire post body (apply email, phone, requirements — all visible text)."
+            + "\n- Post `url` is optional when contact/apply info is in descriptionText."
+            + "\n- Scroll with evaluate if you need more results below the fold."
         )
     return _SYSTEM_PROMPT
 
@@ -266,6 +339,36 @@ def _snapshot_llm_payload(result: Any, compressed: dict[str, Any]) -> dict[str, 
     return compressed
 
 
+def _parse_activity_urls(result: Any) -> list[str]:
+    if not isinstance(result, dict):
+        return []
+    data = result.get("data")
+    if isinstance(data, dict) and "value" in data:
+        value = data.get("value")
+    else:
+        value = data
+    if isinstance(value, list):
+        return [str(url).strip() for url in value if str(url).strip()]
+    return []
+
+
+async def _fetch_post_activity_urls(
+    client: WebBridgeClient,
+    *,
+    session: str,
+) -> list[str]:
+    try:
+        result = await client.command(
+            "evaluate",
+            {"code": POST_ACTIVITY_URLS_JS},
+            session=session,
+        )
+        return _parse_activity_urls(result)
+    except Exception as exc:
+        logger.warning("Failed to fetch post activity URLs: %s", exc)
+        return []
+
+
 async def _run_tool(
     client: WebBridgeClient,
     name: str,
@@ -290,9 +393,21 @@ async def _run_tool(
             if last_snapshot is not None and isinstance(snapshot_source, dict):
                 last_snapshot.clear()
                 last_snapshot.append(snapshot_source)
+            activity_urls: list[str] | None = None
+            if phase == "posts":
+                activity_urls = await _fetch_post_activity_urls(client, session=session)
             compressed_result = compress_snapshot(
                 snapshot_source if isinstance(snapshot_source, dict) else {}
             )
+            if phase == "posts" and isinstance(compressed_result, dict):
+                posts = extract_posts_from_search_snapshot(
+                    snapshot_source if isinstance(snapshot_source, dict) else {},
+                    activity_urls=activity_urls,
+                )
+                compressed_result["posts"] = posts
+                compressed_result["hiringOpenings"] = sum(
+                    1 for post in posts if post.get("isJobOpening")
+                )
             llm_payload = _snapshot_llm_payload(result, compressed_result)
 
         if settings.save_snapshots:
@@ -392,15 +507,24 @@ def _finalize_phase_output(
     raw_text: str,
     task: WorkerTask,
     phase: Phase,
+    target: int,
     last_snapshot_holder: list[dict[str, Any]],
 ) -> str:
     snapshot = last_snapshot_holder[0] if last_snapshot_holder else None
-    return enrich_agent_listings_json(
+    if phase == "posts":
+        raw_text = merge_posts_agent_with_extraction(
+            raw_text,
+            platform=task.platform,
+            last_snapshot=snapshot,
+            target=target,
+        )
+    text = enrich_agent_listings_json(
         raw_text,
         platform=task.platform,
         phase=phase,
         last_snapshot=snapshot,
     )
+    return text
 
 
 async def _run_agent_phase(
@@ -442,9 +566,10 @@ async def _run_agent_phase(
     last_tool: str | None = None
     raw_text = "[]"
     bootstrap_steps = 0
-    successful_post_clicks = 0
     bootstrapped = start_url is not None
     last_snapshot_holder: list[dict[str, Any]] = []
+    last_hiring_openings = 0
+    last_job_rows = 0
 
     logger.info(
         "Starting agent phase=%s max_steps=%s session=%s run_id=%s",
@@ -469,6 +594,8 @@ async def _run_agent_phase(
         )
         _sync_action_log_message(messages, action_log)
         last_tool = "snapshot"
+        if phase == "jobs" and last_snapshot_holder:
+            last_job_rows = count_jobs_in_search_snapshot(last_snapshot_holder[0])
 
     for step in range(max_steps):
         metrics.steps_used = bootstrap_steps + step + 1
@@ -573,6 +700,43 @@ async def _run_agent_phase(
                         )
                         continue
 
+                if phase == "posts" and fn_name == "click":
+                    tool_result = json.dumps(
+                        {
+                            "ok": False,
+                            "error": (
+                                "Do not click posts on the search page — read hiring "
+                                "openings from the snapshot posts[] array instead."
+                            ),
+                        },
+                        ensure_ascii=False,
+                    )
+                    _append_action_log_line(
+                        action_log,
+                        step=step + 1,
+                        tool_name=fn_name,
+                        args=fn_args,
+                        llm_content=tool_result,
+                    )
+                    _sync_action_log_message(messages, action_log)
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": call.id,
+                            "content": tool_result,
+                        }
+                    )
+                    messages.append(
+                        {
+                            "role": "user",
+                            "content": (
+                                "Stay on the search page. Snapshot if needed, then copy "
+                                "fields from posts[] where isJobOpening is true."
+                            ),
+                        }
+                    )
+                    continue
+
                 logger.info(
                     "WebBridge [%s] step %s: %s %s",
                     phase,
@@ -615,10 +779,17 @@ async def _run_agent_phase(
                         keep_index=tool_message_index,
                     )
                     snapshot_message_indices.append(tool_message_index)
-                if phase == "posts" and fn_name == "click" and not _tool_result_failed(
-                    tool_result
-                ):
-                    successful_post_clicks += 1
+                    try:
+                        payload = json.loads(tool_result)
+                        data = payload.get("data", payload)
+                        if isinstance(data, dict):
+                            last_hiring_openings = int(data.get("hiringOpenings") or 0)
+                            if phase == "jobs" and last_snapshot_holder:
+                                last_job_rows = count_jobs_in_search_snapshot(
+                                    last_snapshot_holder[0]
+                                )
+                    except (json.JSONDecodeError, TypeError, ValueError):
+                        pass
                 if fn_name == "click" and _stale_ref_failure(tool_result):
                     messages.append(
                         {
@@ -645,15 +816,15 @@ async def _run_agent_phase(
                 llm_step=llm_step,
                 max_steps=max_steps,
                 min_steps=min_steps,
-                successful_post_clicks=successful_post_clicks,
+                hiring_openings_visible=last_hiring_openings,
             ):
                 logger.info(
                     "Agent phase=%s rejected early empty JSON at llm_step %s "
-                    "(min_steps=%s, post_clicks=%s)",
+                    "(min_steps=%s, hiring_openings=%s)",
                     phase,
                     llm_step,
                     min_steps,
-                    successful_post_clicks,
+                    last_hiring_openings,
                 )
                 messages.append({"role": "assistant", "content": final_text})
                 messages.append(
@@ -662,7 +833,46 @@ async def _run_agent_phase(
                         "content": _empty_json_nudge(
                             phase=phase,
                             target=target,
-                            successful_post_clicks=successful_post_clicks,
+                            hiring_openings_visible=last_hiring_openings,
+                        ),
+                    }
+                )
+                continue
+
+            snapshot = last_snapshot_holder[0] if last_snapshot_holder else None
+            if _reject_incomplete_jobs_reply(
+                phase=phase,
+                target=target,
+                listings_found=listings_found,
+                llm_step=llm_step,
+                max_steps=max_steps,
+                job_rows_visible=last_job_rows,
+                raw_text=final_text,
+                platform=task.platform,
+                last_snapshot=snapshot,
+            ):
+                logger.info(
+                    "Agent phase=%s rejected incomplete jobs JSON at llm_step %s "
+                    "(found=%s, target=%s, job_rows=%s)",
+                    phase,
+                    llm_step,
+                    listings_found,
+                    target,
+                    last_job_rows,
+                )
+                messages.append({"role": "assistant", "content": final_text})
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": _incomplete_jobs_nudge(
+                            target=target,
+                            listings_found=listings_found,
+                            job_rows_visible=last_job_rows,
+                            missing_description=_job_listings_missing_description(
+                                final_text,
+                                platform=task.platform,
+                                last_snapshot=snapshot,
+                            ),
                         ),
                     }
                 )
@@ -672,6 +882,7 @@ async def _run_agent_phase(
                 raw_text=final_text,
                 task=task,
                 phase=phase,
+                target=target,
                 last_snapshot_holder=last_snapshot_holder,
             )
             metrics.stop_reason = "completed_json"
@@ -702,6 +913,7 @@ async def _run_agent_phase(
         raw_text=raw_text,
         task=task,
         phase=phase,
+        target=target,
         last_snapshot_holder=last_snapshot_holder,
     )
     metrics.listings_found = len(
