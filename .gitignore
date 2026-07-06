@@ -31,8 +31,13 @@ Thumbs.db
 # Logs & local data
 *.log
 logs/
+logges.md
 data/uploads/
 data/jobpilot.db
 worker/debug_snapshots/
+worker/.worker.lock
 ssh_key/
 ssh_keys/
+
+# Local agent handoff plans (not part of the app)
+.agent/plans/
