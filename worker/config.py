@@ -25,6 +25,9 @@ class WorkerSettings(BaseSettings):
     webbridge_url: str = "http://127.0.0.1:10086"
     poll_interval_seconds: float = 3.0
     agent_max_steps: int = 40
+    save_snapshots: bool = True
+    snapshot_dir: Path = WORKER_DIR / "debug_snapshots"
+    snapshot_max_chars: int = 12000
 
 
 def get_settings() -> WorkerSettings:

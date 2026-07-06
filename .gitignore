@@ -33,5 +33,6 @@ Thumbs.db
 logs/
 data/uploads/
 data/jobpilot.db
+worker/debug_snapshots/
 ssh_key/
 ssh_keys/

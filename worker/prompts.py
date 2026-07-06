@@ -20,11 +20,45 @@ _LINKEDIN_DATE_FILTER = {
     "month": "Past month",
 }
 
+# Minimum LLM steps per LinkedIn phase (workflow nav/search/filters), independent of
+# max_listings from the ECS task. Listing target still comes from the system task.
+LINKEDIN_JOBS_STEP_FLOOR = 12
+LINKEDIN_POSTS_STEP_FLOOR = 8
+
 _INDEED_DATE_FILTER = {
     "24h": "Last 24 hours",
     "week": "Last 7 days",
     "month": "Last 30 days",
 }
+
+
+def listing_targets(max_listings: int) -> tuple[int, int]:
+    """Split max_listings between LinkedIn Jobs and Posts sections."""
+    jobs = max(max_listings // 2, 1)
+    posts = max(max_listings - jobs, 0)
+    return jobs, posts
+
+
+def max_steps_for_target(target: int, *, ceiling: int = 15) -> int:
+    """Step budget scales with how many listings this phase should collect."""
+    if target <= 0:
+        return 0
+    return min(ceiling, max(6, target * 3))
+
+
+def linkedin_phase_steps(target: int, *, floor: int, ceiling: int = 15) -> int:
+    """LinkedIn phase budget: workflow floor plus listing-scaled cap."""
+    if target <= 0:
+        return 0
+    return max(floor, max_steps_for_target(target, ceiling=ceiling))
+
+
+def linkedin_jobs_steps(target: int, *, ceiling: int = 15) -> int:
+    return linkedin_phase_steps(target, floor=LINKEDIN_JOBS_STEP_FLOOR, ceiling=ceiling)
+
+
+def linkedin_posts_steps(target: int, *, ceiling: int = 15) -> int:
+    return linkedin_phase_steps(target, floor=LINKEDIN_POSTS_STEP_FLOOR, ceiling=ceiling)
 
 
 def _trim_skills(skills: str, *, max_chars: int = 240) -> str:
@@ -35,42 +69,85 @@ def _trim_skills(skills: str, *, max_chars: int = 240) -> str:
     return f"{trimmed}, ..." if trimmed else skills[:max_chars]
 
 
-def _linkedin_steps(task: WorkerTask) -> str:
-    date_filter = _LINKEDIN_DATE_FILTER[task.job_age]
-    workplace = _WORK_MODE_LINKEDIN_FILTERS[task.work_mode]
+def _json_output_footer(task: WorkerTask, *, target: int) -> str:
+    return f"""Stop when you have {target} matching jobs OR there are no more results in scope.
+
+For each job return one JSON object with:
+  title, company, url, descriptionText, sourcePlatform="{task.platform}"
+
+descriptionText is required — copy it from the snapshot "About the job" section after opening a job card.
+For url, use window.location.href via evaluate after opening the job (must be a /jobs/view/ link).
+title and company must match the list row you clicked.
+
+When finished, return ONLY a JSON array of job objects. No markdown fences or extra text.
+Example shape (use each job's real listing URL):
+[
+  {{
+    "title": "Python Developer",
+    "company": "Acme",
+    "url": "https://example.com/job-listing",
+    "descriptionText": "Build APIs with FastAPI",
+    "sourcePlatform": "{task.platform}"
+  }}
+]"""
+
+
+def _linkedin_jobs_steps(task: WorkerTask, *, target: int) -> str:
     age_label = _JOB_AGE_LABELS[task.job_age]
-    jobs_target = max(task.max_listings // 2, 1)
-    posts_target = max(task.max_listings - jobs_target, 0)
+    workplace = _WORK_MODE_LINKEDIN_FILTERS[task.work_mode]
 
-    return f"""Use ONE browser tab for the whole task.
+    return f"""Use ONE browser tab dedicated to this phase only (isolated from the other LinkedIn phase).
 
-PART A — LinkedIn Jobs section (official listings)
-1. Navigate to https://www.linkedin.com/ (home page). Confirm you are logged in.
-2. From the top navigation bar, click Jobs to open the Jobs area (prefer this over jumping straight to a deep URL).
-3. In the Jobs search bar, enter role "{task.role}" and location "{task.country}", then run the search.
-4. Open "All filters" (or the filter panel).
-5. Under "Date posted", select "{date_filter}".
-6. {workplace}
-7. Apply filters and wait for results.
-8. Open matching job cards. Collect up to {jobs_target} jobs posted within {age_label}.
-   For each: title, company, job listing URL, description text.
+LinkedIn Jobs section (official job listings)
+You start on a pre-filtered Jobs search results page for "{task.role}" in {task.country}
+({age_label}, most relevant sort, {workplace.lower()}).
 
-PART B — LinkedIn Posts (hiring posts not in Jobs)
-Many hiring managers post only in the feed, not in Jobs.
-9. Go back to LinkedIn home or use the main top search bar.
-10. Search Posts (switch result type to Posts).
-11. Build the Posts query from THIS run only — role "{task.role}" and country "{task.country}".
-    - Include a hiring intent word (e.g. hiring, we're hiring, looking for).
-    - Use the user's actual role; you may add 1–2 close OR variants derived from "{task.role}".
-    - Do NOT reuse example queries from instructions (e.g. do not hard-code "AI Engineer" unless that is the role).
-    - Example shape only: hiring ("<role>" OR "<variant>") <country>
-12. Prefer posts from {age_label}. Use LinkedIn's post date filter if available.
-13. Open relevant posts. Extract title, company (or poster), post URL, and description from the post body.
-    Collect up to {posts_target} additional listings (or whatever remains to reach {task.max_listings} total).
+Workflow for each job (repeat until you have {target} or none remain):
+1. Snapshot the left results list — refs change after every click.
+2. Click ONE job card from the fresh snapshot.
+3. Snapshot again and read title, company, and description from the right-rail detail panel
+   (look for the "About the job" heading and text below it).
+4. Use evaluate ONLY to read window.location.href — that is the job url (must contain /jobs/view/).
+5. Go back to the results list before the next job.
 
-FINISH
-- Merge Part A + Part B. Deduplicate by URL.
-- Stop at {task.max_listings} total jobs OR when both sections are exhausted within {age_label}."""
+Rules:
+- Do NOT use evaluate with CSS selectors for description — read it from the snapshot.
+- title and company in JSON must match the list row you clicked.
+- Collect up to {target} jobs posted within {age_label}.
+
+Do NOT search Posts in this phase — Jobs section only."""
+
+
+def _linkedin_posts_steps(task: WorkerTask, *, target: int) -> str:
+    age_label = _JOB_AGE_LABELS[task.job_age]
+    remote_hint = (
+        ' Include "remote" in scope.'
+        if task.work_mode == "remote"
+        else ""
+    )
+
+    return f"""Use ONE browser tab dedicated to this phase only (isolated from the other LinkedIn phase).
+
+LinkedIn Posts (hiring posts not listed in Jobs)
+You start on a pre-filtered Posts search results page for hiring posts about
+"{task.role}" in {task.country} ({age_label}, top match sort).{remote_hint}
+The browser is already on that page — do NOT call navigate to the search URL again.
+
+Workflow for each hiring post (repeat until you have {target} or none remain):
+1. Snapshot the results list — refs like @e56 change after every navigation; never click a ref from an old snapshot.
+2. Click ONE post row whose name mentions hiring, "we're hiring", open role, or job opening.
+3. Snapshot again on the opened post and copy title, company/poster, post URL, and body text from the snapshot.
+   Use evaluate to read window.location.href — url must be a /feed/update/ or /posts/ activity link, not a profile.
+4. Go back to the results list (browser back or click a visible search-result link) before the next post.
+
+Rules:
+- Do NOT call navigate to re-open the Posts search page — you are already there.
+- Do NOT click the Jobs navigation link — stay on Posts search results.
+- If click fails with a stale ref, snapshot immediately and use refs from that fresh snapshot.
+- Skip debate/rant posts that are not actual job openings.
+- Collect up to {target} listings.
+
+Do NOT return to the Jobs section in this phase — Posts only."""
 
 
 def _indeed_steps(task: WorkerTask) -> str:
@@ -87,31 +164,42 @@ def _indeed_steps(task: WorkerTask) -> str:
 4. Collect up to {task.max_listings} matching jobs."""
 
 
-def build_search_task(task: WorkerTask) -> str:
-    platform_name = "LinkedIn" if task.platform == "linkedin" else "Indeed"
+def build_linkedin_jobs_task(task: WorkerTask, *, target: int) -> str:
+    skills = _trim_skills(task.skills_summary)
+    skills_line = f"Candidate skills (hint only): {skills}.\n" if skills else ""
+    return f"""Search LinkedIn Jobs for "{task.role}" jobs in {task.country}.
+
+{_linkedin_jobs_steps(task, target=target)}
+
+{skills_line}{_json_output_footer(task, target=target)}"""
+
+
+def build_linkedin_posts_task(task: WorkerTask, *, target: int) -> str:
+    skills = _trim_skills(task.skills_summary)
+    skills_line = f"Candidate skills (hint only): {skills}.\n" if skills else ""
+    return f"""Search LinkedIn Posts for "{task.role}" hiring posts in {task.country}.
+
+{_linkedin_posts_steps(task, target=target)}
+
+{skills_line}{_json_output_footer(task, target=target)}"""
+
+
+def build_indeed_task(task: WorkerTask) -> str:
     age_label = _JOB_AGE_LABELS[task.job_age]
     skills = _trim_skills(task.skills_summary)
     skills_line = f"Candidate skills (hint only): {skills}.\n" if skills else ""
+    return f"""Search Indeed for "{task.role}" jobs in {task.country}.
 
-    steps = _linkedin_steps(task) if task.platform == "linkedin" else _indeed_steps(task)
-
-    return f"""Search {platform_name} for "{task.role}" jobs in {task.country}.
-
-{steps}
+{_indeed_steps(task)}
 
 {skills_line}Stop when you have {task.max_listings} matching jobs OR there are no more within {age_label}.
 
-For each job return one JSON object with:
-  title, company, url, descriptionText, sourcePlatform="{task.platform}"
+{_json_output_footer(task, target=task.max_listings)}"""
 
-When finished, return ONLY a JSON array of job objects. No markdown fences or extra text.
-Example shape (use each job's real listing URL):
-[
-  {{
-    "title": "Python Developer",
-    "company": "Acme",
-    "url": "https://example.com/job-listing",
-    "descriptionText": "Build APIs with FastAPI",
-    "sourcePlatform": "{task.platform}"
-  }}
-]"""
+
+def build_search_task(task: WorkerTask) -> str:
+    """Single-phase task prompt (Indeed, or legacy single-loop LinkedIn)."""
+    if task.platform == "linkedin":
+        jobs_target, _ = listing_targets(task.max_listings)
+        return build_linkedin_jobs_task(task, target=jobs_target)
+    return build_indeed_task(task)

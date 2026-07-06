@@ -70,12 +70,23 @@ async def run_forever(settings: WorkerSettings) -> None:
     logger.info("Connected to JobPilot at %s", settings.jobpilot_api_base)
     logger.info("Browser provider: %s | Qwen model: %s", settings.browser_provider, settings.qwen_model)
 
+    last_health: str | None = None
     while True:
         try:
             health = check_browser_health(settings)
             client.send_heartbeat(browser_health=health)
-            if health != "ready":
-                logger.debug("WebBridge not ready (%s) — waiting for Chrome/extension", health)
+            if health != last_health:
+                if health == "ready":
+                    logger.info("WebBridge ready — Chrome extension connected")
+                elif health == "daemon_down":
+                    logger.info("WebBridge daemon down — worker will try to restart it")
+                elif health == "not_installed":
+                    logger.info(
+                        "WebBridge daemon running — open Chrome so the extension can connect"
+                    )
+                else:
+                    logger.info("WebBridge status: %s", health)
+                last_health = health
 
             task = client.fetch_next_task()
             if task:
