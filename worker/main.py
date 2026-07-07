@@ -4,16 +4,17 @@ import asyncio
 import logging
 import os
 import sys
-from pathlib import Path
 
 if __name__ == "__main__":
-    repo_root = Path(__file__).resolve().parent.parent
-    if str(repo_root) not in sys.path:
-        sys.path.insert(0, str(repo_root))
+    from worker.runtime_paths import repo_root as _repo_root
+
+    if str(_repo_root()) not in sys.path:
+        sys.path.insert(0, str(_repo_root()))
 
 from worker.api_client import JobPilotWorkerClient, RETRYABLE_API_ERRORS
 from worker.browser_client import check_browser_health, run_search_task
 from worker.config import WorkerSettings, get_settings
+from worker.runtime_paths import worker_data_dir
 
 logging.basicConfig(
     level=logging.INFO,
@@ -24,7 +25,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
 logger = logging.getLogger("worker.main")
 
-_WORKER_LOCK_PATH = Path(__file__).resolve().parent / ".worker.lock"
+_WORKER_LOCK_PATH = worker_data_dir() / ".worker.lock"
 _worker_lock_file = None
 _IDLE_POLL_LOG_EVERY = 10
 

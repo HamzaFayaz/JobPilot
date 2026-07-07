@@ -1,0 +1,28 @@
+{
+  "projectId": "13021683232487100506",
+  "title": "JobPilot Search Helper Desktop",
+  "designSystem": "assets/03714a654855452089a6eff03cc905e7",
+  "stitchUrl": "https://stitch.withgoogle.com",
+  "screens": [
+    {
+      "slug": "01-first-launch",
+      "title": "JobPilot - First Launch",
+      "screenId": "63402f6921884dd6be7c823e5da32ce7"
+    },
+    {
+      "slug": "02-ready",
+      "title": "JobPilot - Ready",
+      "screenId": "9b36c57605a44ff4b327058ae38b2a93"
+    },
+    {
+      "slug": "03-searching",
+      "title": "JobPilot - Searching",
+      "screenId": "7bcf6605b67744c285714afa1aca0469"
+    },
+    {
+      "slug": "04-webbridge-warning",
+      "title": "JobPilot - WebBridge Warning",
+      "screenId": "756d08a0e9c5474cb90a083b519ea6b4"
+    }
+  ]
+}

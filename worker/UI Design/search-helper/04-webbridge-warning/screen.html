@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>JobPilot - WebBridge Warning</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface": "#f7f9fb",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-fixed-variant": "#38485d",
+                        "on-tertiary-container": "#fffbff",
+                        "surface-tint": "#006a61",
+                        "on-primary-fixed": "#00201d",
+                        "on-surface": "#191c1e",
+                        "on-background": "#191c1e",
+                        "secondary": "#505f76",
+                        "surface-container-low": "#f2f4f6",
+                        "secondary-container": "#d0e1fb",
+                        "tertiary-fixed": "#ffdbce",
+                        "outline": "#6d7a77",
+                        "on-secondary": "#ffffff",
+                        "tertiary": "#924628",
+                        "surface-container-highest": "#e0e3e5",
+                        "on-tertiary": "#ffffff",
+                        "inverse-surface": "#2d3133",
+                        "primary-fixed": "#89f5e7",
+                        "on-primary": "#ffffff",
+                        "primary-container": "#008378",
+                        "surface-dim": "#d8dadc",
+                        "on-primary-container": "#f4fffc",
+                        "surface-container-high": "#e6e8ea",
+                        "inverse-primary": "#6bd8cb",
+                        "error-container": "#ffdad6",
+                        "on-primary-fixed-variant": "#005049",
+                        "on-error": "#ffffff",
+                        "error": "#ba1a1a",
+                        "on-secondary-fixed": "#0b1c30",
+                        "on-tertiary-fixed-variant": "#773215",
+                        "inverse-on-surface": "#eff1f3",
+                        "tertiary-container": "#b05e3d",
+                        "surface-variant": "#e0e3e5",
+                        "primary": "#00685f",
+                        "surface-bright": "#f7f9fb",
+                        "on-error-container": "#93000a",
+                        "surface-container": "#eceef0",
+                        "primary-fixed-dim": "#6bd8cb",
+                        "outline-variant": "#bcc9c6",
+                        "secondary-fixed": "#d3e4fe",
+                        "on-secondary-container": "#54647a",
+                        "secondary-fixed-dim": "#b7c8e1",
+                        "tertiary-fixed-dim": "#ffb59a",
+                        "on-tertiary-fixed": "#370e00",
+                        "on-surface-variant": "#3d4947",
+                        "background": "#f7f9fb",
+                        "warning-bg": "#fffbeb",
+                        "warning-text": "#b45309",
+                        "warning-border": "#fde68a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "margin-main": "1.25rem",
+                        "padding-input": "0.625rem 0.875rem",
+                        "container-width": "480px",
+                        "padding-card": "1rem",
+                        "gutter-stack": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "body-base": ["Inter", "sans-serif"],
+                        "label-caps": ["Inter", "sans-serif"],
+                        "header-subtitle": ["Inter", "sans-serif"],
+                        "label-md": ["Inter", "sans-serif"],
+                        "mono-log": ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "Liberation Mono", "Courier New", "monospace"],
+                        "body-sm": ["Inter", "sans-serif"],
+                        "header-title": ["Inter", "sans-serif"]
+                    },
+                    "fontSize": {
+                        "body-base": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label-caps": ["11px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "header-subtitle": ["13px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "label-md": ["13px", { "lineHeight": "18px", "fontWeight": "500" }],
+                        "mono-log": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "body-sm": ["12px", { "lineHeight": "16px", "fontWeight": "400" }],
+                        "header-title": ["16px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .pulse-amber {
+            animation: pulse-border-amber 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse-border-amber {
+            0%, 100% { border-color: #fde68a; }
+            50% { border-color: #b45309; }
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-base flex justify-center min-h-screen pt-10 pb-10">
+<div class="w-container-width bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm flex flex-col overflow-hidden">
+<!-- TopAppBar Shared Component -->
+<header class="w-full h-14 bg-surface-container-lowest border-b border-outline-variant flex justify-between items-center px-margin-main transition-colors duration-200">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-2xl" style="font-variation-settings: 'FILL' 1;">rocket_launch</span>
+<div>
+<h1 class="font-header-title text-header-title text-primary">JobPilot</h1>
+<p class="font-header-subtitle text-header-subtitle text-on-surface-variant">Runs on this PC</p>
+</div>
+</div>
+<button class="text-on-surface-variant hover:bg-surface-container p-2 rounded-full transition-colors duration-200 flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+</button>
+</header>
+<!-- Main Content -->
+<main class="flex-1 p-margin-main flex flex-col gap-gutter-stack overflow-y-auto">
+<!-- Status Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-padding-card flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface">Service Status</span>
+<div class="bg-warning-bg border border-warning-border text-warning-text px-3 py-1 rounded-full flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-warning-text animate-pulse"></span>
+<span class="font-label-md text-label-md">Waiting for WebBridge...</span>
+</div>
+</div>
+<!-- Warning Alert -->
+<div class="bg-warning-bg border border-warning-border rounded-lg p-padding-card flex flex-col gap-3">
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-warning-text mt-0.5">warning</span>
+<div class="flex-1">
+<p class="font-body-base text-body-base text-warning-text">Kimi WebBridge not detected. Please install it to continue.</p>
+</div>
+</div>
+<button class="bg-warning-text hover:bg-warning-text/90 text-on-primary font-label-md text-label-md py-2 px-4 rounded-lg w-full transition-colors">
+                    Download WebBridge
+                </button>
+</div>
+<!-- Settings Card (Filled) -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-padding-card flex flex-col gap-3">
+<h2 class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">Configuration</h2>
+<div class="flex flex-col gap-1">
+<label class="font-body-sm text-body-sm text-on-surface-variant">API Key</label>
+<div class="relative w-full">
+<input class="w-full h-9 bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-padding-input font-mono-log text-mono-log text-on-surface pr-8" readonly="" type="password" value="sk_test_1234567890abcdef"/>
+<button class="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[16px]">visibility</span>
+</button>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-body-sm text-body-sm text-on-surface-variant">Search Query</label>
+<input class="w-full h-9 bg-surface-container-lowest border border-outline-variant focus:border-primary focus:ring-1 focus:ring-primary rounded-lg px-padding-input font-body-base text-body-base text-on-surface" readonly="" type="text" value="Frontend Developer Remote"/>
+</div>
+</div>
+<!-- Setup Checklist -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-padding-card flex flex-col gap-3">
+<h2 class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider">Setup Requirements</h2>
+<ul class="flex flex-col gap-2">
+<li class="flex items-center gap-3 opacity-50">
+<div class="w-4 h-4 bg-primary rounded-[2px] flex items-center justify-center">
+<span class="material-symbols-outlined text-[12px] text-on-primary font-bold">check</span>
+</div>
+<span class="font-body-base text-body-base line-through">Configure API</span>
+</li>
+<li class="flex items-center gap-3 p-2 -mx-2 bg-warning-bg/50 rounded-lg pulse-amber border border-transparent">
+<div class="w-4 h-4 border-2 border-warning-text rounded-[2px] bg-transparent"></div>
+<span class="font-body-base text-body-base text-warning-text font-medium">Install WebBridge</span>
+</li>
+<li class="flex items-center gap-3">
+<div class="w-4 h-4 border-2 border-outline-variant rounded-[2px] bg-transparent"></div>
+<span class="font-body-base text-body-base text-on-surface-variant">Start Search Run</span>
+</li>
+</ul>
+</div>
+<!-- Accordion Logs (Collapsed) -->
+<div class="border border-outline-variant rounded-lg overflow-hidden">
+<button class="w-full bg-surface-container-lowest p-3 flex justify-between items-center hover:bg-surface-container transition-colors">
+<span class="font-label-md text-label-md text-on-surface">Advanced Logs</span>
+<span class="material-symbols-outlined text-on-surface-variant">expand_more</span>
+</button>
+</div>
+</main>
+<!-- Fixed Bottom Actions -->
+<div class="p-margin-main border-t border-outline-variant bg-surface-container-lowest flex flex-col gap-3">
+<div class="flex gap-3">
+<button class="flex-1 bg-surface-container-high text-on-surface-variant font-label-md text-label-md h-9 rounded-lg opacity-50 cursor-not-allowed">
+                    Start
+                </button>
+<button class="flex-1 bg-surface-container-lowest border border-outline-variant text-on-surface hover:bg-surface-container font-label-md text-label-md h-9 rounded-lg transition-colors">
+                    Save
+                </button>
+<button class="flex-1 bg-surface-container-lowest border border-outline-variant text-error hover:bg-error-container/30 font-label-md text-label-md h-9 rounded-lg transition-colors opacity-50 cursor-not-allowed">
+                    Stop
+                </button>
+</div>
+<!-- Footer Shared Component -->
+<footer class="w-full py-4 bg-transparent flex flex-col items-center gap-2 mt-auto">
+<div class="flex gap-4">
+<a class="font-body-sm text-body-sm text-primary underline hover:text-primary transition-colors cursor-pointer" href="#">WebBridge Installation</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors cursor-pointer" href="#">Background Run Guide</a>
+</div>
+<div class="flex flex-col items-center gap-1">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Runs in background when closed</span>
+<span class="font-mono-log text-mono-log text-outline">JobPilot v1.0.4</span>
+</div>
+</footer>
+</div>
+</div>
+</body></html>
