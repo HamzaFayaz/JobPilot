@@ -58,6 +58,7 @@ from worker.webbridge_scroll import (
     MAX_POST_SCROLLS,
     MAX_SCROLL_STALLS,
     SCROLL_SETTLE_MS,
+    enable_foreground_rendering,
     evaluate_job_description,
     scroll_page,
     wait_for_paint,
@@ -782,7 +783,11 @@ async def _auto_scroll_after_bootstrap(
 
     if phase == "posts":
         count_fn = count_hiring_openings_in_snapshot
-        max_scrolls = MAX_POST_SCROLLS
+        # Scroll budget scales with the target so larger requests can page deeper.
+        # Stall detection still stops early when the page runs out of new posts,
+        # so a high ceiling never wastes scrolls — it only unlocks depth when
+        # there are genuinely more openings to load and we haven't hit target.
+        max_scrolls = max(MAX_POST_SCROLLS, target)
         jobs_list = False
     elif phase == "jobs":
         count_fn = count_jobs_in_search_snapshot
@@ -805,6 +810,13 @@ async def _auto_scroll_after_bootstrap(
     if best_posts_snapshot_holder is not None:
         best_posts_snapshot_holder.clear()
         best_posts_snapshot_holder.append(last_snapshot_holder[0])
+
+    # The search tab is opened in the background (newTab); Chrome throttles it and
+    # pauses IntersectionObserver, so LinkedIn's infinite scroll never loads past the
+    # first screenful. Emulate an active/focused tab so lazy-loading fires, then let it
+    # hydrate before the first scroll.
+    await enable_foreground_rendering(webbridge, session=session)
+    await wait_for_paint(webbridge, session=session, ms=SCROLL_SETTLE_MS)
 
     while count < target and scroll_attempts < max_scrolls:
         scroll_attempts += 1

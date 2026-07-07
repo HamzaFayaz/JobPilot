@@ -1,16 +1,21 @@
 # Currently Working On
 
-**Active:** Search agent — migrate Search Helper from Browser-Use to **Kimi WebBridge**.
+**Status:** Search Helper (Kimi WebBridge + Qwen agent loop) is **working end-to-end** for the hackathon. LinkedIn **Posts** phase collects listings and the background-tab scroll bug is fixed.
 
-→ [`System Design/kimi-webbridge-provider.md`](System%20Design/kimi-webbridge-provider.md) — **WebBridge setup, architecture, migration checklist**
+## Hackathon scope (locked — 2 days left)
 
-→ [`docs/discussion/search-subgraph-discussion-and-finalization.md`](docs/discussion/search-subgraph-discussion-and-finalization.md) — search agent build agreement (ECS subgraph + worker contract)
+- **Posts phase only.** Jobs phase stays **disabled**; listings come from Posts (the post body carries the JD). Details → [`job-section-issue.md`](job-section-issue.md)
+- **LinkedIn only.** Indeed is **deferred** until the core system is complete. Phase flags live in [`worker/prompts.py`](worker/prompts.py)
+- **Do NOT change the working worker/agent logic.** It works now — treat it as frozen. The scroll fix (background-tab → foreground rendering) lives in [`worker/webbridge_scroll.py`](worker/webbridge_scroll.py) (`enable_foreground_rendering`) and [`worker/agent_loop.py`](worker/agent_loop.py) (`_auto_scroll_after_bootstrap`).
 
-Related:
+## Next step (new chat): package + distribute the worker
 
-- [`docs/phase-a-step-1-contracts.md`](docs/phase-a-step-1-contracts.md) — Phase A contracts (complete)
-- [`docs/discussion/discussion-agentic-design.md`](docs/discussion/discussion-agentic-design.md) — broader agent design discussion
-- [`System Design/jobpilot-agent-build-guide.md`](System%20Design/jobpilot-agent-build-guide.md) — locked build phases
-- [`System Design/browser-provider-abstraction.md`](System%20Design/browser-provider-abstraction.md) — provider interface (WebBridge v1)
+Build the Search Helper into a downloadable **`.exe`** and upload it to the server so users can download and run it. Packaging must **wrap** the current worker, not modify its logic.
 
-**Next code step:** Implement `worker/providers/webbridge.py` + Qwen agent loop; then wire ECS search subgraph if not complete.
+- Worker run/setup reference → [`worker/README.md`](worker/README.md)
+- Server / deploy reference → [`System Design/aws-ec2-deploy.md`](System%20Design/aws-ec2-deploy.md)
+
+## Background (unchanged)
+
+- WebBridge provider & architecture → [`System Design/kimi-webbridge-provider.md`](System%20Design/kimi-webbridge-provider.md)
+- Search agent contract → [`docs/discussion/search-subgraph-discussion-and-finalization.md`](docs/discussion/search-subgraph-discussion-and-finalization.md)

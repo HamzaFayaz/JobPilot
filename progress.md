@@ -7,6 +7,8 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 
 **Build plans:** [`.agent/plans/`](.agent/plans/) — naming: `jobpilot_<domain>_<scope>_plan.md`
 
+> **Current focus (hackathon — 2 days left):** LinkedIn **Posts** worker works end-to-end and is **frozen** (don't change the worker/agent logic). Next step is packaging it as a downloadable **`.exe`**. Scope, locked decisions, and the exe plan live in **[`currently-working-feature.md`](currently-working-feature.md)** — start there. Jobs-phase deferral rationale in [`job-section-issue.md`](job-section-issue.md); phase flags in [`worker/prompts.py`](worker/prompts.py). Details are not duplicated here on purpose.
+
 ---
 
 ## Status legend
@@ -106,7 +108,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 |-------------|---------|----------------------|--------|
 | **GitHub** | Auto-import repos | GitHubImport on Profile | `[x]` OAuth + README import |
 | **Gmail** | Email send on approve | — | `[x]` cancelled |
-| **LinkedIn / Indeed** | Job search (browser worker) | Search screen picks platform | `[ ]` agent phase |
+| **LinkedIn / Indeed** | Job search (browser worker) | Search screen picks platform | `[o]` LinkedIn Posts working; Indeed deferred → [`currently-working-feature.md`](currently-working-feature.md) |
 
 ### Agents & orchestration
 
@@ -122,7 +124,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | `worker_tasks` + worker API routes | `[ ]` |
 | Wire `POST /api/search` → background graph | `[ ]` deferred |
 | `prefilter` node | `[ ]` |
-| JobPilot Search Helper (Kimi WebBridge + Qwen) | `[ ]` migrating from Browser-Use |
+| JobPilot Search Helper (Kimi WebBridge + Qwen) | `[o]` working (LinkedIn Posts) — **frozen** for hackathon → [`currently-working-feature.md`](currently-working-feature.md) |
 | Per-job application sub-agent (`enrich_job`) | `[ ]` |
 | Qwen / model integration | `[x]` profile LLM (CV skills, README) · `[ ]` enrich_job |
 
@@ -196,4 +198,4 @@ Long-term memory (DB-backed current state):
 | Integrations | 1 | 0 | search platforms |
 | Deploy | 5 | 0 | 0 |
 
-**Last updated:** 2026-07-05
+**Last updated:** 2026-07-07
