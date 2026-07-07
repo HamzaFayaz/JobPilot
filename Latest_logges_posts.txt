@@ -1,0 +1,62 @@
+
+(.venv) D:\Github\AI\AI Agents\JobPilot>"d:/Github/AI/AI Agents/JobPilot/.venv/Scripts/python.exe" "d:/Github/AI/AI Agents/JobPilot/worker/main.py"
+2026-07-07 11:05:46,415 INFO [Search Helper] Worker lock acquired (pid=20264)
+2026-07-07 11:05:46,415 INFO [Search Helper] JobPilot Search Helper starting (poll every 3.0s)
+2026-07-07 11:05:46,416 INFO [Search Helper] Connected to JobPilot at http://43.98.197.132
+2026-07-07 11:05:46,416 INFO [Search Helper] Browser provider: webbridge | Qwen model: qwen-max
+2026-07-07 11:05:47,056 INFO [Search Helper] WebBridge ready — Chrome extension connected
+2026-07-07 11:05:47,538 INFO [Search Helper] Polling for tasks — none pending (pid=20264)
+2026-07-07 11:05:56,788 INFO [Search Helper] Received task d4f16852-e5ab-40c8-b591-0ff361023306 for run 58 (AI Engineer / linkedin)
+2026-07-07 11:05:57,901 INFO [Search Helper] Starting WebBridge search: role=AI Engineer platform=linkedin country=Pakistan max=4 age=week
+2026-07-07 11:05:57,901 INFO [Search Helper] LinkedIn sequential run: jobs_target=0 posts_target=4 posts_enabled=True phase_max_steps=40
+2026-07-07 11:05:57,901 INFO [Search Helper] LinkedIn phase starting: posts
+2026-07-07 11:05:58,194 INFO [Search Helper] Starting agent phase=posts max_steps=40 session=jobpilot-run-58-posts run_id=58
+2026-07-07 11:05:58,194 INFO [Search Helper] Bootstrap [posts] navigate → https://www.linkedin.com/search/results/content/?keywords=hiring+%22AI+Engineer%22+Pakistan&datePosted=%5B%22past-week%22%5D&sortBy=%5B%22relevance%22%5D&origin=FACETED_SEARCH
+2026-07-07 11:06:01,628 INFO [Search Helper] Saved snapshot debug file: D:\Github\AI\AI Agents\JobPilot\worker\debug_snapshots\run-58\posts\full\step-01-navigate.json
+2026-07-07 11:06:02,615 INFO [Search Helper] Saved snapshot debug file: D:\Github\AI\AI Agents\JobPilot\worker\debug_snapshots\run-58\posts\full\step-02-snapshot.json
+2026-07-07 11:06:02,618 INFO [Search Helper] Saved compressed snapshot debug file: D:\Github\AI\AI Agents\JobPilot\worker\debug_snapshots\run-58\posts\compressed\step-02-snapshot.json
+2026-07-07 11:06:03,805 INFO [Search Helper] Saved snapshot debug file: D:\Github\AI\AI Agents\JobPilot\worker\debug_snapshots\run-58\posts\full\step-04-snapshot.json
+2026-07-07 11:06:03,807 INFO [Search Helper] Saved compressed snapshot debug file: D:\Github\AI\AI Agents\JobPilot\worker\debug_snapshots\run-58\posts\compressed\step-04-snapshot.json
+2026-07-07 11:06:03,811 INFO [Search Helper] Worker scroll [posts] attempt 1: 2 → 2 (target=4)
+2026-07-07 11:06:05,391 INFO [Search Helper] Saved snapshot debug file: D:\Github\AI\AI Agents\JobPilot\worker\debug_snapshots\run-58\posts\full\step-06-snapshot.json
+2026-07-07 11:06:05,393 INFO [Search Helper] Saved compressed snapshot debug file: D:\Github\AI\AI Agents\JobPilot\worker\debug_snapshots\run-58\posts\compressed\step-06-snapshot.json
+2026-07-07 11:06:05,398 INFO [Search Helper] Worker scroll [posts] attempt 2: 2 → 5 (target=4)
+2026-07-07 11:06:21,840 INFO [Search Helper] LLM [posts] step 1 tokens in=4609 out=850 total=5459 chars=15882 tools=(reply)
+2026-07-07 11:06:21,843 INFO [Search Helper] Agent phase=posts finished after 1 steps (4 listings, 5459 total tokens)
+2026-07-07 11:06:21,844 INFO [Search Helper] Phase posts: 4 listings, 7 steps, stop=completed_json, tokens=5459
+2026-07-07 11:06:21,844 INFO [Search Helper] Merged LinkedIn listings: 4 (cap 4)
+2026-07-07 11:06:21,847 INFO [Search Helper] Saved run telemetry: D:\Github\AI\AI Agents\JobPilot\worker\debug_snapshots\run-58\run-summary.json
+2026-07-07 11:06:22,542 INFO [Search Helper] Posted 4 listings for task d4f16852-e5ab-40c8-b591-0ff361023306
+2026-07-07 11:06:27,171 INFO [Search Helper] Polling for tasks — none pending (pid=20264)
+2026-07-07 11:06:54,048 INFO [Search Helper] Search Helper stopped.
+
+(.venv) D:\Github\AI\AI Agents\JobPilot>"d:/Github/AI/AI Agents/JobPilot/.venv/Scripts/python.exe" "d:/Github/AI/AI Agents/JobPilot/worker/main.py"
+2026-07-07 11:08:39,975 INFO [Search Helper] Worker lock acquired (pid=12128)
+2026-07-07 11:08:39,975 INFO [Search Helper] JobPilot Search Helper starting (poll every 3.0s)
+2026-07-07 11:08:39,976 INFO [Search Helper] Connected to JobPilot at http://43.98.197.132
+2026-07-07 11:08:39,976 INFO [Search Helper] Browser provider: webbridge | Qwen model: qwen-max
+2026-07-07 11:08:40,797 INFO [Search Helper] WebBridge ready — Chrome extension connected
+2026-07-07 11:08:41,325 INFO [Search Helper] Polling for tasks — none pending (pid=12128)
+2026-07-07 11:08:54,535 INFO [Search Helper] Received task b9375505-8292-40b5-814f-745561a34a8a for run 59 (AI Engineer / linkedin)    
+2026-07-07 11:08:55,622 INFO [Search Helper] Starting WebBridge search: role=AI Engineer platform=linkedin country=Pakistan max=8 age=week
+2026-07-07 11:08:55,622 INFO [Search Helper] LinkedIn sequential run: jobs_target=0 posts_target=8 posts_enabled=True phase_max_steps=40
+2026-07-07 11:08:55,622 INFO [Search Helper] LinkedIn phase starting: posts
+2026-07-07 11:08:55,920 INFO [Search Helper] Starting agent phase=posts max_steps=40 session=jobpilot-run-59-posts run_id=59
+2026-07-07 11:08:55,920 INFO [Search Helper] Bootstrap [posts] navigate → https://www.linkedin.com/search/results/content/?keywords=hiring+%22AI+Engineer%22+Pakistan&datePosted=%5B%22past-week%22%5D&sortBy=%5B%22relevance%22%5D&origin=FACETED_SEARCH
+2026-07-07 11:08:59,333 INFO [Search Helper] Saved snapshot debug file: D:\Github\AI\AI Agents\JobPilot\worker\debug_snapshots\run-59\posts\full\step-01-navigate.json
+2026-07-07 11:09:00,267 INFO [Search Helper] Saved snapshot debug file: D:\Github\AI\AI Agents\JobPilot\worker\debug_snapshots\run-59\posts\full\step-02-snapshot.json
+2026-07-07 11:09:00,270 INFO [Search Helper] Saved compressed snapshot debug file: D:\Github\AI\AI Agents\JobPilot\worker\debug_snapshots\run-59\posts\compressed\step-02-snapshot.json
+2026-07-07 11:09:02,859 INFO [Search Helper] Saved snapshot debug file: D:\Github\AI\AI Agents\JobPilot\worker\debug_snapshots\run-59\posts\full\step-04-snapshot.json
+2026-07-07 11:09:02,861 INFO [Search Helper] Saved compressed snapshot debug file: D:\Github\AI\AI Agents\JobPilot\worker\debug_snapshots\run-59\posts\compressed\step-04-snapshot.json
+2026-07-07 11:09:02,862 INFO [Search Helper] Worker scroll [posts] attempt 1: 2 → 2 (target=8)
+2026-07-07 11:09:04,013 INFO [Search Helper] Saved snapshot debug file: D:\Github\AI\AI Agents\JobPilot\worker\debug_snapshots\run-59\posts\full\step-06-snapshot.json
+2026-07-07 11:09:04,013 INFO [Search Helper] Saved compressed snapshot debug file: D:\Github\AI\AI Agents\JobPilot\worker\debug_snapshots\run-59\posts\compressed\step-06-snapshot.json
+2026-07-07 11:09:04,015 INFO [Search Helper] Worker scroll [posts] attempt 2: 2 → 2 (target=8)
+2026-07-07 11:09:11,274 INFO [Search Helper] LLM [posts] step 1 tokens in=3699 out=351 total=4050 chars=12230 tools=(reply)
+2026-07-07 11:09:11,276 INFO [Search Helper] Agent phase=posts finished after 1 steps (2 listings, 4050 total tokens)
+2026-07-07 11:09:11,276 INFO [Search Helper] Phase posts: 2 listings, 7 steps, stop=completed_json, tokens=4050
+2026-07-07 11:09:11,276 INFO [Search Helper] Merged LinkedIn listings: 2 (cap 8)
+2026-07-07 11:09:11,278 INFO [Search Helper] Saved run telemetry: D:\Github\AI\AI Agents\JobPilot\worker\debug_snapshots\run-59\run-summary.json
+2026-07-07 11:09:11,757 INFO [Search Helper] Posted 2 listings for task b9375505-8292-40b5-814f-745561a34a8a
+2026-07-07 11:09:16,443 INFO [Search Helper] Polling for tasks — none pending (pid=12128)
+2026-07-07 11:09:51,010 INFO [Search Helper] Search Helper stopped.

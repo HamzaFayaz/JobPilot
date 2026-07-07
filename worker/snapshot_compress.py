@@ -702,16 +702,28 @@ def job_detail_metadata(data: dict[str, Any]) -> dict[str, bool | int]:
     return {"jobDetailReady": ready, "jobDescriptionChars": chars}
 
 
+def _static_texts_from_node(node: dict[str, Any], *, min_len: int = 25) -> list[str]:
+    texts: list[str] = []
+    for child in _flatten_nodes(node):
+        if child.get("role") != "StaticText":
+            continue
+        name = (child.get("name") or "").strip()
+        if len(name) >= min_len and name not in texts:
+            texts.append(name)
+    return texts
+
+
 def extract_job_description_from_snapshot(
     data: dict[str, Any], *, max_chars: int = JOB_DESCRIPTION_MAX_CHARS
 ) -> str:
-    """Read job description text from the right-rail 'About the job' section."""
+    """Read JD from WebBridge snapshot: heading 'About the job' then paragraph text."""
     snapshot = _normalize_snapshot_data(data)
     tree = snapshot.get("tree") or []
     texts: list[str] = []
     capture = False
+    nodes = list(_flatten_nodes(tree))
 
-    for node in _flatten_nodes(tree):
+    for node in nodes:
         role = node.get("role") or ""
         name = (node.get("name") or "").strip()
         if role == "heading" and name.lower() == "about the job":
@@ -721,7 +733,11 @@ def extract_job_description_from_snapshot(
             continue
         if role == "heading" and name.lower() != "about the job":
             break
-        if role == "StaticText" and len(name) > 25:
+        if role == "paragraph":
+            for chunk in _static_texts_from_node(node):
+                if chunk not in texts:
+                    texts.append(chunk)
+        elif role == "StaticText" and len(name) > 25:
             if name not in texts:
                 texts.append(name)
 

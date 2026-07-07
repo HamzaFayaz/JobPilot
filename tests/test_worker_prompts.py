@@ -13,17 +13,18 @@ from worker.prompts import (
 )
 
 
-def test_listing_targets_split():
-    assert listing_targets(4) == (2, 0)
-    assert listing_targets(1) == (1, 0)
-    assert listing_targets(8) == (4, 0)
+def test_listing_targets_route_full_cap_to_posts():
+    # Jobs phase disabled → 0 jobs; the entire cap is sourced from the Posts phase.
+    assert listing_targets(4) == (0, 4)
+    assert listing_targets(1) == (0, 1)
+    assert listing_targets(8) == (0, 8)
 
 
-def test_linkedin_jobs_listing_target_is_half_cap():
+def test_linkedin_jobs_listing_target_is_zero_while_jobs_disabled():
     from worker.prompts import linkedin_jobs_listing_target
 
-    assert linkedin_jobs_listing_target(6) == 3
-    assert linkedin_jobs_listing_target(1) == 1
+    assert linkedin_jobs_listing_target(6) == 0
+    assert linkedin_jobs_listing_target(1) == 0
 
 
 def test_max_steps_for_target_scales_with_listings():

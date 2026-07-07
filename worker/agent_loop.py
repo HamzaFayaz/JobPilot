@@ -15,6 +15,7 @@ from worker.parse import (
     current_job_id_from_url,
     enrich_agent_listings_json,
     job_id_from_listing_url,
+    linkedin_job_view_url,
     merge_jobs_agent_with_extraction,
     merge_listings,
     merge_posts_agent_with_extraction,
@@ -55,6 +56,9 @@ from worker.webbridge_scroll import (
     MAX_JOB_DETAIL_RETRIES,
     MAX_JOB_SCROLLS,
     MAX_POST_SCROLLS,
+    MAX_SCROLL_STALLS,
+    SCROLL_SETTLE_MS,
+    evaluate_job_description,
     scroll_page,
     wait_for_paint,
 )
@@ -105,8 +109,13 @@ def _reject_empty_json_reply(
     """True when the agent must keep working instead of returning an empty array."""
     if target <= 0 or listings_found > 0:
         return False
-    if phase == "posts" and hiring_openings_visible > 0 and llm_step < max_steps:
-        return True
+    if phase == "posts" and hiring_openings_visible > 0:
+        # Openings are already captured in the snapshot `posts[]`. LinkedIn posts
+        # carry no per-post url, so the loop-time parser drops them and the model
+        # cannot satisfy a url requirement — but finalize fills these posts via
+        # synthetic urls. Accept the reply instead of looping to the step cap;
+        # target is a max, and the worker pre-scroll already loaded what exists.
+        return False
     return llm_step < min_steps
 
 
@@ -180,12 +189,18 @@ def _accumulated_jobs_missing_description(
     return False
 
 
+def _job_storage_key(company: str, title: str) -> str:
+    """Stable key for accumulated jobs and click-tracked job ids."""
+    normalized_title = title.split("|", 1)[0].strip().lower() if title else ""
+    return f"{company.strip().lower()}::{normalized_title}"
+
+
 def _listing_storage_key(
     item: RawJobListing,
     last_snapshot: dict[str, Any] | None,
 ) -> str:
     if item.company.strip() and item.title.strip():
-        return f"{item.company.strip().lower()}::{item.title.strip().lower()}"
+        return _job_storage_key(item.company, item.title)
     key = job_id_from_listing_url(item.url)
     if key:
         return key
@@ -194,6 +209,40 @@ def _listing_storage_key(
         if snapshot_id:
             return snapshot_id
     return item.url.strip().lower() or "unknown-job"
+
+
+def _row_key_from_click_ref(snapshot: dict[str, Any], selector: str) -> str | None:
+    """Map a clicked list-row ref to the accumulated_jobs storage key."""
+    ref = str(selector or "").strip()
+    if ref and not ref.startswith("@"):
+        ref = f"@{ref}"
+    for row in extract_jobs_from_search_snapshot(snapshot):
+        if str(row.get("ref") or "") != ref:
+            continue
+        parts = [part.strip() for part in str(row.get("name") or "").split("|")]
+        if len(parts) >= 2 and parts[0] and parts[1]:
+            return _job_storage_key(parts[1], parts[0])
+    return None
+
+
+def _parse_evaluate_href(result: Any) -> str | None:
+    if not isinstance(result, dict):
+        return None
+    data = result.get("data")
+    if isinstance(data, dict):
+        value = data.get("value")
+        if isinstance(value, str) and value.startswith("http"):
+            return value
+    return None
+
+
+def _resolve_job_id_for_listing(
+    item: RawJobListing,
+    *,
+    job_ids_by_key: dict[str, str],
+) -> str:
+    storage_key = _listing_storage_key(item, None)
+    return job_ids_by_key.get(storage_key, "") or job_id_from_listing_url(item.url)
 
 
 def _merge_jobs_into_accumulated(
@@ -546,6 +595,8 @@ async def _run_tool(
     step: int,
     last_snapshot: list[dict[str, Any]] | None = None,
     job_descriptions: dict[str, str] | None = None,
+    pending_click_key: list[str | None] | None = None,
+    job_ids_by_key: dict[str, str] | None = None,
 ) -> str:
     try:
         result = await client.command(name, args, session=session)
@@ -572,6 +623,13 @@ async def _run_tool(
                         description = extract_job_description_from_snapshot(snapshot_source)
                         if description:
                             job_descriptions[active_job_id] = description
+                if (
+                    job_id
+                    and job_ids_by_key is not None
+                    and pending_click_key is not None
+                    and pending_click_key[0]
+                ):
+                    job_ids_by_key[pending_click_key[0]] = job_id
 
             if last_snapshot is not None and isinstance(snapshot_source, dict):
                 last_snapshot.clear()
@@ -594,6 +652,21 @@ async def _run_tool(
                     1 for post in posts if post.get("isJobOpening")
                 )
             llm_payload = _snapshot_llm_payload(result, compressed_result)
+
+        if (
+            phase == "jobs"
+            and name == "evaluate"
+            and job_ids_by_key is not None
+            and pending_click_key is not None
+            and "location.href" in str(args.get("code") or "")
+        ):
+            href = _parse_evaluate_href(result)
+            storage_key = pending_click_key[0]
+            if href and storage_key:
+                evaluated_job_id = current_job_id_from_url(href)
+                if evaluated_job_id:
+                    job_ids_by_key[storage_key] = evaluated_job_id
+            pending_click_key[0] = None
 
         if settings.save_snapshots:
             save_tool_result(
@@ -728,6 +801,7 @@ async def _auto_scroll_after_bootstrap(
 
     scroll_attempts = 0
     best_count = count
+    stall_streak = 0
     if best_posts_snapshot_holder is not None:
         best_posts_snapshot_holder.clear()
         best_posts_snapshot_holder.append(last_snapshot_holder[0])
@@ -736,6 +810,9 @@ async def _auto_scroll_after_bootstrap(
         scroll_attempts += 1
         step += 1
         await scroll_page(webbridge, session=session, jobs_list=jobs_list)
+        # Give LinkedIn time to fetch and render the newly scrolled-in results
+        # before snapshotting — otherwise the count reads stale (no new rows).
+        await wait_for_paint(webbridge, session=session, ms=SCROLL_SETTLE_MS)
         step += 1
         snap_result = await _run_tool(
             webbridge,
@@ -766,9 +843,13 @@ async def _auto_scroll_after_bootstrap(
             new_count,
             target,
         )
-        if new_count <= count:
-            break
-        count = new_count
+        if new_count > count:
+            count = new_count
+            stall_streak = 0
+        else:
+            stall_streak += 1
+            if stall_streak >= MAX_SCROLL_STALLS:
+                break
         if best_posts_snapshot_holder is not None and new_count > best_count:
             best_count = new_count
             best_posts_snapshot_holder.clear()
@@ -796,9 +877,10 @@ async def _enrich_jobs_from_view_pages(
     task: WorkerTask,
     accumulated_jobs: dict[str, RawJobListing],
     job_descriptions: dict[str, str],
+    job_ids_by_key: dict[str, str],
     target: int,
 ) -> int:
-    """Visit each collected job on /jobs/view/{id}/ and extract JD text."""
+    """Open each job at /jobs/view/{id}/ in a new tab and extract JD text."""
     jobs = list(accumulated_jobs.values())[:target]
     if not jobs:
         return 0
@@ -811,7 +893,7 @@ async def _enrich_jobs_from_view_pages(
     )
 
     for index, item in enumerate(jobs, start=1):
-        job_id = job_id_from_listing_url(item.url)
+        job_id = _resolve_job_id_for_listing(item, job_ids_by_key=job_ids_by_key)
         if not job_id:
             logger.warning(
                 "Skipping enrich — no job id for %s @ %s",
@@ -823,8 +905,8 @@ async def _enrich_jobs_from_view_pages(
             enriched += 1
             continue
 
-        view_url = f"https://www.linkedin.com/jobs/view/{job_id}/"
-        nav_args = {"url": view_url, "newTab": False}
+        view_url = linkedin_job_view_url(job_id)
+        nav_args = {"url": view_url, "newTab": True}
         logger.info(
             "Worker enrich [%s/%s] navigate → %s (%s @ %s)",
             index,
@@ -851,19 +933,30 @@ async def _enrich_jobs_from_view_pages(
 
         snapshot_source: dict[str, Any] | None = None
         snapshot_result: Any = None
+        description = ""
         for retry in range(MAX_JOB_DETAIL_RETRIES):
             await wait_for_paint(
                 webbridge,
                 session=session,
                 ms=JOB_DETAIL_WAIT_MS,
             )
+            if retry > 0:
+                await scroll_page(webbridge, session=session)
+                await wait_for_paint(webbridge, session=session, ms=1500)
             try:
                 snapshot_result = await webbridge.command("snapshot", {}, session=session)
             except Exception as exc:
                 logger.warning("Enrich snapshot failed for job %s: %s", job_id, exc)
                 break
             snapshot_source = _snapshot_data_from_result(snapshot_result)
-            if snapshot_source and snapshot_has_job_detail_panel(snapshot_source):
+            if snapshot_source:
+                description = extract_job_description_from_snapshot(snapshot_source)
+            if not description:
+                description = await evaluate_job_description(
+                    webbridge,
+                    session=session,
+                )
+            if description:
                 logger.info(
                     "Job view page ready for %s after %s attempt(s)",
                     job_id,
@@ -881,7 +974,9 @@ async def _enrich_jobs_from_view_pages(
         if snapshot_source:
             compressed_result = compress_snapshot(snapshot_source)
             compressed_result.update(job_detail_metadata(snapshot_source))
-            description = extract_job_description_from_snapshot(snapshot_source)
+            if description:
+                compressed_result["jobDetailReady"] = True
+                compressed_result["jobDescriptionChars"] = len(description)
             if description:
                 job_descriptions[job_id] = description
                 enriched += 1
@@ -904,6 +999,11 @@ async def _enrich_jobs_from_view_pages(
                 compressed_result=compressed_result,
             )
 
+        try:
+            await webbridge.command("close_tab", {}, session=session)
+        except Exception as exc:
+            logger.debug("Enrich close_tab after job %s: %s", job_id, exc)
+
     logger.info(
         "Worker job enrich finished: %s/%s with description (run_id=%s)",
         enriched,
@@ -921,6 +1021,7 @@ async def _finalize_jobs_phase_output(
     last_snapshot_holder: list[dict[str, Any]],
     accumulated_jobs: dict[str, RawJobListing],
     job_descriptions: dict[str, str],
+    job_ids_by_key: dict[str, str],
     webbridge: WebBridgeClient,
     settings: WorkerSettings,
     session: str,
@@ -933,6 +1034,7 @@ async def _finalize_jobs_phase_output(
             task=task,
             accumulated_jobs=accumulated_jobs,
             job_descriptions=job_descriptions,
+            job_ids_by_key=job_ids_by_key,
             target=target,
         )
     return _finalize_phase_output(
@@ -1030,6 +1132,8 @@ async def _run_agent_phase(
     best_posts_snapshot_holder: list[dict[str, Any]] = []
     job_descriptions: dict[str, str] = {}
     accumulated_jobs: dict[str, RawJobListing] = {}
+    job_ids_by_key: dict[str, str] = {}
+    pending_click_key: list[str | None] = [None]
     last_hiring_openings = 0
     last_job_rows = 0
     bootstrap_step = 0
@@ -1261,6 +1365,12 @@ async def _run_agent_phase(
                     )
                     continue
 
+                if phase == "jobs" and fn_name == "click" and last_snapshot_holder:
+                    pending_click_key[0] = _row_key_from_click_ref(
+                        last_snapshot_holder[0],
+                        str(fn_args.get("selector") or fn_args.get("ref") or ""),
+                    )
+
                 logger.info(
                     "WebBridge [%s] step %s: %s %s",
                     phase,
@@ -1279,6 +1389,8 @@ async def _run_agent_phase(
                     step=bootstrap_steps + step + 1,
                     last_snapshot=last_snapshot_holder,
                     job_descriptions=job_descriptions,
+                    pending_click_key=pending_click_key if phase == "jobs" else None,
+                    job_ids_by_key=job_ids_by_key if phase == "jobs" else None,
                 )
                 _append_action_log_line(
                     action_log,
@@ -1446,6 +1558,7 @@ async def _run_agent_phase(
                     last_snapshot_holder=last_snapshot_holder,
                     accumulated_jobs=accumulated_jobs,
                     job_descriptions=job_descriptions,
+                    job_ids_by_key=job_ids_by_key,
                     webbridge=webbridge,
                     settings=settings,
                     session=session,

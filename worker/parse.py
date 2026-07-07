@@ -144,8 +144,12 @@ def _current_job_id_from_url(url: str) -> str | None:
     return None
 
 
-def _linkedin_job_view_url(job_id: str) -> str:
+def linkedin_job_view_url(job_id: str) -> str:
     return f"https://www.linkedin.com/jobs/view/{job_id}/"
+
+
+def _linkedin_job_view_url(job_id: str) -> str:
+    return linkedin_job_view_url(job_id)
 
 
 def is_valid_linkedin_job_url(url: str) -> bool:
@@ -233,15 +237,23 @@ def sanitize_and_enrich_listings(
                 )
                 continue
 
-            if current_job_id and (
+            resolved_job_id = listing_job_id or current_job_id
+            if resolved_job_id and (
                 not is_valid_linkedin_job_url(url) or not title_matches_url
             ):
-                url = _linkedin_job_view_url(current_job_id)
-                logger.info(
-                    "Replaced job URL for %r with currentJobId=%s",
-                    item.title,
-                    current_job_id,
-                )
+                url = _linkedin_job_view_url(resolved_job_id)
+                if listing_job_id and listing_job_id != current_job_id:
+                    logger.info(
+                        "Normalized job URL for %r using listing currentJobId=%s",
+                        item.title,
+                        listing_job_id,
+                    )
+                else:
+                    logger.info(
+                        "Replaced job URL for %r with currentJobId=%s",
+                        item.title,
+                        resolved_job_id,
+                    )
             elif not is_valid_linkedin_job_url(url):
                 logger.warning("Dropping job with invalid URL: %s", url)
                 continue

@@ -11,6 +11,8 @@ from worker.agent_loop import (
     _next_job_click_hints,
     _reject_empty_json_reply,
     _reject_incomplete_jobs_reply,
+    _resolve_job_id_for_listing,
+    _row_key_from_click_ref,
     _stale_ref_failure,
     _sync_jobs_progress_message,
 )
@@ -44,15 +46,31 @@ def _load_snapshot(path: Path) -> dict:
     return data if isinstance(data, dict) else result
 
 
-def test_posts_rejects_empty_when_hiring_openings_visible():
+def test_posts_accepts_empty_when_openings_captured():
+    # Openings live in the snapshot posts[] with no per-post url; finalize fills
+    # them via synthetic urls, so an empty/url-less reply is accepted immediately
+    # (target is a max) instead of looping the model to the step cap.
+    assert not _reject_empty_json_reply(
+        phase="posts",
+        target=2,
+        listings_found=0,
+        llm_step=1,
+        max_steps=40,
+        min_steps=8,
+        hiring_openings_visible=2,
+    )
+
+
+def test_posts_rejects_empty_below_min_steps_when_no_openings():
+    # No openings captured yet: keep working (snapshot) until the phase floor.
     assert _reject_empty_json_reply(
         phase="posts",
         target=2,
         listings_found=0,
-        llm_step=10,
+        llm_step=3,
         max_steps=40,
         min_steps=8,
-        hiring_openings_visible=2,
+        hiring_openings_visible=0,
     )
 
 
@@ -230,6 +248,43 @@ def test_merge_jobs_into_accumulated_keeps_distinct_titles_with_same_url():
     )
     _merge_jobs_into_accumulated(accumulated, raw, platform="linkedin", last_snapshot=None)
     assert len(accumulated) == 3
+
+
+def test_row_key_from_click_ref_maps_list_row():
+    snapshot = {
+        "url": "https://www.linkedin.com/jobs/search/?keywords=AI",
+        "tree": [
+            {
+                "role": "listitem",
+                "children": [
+                    {
+                        "role": "button",
+                        "name": "Dismiss AI Engineer job",
+                    },
+                    {
+                        "role": "link",
+                        "ref": "@e28",
+                        "name": "AI/ML Engineer (Remote) | Hire Feed | APAC (Remote)",
+                    },
+                ],
+            }
+        ],
+    }
+    assert _row_key_from_click_ref(snapshot, "@e28") == "hire feed::ai/ml engineer (remote)"
+
+
+def test_resolve_job_id_prefers_click_tracker_over_shared_url():
+    item = RawJobListing(
+        title="AI/ML Engineer (Remote) | Hire Feed | APAC (Remote)",
+        company="Hire Feed",
+        url="https://www.linkedin.com/jobs/search/?currentJobId=4433930433",
+        source_platform="linkedin",
+    )
+    job_id = _resolve_job_id_for_listing(
+        item,
+        job_ids_by_key={"hire feed::ai/ml engineer (remote)": "4437143380"},
+    )
+    assert job_id == "4437143380"
 
 
 def test_jobs_reject_uses_json_count_not_accumulated_only():

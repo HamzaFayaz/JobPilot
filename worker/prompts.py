@@ -24,8 +24,13 @@ _LINKEDIN_DATE_FILTER = {
 # max_listings from the ECS task. Listing target still comes from the system task.
 LINKEDIN_JOBS_STEP_FLOOR = 12
 LINKEDIN_POSTS_STEP_FLOOR = 8
-# Posts phase disabled while jobs extraction is stabilized.
-LINKEDIN_POSTS_PHASE_ENABLED = False
+# Temporary: the LinkedIn job view pages do not expose the "About the job"
+# description through WebBridge (only the top card + Premium upsell render), so the
+# Jobs phase is disabled and every listing is sourced from the Posts phase, whose
+# post body carries the description. Flip LINKEDIN_JOBS_PHASE_ENABLED back to True
+# to restore the Jobs phase.
+LINKEDIN_JOBS_PHASE_ENABLED = False
+LINKEDIN_POSTS_PHASE_ENABLED = True
 
 _INDEED_DATE_FILTER = {
     "24h": "Last 24 hours",
@@ -42,7 +47,13 @@ def listing_targets(max_listings: int) -> tuple[int, int]:
 
 
 def linkedin_jobs_listing_target(max_listings: int) -> int:
-    """Jobs-only target: half of the run cap (the jobs share of a full search)."""
+    """Jobs-phase target: half of the run cap, or 0 while the Jobs phase is disabled.
+
+    Returning 0 skips the Jobs phase and (via listing_targets) hands the full cap to
+    the Posts phase.
+    """
+    if not LINKEDIN_JOBS_PHASE_ENABLED:
+        return 0
     return max(max_listings // 2, 1)
 
 

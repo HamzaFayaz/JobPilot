@@ -19,10 +19,66 @@ SCROLL_JOBS_LIST_JS = (
 )
 WAIT_PAINT_JS = "await new Promise(r => setTimeout(r, 1500))"
 
+# Kimi WebBridge evaluate scripts — no external scrapers. Structure-based:
+# h2 "About the job" then paragraph siblings (matches LinkedIn job view layout).
+
+JOB_SCROLL_TO_DESCRIPTION_JS = """(() => {
+  const isAbout = (el) => /^about the job$/i.test((el.innerText || '').trim());
+  const about = [...document.querySelectorAll('h2, [role="heading"]')].find(isAbout);
+  if (about) about.scrollIntoView({ block: 'start', behavior: 'instant' });
+  return Boolean(about);
+})()"""
+
+JOB_EXPAND_DESCRIPTION_JS = """(() => {
+  const isAbout = (el) => /^about the job$/i.test((el.innerText || '').trim());
+  const about = [...document.querySelectorAll('h2, [role="heading"]')].find(isAbout);
+  if (!about) return false;
+  let el = about;
+  for (let i = 0; i < 40; i++) {
+    el = el.nextElementSibling;
+    if (!el) break;
+    for (const btn of el.querySelectorAll('button, [role="button"]')) {
+      const label = ((btn.getAttribute('aria-label') || '') + ' ' + (btn.innerText || '')).toLowerCase();
+      if (/(see more|show more|…more|\\.\\.\\.more)/i.test(label)) {
+        btn.click();
+        return true;
+      }
+    }
+    const own = (el.innerText || '').toLowerCase();
+    if (/(see more|show more|…more|\\.\\.\\.more)/i.test(own) && el.click) {
+      el.click();
+      return true;
+    }
+  }
+  return false;
+})()"""
+
+JOB_DESCRIPTION_EXTRACT_JS = """(() => {
+  const isAbout = (el) => /^about the job$/i.test((el.innerText || '').trim());
+  const about = [...document.querySelectorAll('h2, [role="heading"]')].find(isAbout);
+  if (!about) return '';
+  const parts = [];
+  let el = about.nextElementSibling;
+  for (let i = 0; i < 50 && el; i++) {
+    const tag = (el.tagName || '').toLowerCase();
+    if ((tag === 'h2' || tag === 'h3') && !isAbout(el)) break;
+    const text = (el.innerText || '').trim();
+    if (text.length > 30 && !isAbout(el)) parts.push(text);
+    el = el.nextElementSibling;
+  }
+  return parts.join('\\n\\n').trim();
+})()"""
+
 MAX_POST_SCROLLS = 5
 MAX_JOB_SCROLLS = 3
-MAX_JOB_DETAIL_RETRIES = 6
-JOB_DETAIL_WAIT_MS = 2000
+MAX_JOB_DETAIL_RETRIES = 8
+JOB_DETAIL_WAIT_MS = 3000
+# LinkedIn lazy-loads results over the network after a scroll; wait for them to
+# render before snapshotting or the count reads stale (no new rows).
+SCROLL_SETTLE_MS = 1500
+# A single no-growth snapshot can just be slow lazy-loading — only give up after
+# this many consecutive stalls.
+MAX_SCROLL_STALLS = 2
 
 
 async def scroll_page(
@@ -46,6 +102,43 @@ async def wait_for_paint(
         {"code": f"await new Promise(r => setTimeout(r, {ms}))"},
         session=session,
     )
+
+
+async def evaluate_job_description(
+    client: WebBridgeClient,
+    *,
+    session: str,
+) -> str:
+    """Read JD via WebBridge evaluate: scroll to h2 About the job, expand, read paragraphs."""
+    try:
+        await client.command(
+            "evaluate",
+            {"code": JOB_SCROLL_TO_DESCRIPTION_JS},
+            session=session,
+        )
+        await wait_for_paint(client, session=session, ms=800)
+        await client.command(
+            "evaluate",
+            {"code": JOB_EXPAND_DESCRIPTION_JS},
+            session=session,
+        )
+        await wait_for_paint(client, session=session, ms=600)
+        result = await client.command(
+            "evaluate",
+            {"code": JOB_DESCRIPTION_EXTRACT_JS},
+            session=session,
+        )
+    except Exception as exc:
+        logger.warning("Job description evaluate failed: %s", exc)
+        return ""
+    if not isinstance(result, dict):
+        return ""
+    data = result.get("data")
+    if isinstance(data, dict):
+        value = data.get("value")
+        if isinstance(value, str) and len(value.strip()) >= 100:
+            return value.strip()
+    return ""
 
 
 async def scroll_until_count(

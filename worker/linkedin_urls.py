@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from urllib.parse import urlencode
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from worker.models import JobAge, WorkerTask, WorkMode
 
@@ -50,6 +50,14 @@ def linkedin_jobs_search_url(task: WorkerTask) -> str:
         ("origin", "JOB_SEARCH_PAGE_JOB_FILTER"),
     ]
     return _JOBS_BASE + "?" + urlencode(params)
+
+
+def with_current_job_id(search_url: str, job_id: str) -> str:
+    """Jobs search URL with currentJobId set — opens the right-rail detail panel."""
+    parsed = urlparse(search_url)
+    params = parse_qs(parsed.query)
+    params["currentJobId"] = [job_id.strip()]
+    return urlunparse(parsed._replace(query=urlencode(params, doseq=True)))
 
 
 def linkedin_posts_search_url(task: WorkerTask) -> str:
