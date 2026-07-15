@@ -7,6 +7,8 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 
 **Build plans:** [`.agent/plans/`](.agent/plans/) — naming: `jobpilot_<domain>_<scope>_plan.md`
 
+> **Current focus (hackathon — 2 days left):** **Search subgraph is done** for LinkedIn **Posts** only (E2E verified). Search Helper **`.exe` built** — upload pending discussion of **application subagent** data contract. **Indeed** and LinkedIn **Jobs** phase remain deferred. Start at **[`currently-working-feature.md`](currently-working-feature.md)** — application subagent is next; worker/agent search logic stays **frozen** unless the data-contract review says otherwise.
+
 ---
 
 ## Status legend
@@ -106,7 +108,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 |-------------|---------|----------------------|--------|
 | **GitHub** | Auto-import repos | GitHubImport on Profile | `[x]` OAuth + README import |
 | **Gmail** | Email send on approve | — | `[x]` cancelled |
-| **LinkedIn / Indeed** | Job search (browser worker) | Search screen picks platform | `[ ]` agent phase |
+| **LinkedIn / Indeed** | Job search (browser worker) | Search screen picks platform | `[x]` LinkedIn **Posts** E2E · `[ ]` Indeed deferred · `[ ]` LinkedIn Jobs deferred |
 
 ### Agents & orchestration
 
@@ -118,12 +120,14 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | `langgraph` dependency | `[x]` — `requirements.txt` |
 | Parent graph skeleton (nodes + edges) | `[x]` — `backend/app/graph/orchestrator.py` |
 | `init_run` node | `[x]` — load run + profile, set `running` |
-| ECS search subgraph (`enqueue` → `wait` → `normalize` → `drop_applied`) | `[ ]` **next** |
-| `worker_tasks` + worker API routes | `[ ]` |
-| Wire `POST /api/search` → background graph | `[ ]` deferred |
-| `prefilter` node | `[ ]` |
-| JobPilot Search Helper (Kimi WebBridge + Qwen) | `[ ]` migrating from Browser-Use |
-| Per-job application sub-agent (`enrich_job`) | `[ ]` |
+| ECS search subgraph (`enqueue` → `wait` → listings in `job_packages`) | `[x]` LinkedIn Posts E2E |
+| `worker_tasks` + worker API routes | `[x]` |
+| Wire `POST /api/search` → background graph | `[x]` |
+| `prefilter` node (normalize + `matched_jobs`) | `[ ]` **before application subagent** |
+| JobPilot Search Helper (Kimi WebBridge + Qwen) | `[x]` `.exe` built — **upload after application data-contract discussion** → [`currently-working-feature.md`](currently-working-feature.md) |
+| Per-job application sub-agent (`enrich_job`) | `[o]` **next** — stubs in `application/graph.py` |
+
+**Worker → storage path (verified):** Worker `POST /api/worker/tasks/{id}/result` → `worker_tasks.result_json` → search subgraph `wait_for_listings` → orchestrator `persist` → `job_packages` + `search_runs`. See [`currently-working-feature.md`](currently-working-feature.md) for full diagram and open data-contract question before exe upload.
 | Qwen / model integration | `[x]` profile LLM (CV skills, README) · `[ ]` enrich_job |
 
 ### Documentation
@@ -192,8 +196,8 @@ Long-term memory (DB-backed current state):
 | Design | 7 | 0 | 0 |
 | Frontend web app | 13 | 0 | 0 |
 | Backend & DB | 10 | 1 | search subgraph + worker |
-| Agents | 5 | 1 | search subgraph, Helper, application |
+| Agents | 8 | 1 | prefilter, application enrich |
 | Integrations | 1 | 0 | search platforms |
 | Deploy | 5 | 0 | 0 |
 
-**Last updated:** 2026-07-05
+**Last updated:** 2026-07-07

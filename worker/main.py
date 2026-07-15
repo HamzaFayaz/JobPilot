@@ -2,17 +2,19 @@
 
 import asyncio
 import logging
+import os
 import sys
-from pathlib import Path
 
 if __name__ == "__main__":
-    repo_root = Path(__file__).resolve().parent.parent
-    if str(repo_root) not in sys.path:
-        sys.path.insert(0, str(repo_root))
+    from worker.runtime_paths import repo_root as _repo_root
+
+    if str(_repo_root()) not in sys.path:
+        sys.path.insert(0, str(_repo_root()))
 
 from worker.api_client import JobPilotWorkerClient, RETRYABLE_API_ERRORS
 from worker.browser_client import check_browser_health, run_search_task
 from worker.config import WorkerSettings, get_settings
+from worker.runtime_paths import worker_data_dir
 
 logging.basicConfig(
     level=logging.INFO,
@@ -22,6 +24,39 @@ logging.basicConfig(
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
 logger = logging.getLogger("worker.main")
+
+_WORKER_LOCK_PATH = worker_data_dir() / ".worker.lock"
+_worker_lock_file = None
+_IDLE_POLL_LOG_EVERY = 10
+
+
+def _acquire_single_instance_lock() -> None:
+    """Only one worker may poll the API — duplicates steal tasks with no visible logs."""
+    global _worker_lock_file
+    _WORKER_LOCK_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _worker_lock_file = open(_WORKER_LOCK_PATH, "w", encoding="utf-8")
+    try:
+        if os.name == "nt":
+            import msvcrt
+
+            _worker_lock_file.write("0")
+            _worker_lock_file.flush()
+            msvcrt.locking(_worker_lock_file.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(_worker_lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError as exc:
+        raise SystemExit(
+            "Another JobPilot worker is already running on this machine. "
+            "Stop the other process before starting a new one — only one worker "
+            "should poll the API or tasks/browser activity will not match your terminal."
+        ) from exc
+    _worker_lock_file.seek(0)
+    _worker_lock_file.truncate()
+    _worker_lock_file.write(str(os.getpid()))
+    _worker_lock_file.flush()
+    logger.info("Worker lock acquired (pid=%s)", os.getpid())
 
 
 def _validate_settings(settings: WorkerSettings) -> None:
@@ -70,15 +105,28 @@ async def run_forever(settings: WorkerSettings) -> None:
     logger.info("Connected to JobPilot at %s", settings.jobpilot_api_base)
     logger.info("Browser provider: %s | Qwen model: %s", settings.browser_provider, settings.qwen_model)
 
+    last_health: str | None = None
+    idle_polls = 0
     while True:
         try:
             health = check_browser_health(settings)
             client.send_heartbeat(browser_health=health)
-            if health != "ready":
-                logger.debug("WebBridge not ready (%s) — waiting for Chrome/extension", health)
+            if health != last_health:
+                if health == "ready":
+                    logger.info("WebBridge ready — Chrome extension connected")
+                elif health == "daemon_down":
+                    logger.info("WebBridge daemon down — worker will try to restart it")
+                elif health == "not_installed":
+                    logger.info(
+                        "WebBridge daemon running — open Chrome so the extension can connect"
+                    )
+                else:
+                    logger.info("WebBridge status: %s", health)
+                last_health = health
 
             task = client.fetch_next_task()
             if task:
+                idle_polls = 0
                 if health != "ready":
                     client.post_fail(
                         task.task_id,
@@ -91,7 +139,12 @@ async def run_forever(settings: WorkerSettings) -> None:
                 else:
                     await _run_task(client, settings, task)
             else:
-                logger.debug("No pending tasks")
+                idle_polls += 1
+                if idle_polls == 1 or idle_polls % _IDLE_POLL_LOG_EVERY == 0:
+                    logger.info(
+                        "Polling for tasks — none pending (pid=%s)",
+                        os.getpid(),
+                    )
         except Exception as exc:
             if isinstance(exc, RETRYABLE_API_ERRORS):
                 logger.warning("Worker loop: ECS unreachable (%s) — will retry", exc)
@@ -108,6 +161,7 @@ async def run_forever(settings: WorkerSettings) -> None:
 def main() -> None:
     settings = get_settings()
     _validate_settings(settings)
+    _acquire_single_instance_lock()
     logger.info("JobPilot Search Helper starting (poll every %ss)", settings.poll_interval_seconds)
     try:
         asyncio.run(run_forever(settings))

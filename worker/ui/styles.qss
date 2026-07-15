@@ -1,0 +1,328 @@
+/* JobPilot Search Helper — desktop utility theme */
+
+* {
+    font-family: "Segoe UI", "Inter", sans-serif;
+    font-size: 13px;
+}
+
+QMainWindow, QWidget#Root {
+    background-color: #F8FAFC;
+    color: #0F172A;
+}
+
+QWidget#TabBar {
+    background-color: #F8FAFC;
+    border-bottom: 1px solid #E2E8F0;
+    padding-bottom: 8px;
+}
+
+QPushButton#TabButton {
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 14px;
+    color: #64748B;
+    font-weight: 600;
+}
+
+QPushButton#TabButton:hover {
+    background-color: #F1F5F9;
+    color: #0F172A;
+}
+
+QPushButton#TabButton:checked {
+    background-color: #FFFFFF;
+    color: #0D9488;
+    border: 1px solid #E2E8F0;
+}
+
+QScrollArea {
+    border: none;
+    background: transparent;
+}
+
+QScrollArea > QWidget > QWidget {
+    background: transparent;
+}
+
+/* Header */
+QFrame#AppHeader {
+    background-color: #FFFFFF;
+    border-bottom: 1px solid #E2E8F0;
+}
+
+QLabel#AppTitle {
+    font-size: 15px;
+    font-weight: 600;
+    color: #0F172A;
+}
+
+QLabel#AppSubtitle {
+    font-size: 12px;
+    color: #64748B;
+}
+
+QLabel#BrandMark {
+    background-color: #0D9488;
+    border-radius: 6px;
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: 700;
+    min-width: 28px;
+    max-width: 28px;
+    min-height: 28px;
+    max-height: 28px;
+    qproperty-alignment: AlignCenter;
+}
+
+/* Cards */
+QFrame#Card, QGroupBox#Card {
+    background-color: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+}
+
+QGroupBox#Card {
+    margin-top: 10px;
+    padding: 14px 14px 12px 14px;
+    font-weight: 600;
+    color: #0F172A;
+}
+
+QGroupBox#Card::title {
+    subcontrol-origin: margin;
+    left: 12px;
+    padding: 0 6px;
+}
+
+/* Status banner */
+QFrame#StatusBanner {
+    border-radius: 10px;
+    border: 1px solid #E2E8F0;
+    background-color: #F1F5F9;
+}
+
+QFrame#StatusBanner[statusKind="success"] {
+    background-color: #F0FDF4;
+    border-color: #BBF7D0;
+}
+
+QFrame#StatusBanner[statusKind="warning"] {
+    background-color: #FFFBEB;
+    border-color: #FDE68A;
+}
+
+QFrame#StatusBanner[statusKind="error"] {
+    background-color: #FEF2F2;
+    border-color: #FECACA;
+}
+
+QFrame#StatusBanner[statusKind="info"] {
+    background-color: #F0FDFA;
+    border-color: #99F6E4;
+}
+
+QLabel#StatusDot {
+    min-width: 8px;
+    max-width: 8px;
+    min-height: 8px;
+    max-height: 8px;
+    border-radius: 4px;
+    background-color: #94A3B8;
+}
+
+QFrame#StatusBanner[statusKind="success"] QLabel#StatusDot {
+    background-color: #16A34A;
+}
+
+QFrame#StatusBanner[statusKind="warning"] QLabel#StatusDot {
+    background-color: #D97706;
+}
+
+QFrame#StatusBanner[statusKind="error"] QLabel#StatusDot {
+    background-color: #DC2626;
+}
+
+QFrame#StatusBanner[statusKind="info"] QLabel#StatusDot {
+    background-color: #0D9488;
+}
+
+QLabel#StatusText {
+    font-size: 13px;
+    font-weight: 500;
+    color: #0F172A;
+}
+
+QLabel#StatusHint {
+    font-size: 12px;
+    color: #64748B;
+}
+
+QLabel#FieldLabel {
+    font-size: 12px;
+    font-weight: 600;
+    color: #334155;
+}
+
+QLabel#FieldHint {
+    font-size: 11px;
+    color: #64748B;
+}
+
+QLabel#SavedBadge {
+    font-size: 11px;
+    font-weight: 600;
+    color: #16A34A;
+    background-color: #DCFCE7;
+    border-radius: 4px;
+    padding: 2px 6px;
+}
+
+QLabel#InlineNotice {
+    font-size: 12px;
+    color: #0D9488;
+    font-weight: 500;
+}
+
+QLabel#SetupStep {
+    font-size: 12px;
+    color: #475569;
+}
+
+QLineEdit {
+    background-color: #FFFFFF;
+    border: 1px solid #CBD5E1;
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: #0F172A;
+    selection-background-color: #CCFBF1;
+}
+
+QLineEdit:focus {
+    border: 1px solid #0D9488;
+}
+
+QLineEdit:disabled {
+    background-color: #F1F5F9;
+    color: #64748B;
+}
+
+QPushButton#RevealButton {
+    background: transparent;
+    border: 1px solid #CBD5E1;
+    border-radius: 8px;
+    padding: 6px 10px;
+    color: #64748B;
+    min-width: 36px;
+}
+
+QPushButton#RevealButton:hover {
+    background-color: #F8FAFC;
+    color: #0F172A;
+}
+
+QPushButton {
+    border-radius: 8px;
+    padding: 9px 16px;
+    font-weight: 600;
+    min-height: 18px;
+}
+
+QPushButton#PrimaryButton {
+    background-color: #0D9488;
+    color: #FFFFFF;
+    border: none;
+}
+
+QPushButton#PrimaryButton:hover {
+    background-color: #0F766E;
+}
+
+QPushButton#PrimaryButton:pressed {
+    background-color: #115E59;
+}
+
+QPushButton#PrimaryButton:disabled {
+    background-color: #94A3B8;
+    color: #E2E8F0;
+}
+
+QPushButton#SecondaryButton {
+    background-color: #FFFFFF;
+    color: #0F172A;
+    border: 1px solid #CBD5E1;
+}
+
+QPushButton#SecondaryButton:hover {
+    background-color: #F8FAFC;
+    border-color: #94A3B8;
+}
+
+QPushButton#SecondaryButton:disabled {
+    color: #94A3B8;
+    background-color: #F8FAFC;
+}
+
+QPushButton#DangerButton {
+    background-color: #FFFFFF;
+    color: #DC2626;
+    border: 1px solid #FECACA;
+}
+
+QPushButton#DangerButton:hover {
+    background-color: #FEF2F2;
+}
+
+QFrame#WebBridgeCard {
+    background-color: #F0FDFA;
+    border: 1px solid #99F6E4;
+    border-radius: 10px;
+}
+
+QLabel#WebBridgeTitle {
+    font-size: 13px;
+    font-weight: 600;
+    color: #0F172A;
+}
+
+QLabel#FooterHint {
+    font-size: 11px;
+    color: #94A3B8;
+}
+
+QLabel#FooterLink {
+    font-size: 12px;
+    color: #0D9488;
+    font-weight: 500;
+}
+
+QLabel#FooterLink:hover {
+    color: #0F766E;
+    text-decoration: underline;
+}
+
+QPlainTextEdit#LogView {
+    background-color: #0F172A;
+    color: #A7F3D0;
+    border: none;
+    border-radius: 8px;
+    padding: 10px;
+    font-family: "Cascadia Mono", "Consolas", monospace;
+    font-size: 11px;
+}
+
+QGroupBox#LogsGroup {
+    border: 1px solid #E2E8F0;
+    border-radius: 10px;
+    margin-top: 8px;
+    padding-top: 8px;
+    background-color: #FFFFFF;
+    font-weight: 600;
+}
+
+QGroupBox#LogsGroup::title {
+    subcontrol-origin: margin;
+    left: 12px;
+    padding: 0 6px;
+    color: #475569;
+}

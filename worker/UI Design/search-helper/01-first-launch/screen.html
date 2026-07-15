@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>JobPilot Search Helper</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface": "#f7f9fb",
+                      "surface-container-lowest": "#ffffff",
+                      "on-secondary-fixed-variant": "#38485d",
+                      "on-tertiary-container": "#fffbff",
+                      "surface-tint": "#006a61",
+                      "on-primary-fixed": "#00201d",
+                      "on-surface": "#191c1e",
+                      "on-background": "#191c1e",
+                      "secondary": "#505f76",
+                      "surface-container-low": "#f2f4f6",
+                      "secondary-container": "#d0e1fb",
+                      "tertiary-fixed": "#ffdbce",
+                      "outline": "#6d7a77",
+                      "on-secondary": "#ffffff",
+                      "tertiary": "#924628",
+                      "surface-container-highest": "#e0e3e5",
+                      "on-tertiary": "#ffffff",
+                      "inverse-surface": "#2d3133",
+                      "primary-fixed": "#89f5e7",
+                      "on-primary": "#ffffff",
+                      "primary-container": "#008378",
+                      "surface-dim": "#d8dadc",
+                      "on-primary-container": "#f4fffc",
+                      "surface-container-high": "#e6e8ea",
+                      "inverse-primary": "#6bd8cb",
+                      "error-container": "#ffdad6",
+                      "on-primary-fixed-variant": "#005049",
+                      "on-error": "#ffffff",
+                      "error": "#ba1a1a",
+                      "on-secondary-fixed": "#0b1c30",
+                      "on-tertiary-fixed-variant": "#773215",
+                      "inverse-on-surface": "#eff1f3",
+                      "tertiary-container": "#b05e3d",
+                      "surface-variant": "#e0e3e5",
+                      "primary": "#00685f",
+                      "surface-bright": "#f7f9fb",
+                      "on-error-container": "#93000a",
+                      "surface-container": "#eceef0",
+                      "primary-fixed-dim": "#6bd8cb",
+                      "outline-variant": "#bcc9c6",
+                      "secondary-fixed": "#d3e4fe",
+                      "on-secondary-container": "#54647a",
+                      "secondary-fixed-dim": "#b7c8e1",
+                      "tertiary-fixed-dim": "#ffb59a",
+                      "on-tertiary-fixed": "#370e00",
+                      "on-surface-variant": "#3d4947",
+                      "background": "#f7f9fb"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "margin-main": "1.25rem",
+                      "padding-input": "0.625rem 0.875rem",
+                      "container-width": "480px",
+                      "padding-card": "1rem",
+                      "gutter-stack": "0.75rem"
+              },
+              "fontFamily": {
+                      "body-base": [
+                              "Inter"
+                      ],
+                      "label-caps": [
+                              "Inter"
+                      ],
+                      "header-subtitle": [
+                              "Inter"
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "mono-log": [
+                              "ui-monospace"
+                      ],
+                      "body-sm": [
+                              "Inter"
+                      ],
+                      "header-title": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "body-base": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-caps": [
+                              "11px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "header-subtitle": [
+                              "13px",
+                              {
+                                      "lineHeight": "18px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-md": [
+                              "13px",
+                              {
+                                      "lineHeight": "18px",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "mono-log": [
+                              "12px",
+                              {
+                                      "lineHeight": "18px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "header-title": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        body {
+            background-color: #f7f9fb;
+            color: #191c1e;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px 0;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .app-shell {
+            width: 480px;
+            background-color: #f7f9fb;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #e0e3e5;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .input-field {
+            height: 36px;
+            padding: 0.625rem 0.875rem;
+            border: 1px solid #bcc9c6;
+            border-radius: 0.25rem;
+            background-color: #ffffff;
+            color: #191c1e;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-field:focus {
+            border-color: #00685f;
+            box-shadow: inset 0 0 0 1px #00685f;
+        }
+        
+        .input-group {
+            position: relative;
+        }
+        
+        .input-icon-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #54647a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            border-radius: 0.125rem;
+        }
+        
+        .input-icon-btn:hover {
+            background-color: #eceef0;
+        }
+
+        .btn-primary {
+            background-color: #00685f;
+            color: #ffffff;
+            border: none;
+        }
+        
+        .btn-primary:disabled {
+            background-color: #bcc9c6;
+            color: #ffffff;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .btn-secondary {
+            background-color: #ffffff;
+            color: #3d4947;
+            border: 1px solid #bcc9c6;
+        }
+        
+        .btn-secondary:disabled {
+            background-color: #f2f4f6;
+            color: #a0afa0;
+            border-color: #e0e3e5;
+            cursor: not-allowed;
+        }
+
+        .btn {
+            height: 36px;
+            padding: 0 1rem;
+            border-radius: 0.25rem;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .custom-checkbox {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border: 1px solid #bcc9c6;
+            border-radius: 0.125rem;
+            background-color: #ffffff;
+            display: inline-block;
+            position: relative;
+            cursor: pointer;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        .custom-checkbox:checked {
+            background-color: #00685f;
+            border-color: #00685f;
+        }
+
+        .custom-checkbox:checked::after {
+            content: '';
+            position: absolute;
+            left: 5px;
+            top: 2px;
+            width: 4px;
+            height: 8px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+    </style>
+</head>
+<body>
+<div class="app-shell">
+<!-- TopAppBar -->
+<header class="bg-surface-container-lowest dark:bg-surface-dim w-full h-14 border-b border-outline-variant dark:border-outline flex justify-between items-center px-margin-main transition-colors duration-200">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed-dim" style="font-variation-settings: 'FILL' 1;">work</span>
+<div class="flex flex-col">
+<h1 class="font-header-title text-header-title text-primary dark:text-primary-fixed-dim font-bold">JobPilot Search Helper</h1>
+<span class="font-header-subtitle text-header-subtitle text-on-surface-variant">Runs on this PC</span>
+</div>
+</div>
+<button class="hover:bg-surface-container dark:hover:bg-on-surface-variant/10 p-2 rounded-full transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant">settings</span>
+</button>
+</header>
+<!-- Main Content Area -->
+<main class="flex flex-col p-margin-main gap-gutter-stack bg-surface">
+<!-- Status Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-padding-card flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface">System Status</span>
+<div class="bg-surface-container-high/50 px-3 py-1 rounded-full flex items-center">
+<span class="w-2 h-2 rounded-full bg-outline mr-2"></span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Enter settings and click Start</span>
+</div>
+</div>
+<!-- Settings Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-padding-card flex flex-col gap-4">
+<h2 class="font-label-caps text-label-caps text-on-surface-variant uppercase">Configuration</h2>
+<div class="flex flex-col gap-1">
+<label class="font-body-sm text-body-sm text-on-surface">Pairing Code</label>
+<input class="input-field w-full" placeholder="Enter code from JobPilot" type="text"/>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-body-sm text-body-sm text-on-surface">Dashscope API Key</label>
+<div class="input-group">
+<input class="input-field w-full pr-8" placeholder="sk-..." type="password"/>
+<button class="input-icon-btn">
+<span class="material-symbols-outlined" style="font-size: 16px;">visibility</span>
+</button>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<label class="font-body-sm text-body-sm text-on-surface">Qwen Model</label>
+<select class="input-field w-full bg-white appearance-none cursor-pointer">
+<option selected="" value="qwen-plus">qwen-plus</option>
+<option value="qwen-max">qwen-max</option>
+<option value="qwen-turbo">qwen-turbo</option>
+</select>
+</div>
+</div>
+<!-- Setup Checklist -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-padding-card">
+<h2 class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-3">Setup Checklist</h2>
+<div class="flex flex-col gap-3">
+<label class="flex items-center font-body-base text-body-base text-on-surface cursor-pointer">
+<input class="custom-checkbox" type="checkbox"/>
+                        Get pairing code from JobPilot Settings
+                    </label>
+<label class="flex items-center font-body-base text-body-base text-on-surface cursor-pointer">
+<input class="custom-checkbox" type="checkbox"/>
+                        Install WebBridge
+                    </label>
+<label class="flex items-center font-body-base text-body-base text-on-surface cursor-pointer">
+<input class="custom-checkbox" disabled="" type="checkbox"/>
+<span class="opacity-70">Start</span>
+</label>
+</div>
+</div>
+<!-- Button Row -->
+<div class="flex gap-2 mt-2">
+<button class="btn btn-primary flex-1" disabled="">Start</button>
+<button class="btn btn-secondary flex-1">Save</button>
+<button class="btn btn-secondary flex-1" disabled="">Stop</button>
+</div>
+<!-- Logs Accordion -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg overflow-hidden mt-2">
+<button class="w-full p-3 flex justify-between items-center bg-surface-container-lowest hover:bg-surface-container-low transition-colors text-left" onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('.material-symbols-outlined').classList.toggle('rotate-180')">
+<span class="font-label-md text-label-md text-on-surface">Advanced logs</span>
+<span class="material-symbols-outlined text-on-surface-variant transition-transform duration-200">expand_more</span>
+</button>
+<div class="hidden bg-surface-container-low p-3 border-t border-outline-variant">
+<div class="font-mono-log text-mono-log text-on-surface-variant whitespace-pre-wrap h-24 overflow-y-auto">
+&gt; System initialized.
+&gt; Waiting for configuration...
+                    </div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-transparent w-full py-4 flex flex-col items-center gap-2 mt-auto border-t border-outline-variant">
+<div class="flex gap-4">
+<a class="font-body-sm text-body-sm text-primary underline hover:text-primary-container transition-colors cursor-pointer" href="#">Install Kimi WebBridge</a>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Runs in background when closed</span>
+</footer>
+</div>
+</body></html>

@@ -53,7 +53,30 @@ Expect `running: true` and `extension_connected: true` (open Chrome if extension
 .\.venv\Scripts\python.exe main.py
 ```
 
+Or test the GUI launcher in dev:
+
+```powershell
+cd ..
+.\worker\.venv\Scripts\python.exe -m worker.app_entry
+```
+
 Leave it running. On the website: Settings → pair Search Helper → Start search.
+
+## Build Search Helper `.exe` (Windows)
+
+```powershell
+cd worker
+.\build.cmd
+```
+
+Output: `worker\dist\JobPilot-SearchHelper.exe` (~70 MB).
+
+1. Double-click the exe
+2. Enter **pairing code**, **Dashscope API key**, and **model** (default `qwen-plus`)
+3. Click **Start** — settings save to `%LOCALAPPDATA%\JobPilot\SearchHelper\.env`
+4. Close the window to keep running in the system tray
+
+Worker/agent code is unchanged; the exe wraps the same `main.py` loop in a subprocess.
 
 ## Pairing WORKER_TOKEN
 
@@ -67,7 +90,6 @@ Default model is **`qwen-plus`** for trial token budget. If navigation misbehave
 
 ## Not in this slice
 
-- PyInstaller `.exe` (after local `python main.py` works)
 - PySide6 tray UI (later)
 
 Full spec: [`System Design/jobpilot-agent-build-guide.md`](../System%20Design/jobpilot-agent-build-guide.md) · [`kimi-webbridge-provider.md`](../System%20Design/kimi-webbridge-provider.md)
