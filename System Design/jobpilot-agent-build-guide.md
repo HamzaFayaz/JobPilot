@@ -38,7 +38,7 @@ We **rejected** these alternatives after review:
               User's Chrome (LinkedIn already logged in)
 ```
 
-**Hackathon submission:** Judges use **website on ECS** (signup, CV, GitHub, **demo/mock search**). **Real** LinkedIn search is demonstrated from **your laptop** with Search Helper running. See [§8](#8-hackathon--qwen-cloud-alignment).
+**Hackathon submission:** Judges use **website on ECS** (signup, CV, GitHub, search with paired Search Helper). Real LinkedIn search runs via **Search Helper** on the user's PC. See [§8](#8-hackathon--qwen-cloud-alignment).
 
 ---
 
@@ -105,11 +105,10 @@ sequenceDiagram
 
 | Status | Enable Start search? | Action |
 |--------|----------------------|--------|
-| Helper not connected | No (or Demo mode only) | Download + pair |
+| Helper not connected | No | Download + pair |
 | Chrome profile not ready | No | Job browser setup guide |
 | Ready | Yes | — |
 | Searching | — | `/runs/:runId` progress |
-| Demo mode | Yes (mock jobs) | No Helper required |
 
 ### 2.6 Packaging (hackathon)
 
@@ -248,7 +247,6 @@ frontend/src/
   pages/RunProgressPage.tsx   # /runs/:runId (new)
   components/search/
     SearchHelperStatus.tsx    # pairing + readiness card
-    DemoSearchMode.tsx        # mock path for judges
 ```
 
 **Import rule (enforce in code review):**
@@ -282,11 +280,11 @@ worker/**                →  may import backend.app.services.browser (shared pa
 | `POST` | `/api/worker/tasks/{id}/fail` | `{ code, error }` |
 | `DELETE` | `/api/worker/pair` | Revoke device token |
 
-### 5.3 Database (extend existing stubs)
+### 5.3 Database
 
-**`search_runs`** — add columns as needed: `role`, `platform`, `status`, `error`, `jobs_ready_count`, `user_id` (already stubbed).
+**`search_runs`** — `role`, `platform`, `status`, `error`, `jobs_ready_count`, `user_id`.
 
-**`job_packages`** — extend stub: `run_id`, `title`, `company`, `url`, `score`, `summary`, `status`, JSON draft fields.
+**`job_packages`** — `run_id`, `title`, `company`, `url`, `score`, `summary`, `status`, JSON draft fields.
 
 **`worker_devices`** (new): `user_id`, `token_hash`, `label`, `last_seen_at`, `browser_health`.
 
@@ -333,7 +331,7 @@ Use this order on `jobpilot-with-brosweruse`. Check off in PRs.
 - [ ] `models/browser.py`, `models/search.py`
 - [ ] `services/browser/base.py`, `factory.py`, stub `browser_use.py`
 - [ ] `search_store.py` + migrate `search_runs`, `job_packages`, `worker_*` tables
-- [ ] `routes/search.py`, `routes/runs.py` stub returning mock data
+- [x] `routes/search.py`, `routes/runs.py`, `routes/jobs.py` — real DB-backed APIs
 
 ### Phase B — Search Helper skeleton
 
@@ -362,11 +360,10 @@ Use this order on `jobpilot-with-brosweruse`. Check off in PRs.
 - [ ] `Send` fan-out in `orchestrator.py`
 - [ ] `GET /api/jobs` returns scored packages
 
-### Phase F — UI + hackathon demo
+### Phase F — UI + hackathon
 
 - [ ] `RunProgressPage.tsx`, wire Search page
-- [ ] **Demo mode** — mock jobs on ECS without Helper
-- [ ] Package Search Helper `.exe` for your demo machine
+- [ ] Package Search Helper `.exe` for demo machine
 
 ### Phase G — Cleanup (post-WebBridge E2E)
 
@@ -387,7 +384,7 @@ From **`Qwen Cloud Proof of Deployment.docx`**:
 | Public repo + architecture diagram | This doc + [`JobPilot-System-Design.md`](./JobPilot-System-Design.md) |
 | Video demo 1–3 min | Website flow + optional real search on presenter PC |
 
-**Judges:** mock/demo search on website. **You:** Search Helper for real LinkedIn clip in video.
+**Judges:** ECS website with paired Search Helper for real search. **Video:** website flow + real LinkedIn search on presenter PC.
 
 ---
 

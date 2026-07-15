@@ -1,107 +1,182 @@
 # JobPilot
 
-**Your AI job application copilot — search, tailor, and apply with human approval before anything is sent.**
+**AI job application copilot — LangGraph orchestration, distributed browser automation, and human-in-the-loop control.**
 
-[![Status: Under Active Development](https://img.shields.io/badge/status-under%20active%20development-amber?style=flat-square)](./progress.md)
-[![Stack: React + FastAPI](https://img.shields.io/badge/stack-React%20%7C%20FastAPI%20%7C%20LangGraph-blue?style=flat-square)](#tech-stack)
-[![LLM: Qwen Cloud](https://img.shields.io/badge/LLM-Qwen%20Cloud-purple?style=flat-square)](https://home.qwencloud.com)
+[![Live Demo](https://img.shields.io/badge/demo-Alibaba%20ECS-43.98.197.132-blue?style=flat-square)](http://43.98.197.132)
+[![Stack](https://img.shields.io/badge/stack-React%20%7C%20FastAPI%20%7C%20LangGraph-blue?style=flat-square)](#tech-stack)
+[![LLM](https://img.shields.io/badge/LLM-Qwen%20Cloud-purple?style=flat-square)](https://home.qwencloud.com)
+[![Search](https://img.shields.io/badge/search-LinkedIn%20Posts-0A66C2?style=flat-square)](#features)
 
 ---
 
 ## Overview
 
-JobPilot is a browser-based assistant for developers who want **high-quality job applications at scale**. It connects to your profile (CV, GitHub, skills), searches job platforms, scores listings against your background, drafts tailored applications, and sends email — **only after you approve each step**.
+JobPilot is a **multi-tier agentic system** built for developers who want high-quality job applications without manual grind on every listing. Users build a profile from their CV and GitHub, start a search from the web app, and a **cloud orchestrator** coordinates a **desktop Search Helper** that browses LinkedIn Posts in the user's real Chrome session. Listings return to the server, pass through normalization and deduplication, and flow into **per-job application sub-agents** that score, summarize, and package each opportunity.
 
-> **This repository is under active construction.** Core onboarding and profile APIs are live locally; search agents, HITL job flows, and production deploy are in progress. See [Current status](#current-status) below.
+The platform is optimized for **LinkedIn Posts** — the format where hiring managers and recruiters post roles directly in the feed.
+
+| Tier | Components |
+|------|------------|
+| **Cloud (Alibaba ECS)** | React UI · FastAPI · LangGraph · SQLite · Qwen API |
+| **Desktop** | JobPilot Search Helper — Windows `.exe`, task queue client |
+| **Browser** | Kimi WebBridge + Qwen ReAct loop in logged-in Chrome |
+
+**Live demo:** [http://43.98.197.132](http://43.98.197.132)
 
 ---
 
 ## The problem
 
-A serious job search means scanning multiple platforms, reading every JD, tailoring your CV, and writing unique emails — often 10–20 times per day. Generic bulk applications convert poorly; fully manual tailoring does not scale.
+Technical job search at scale breaks down in two directions:
 
-**JobPilot is the middle path:** AI handles search, scoring, and drafting; you stay in control with a human-in-the-loop (HITL) gate before anything is sent.
+- **Manual:** reading every post, tailoring every CV, writing every email — accurate but exhausting
+- **Bulk automation:** fast but low conversion, platform risk, no user control
 
----
-
-## Current status
-
-| Area | Status |
-|------|--------|
-| Design system & UI reference | ✅ Complete |
-| Welcome, Profile, Search screens | ✅ Complete |
-| FastAPI profile API + SQLite | ✅ Complete |
-| CV upload → LLM skill extraction | ✅ Complete |
-| GitHub OAuth + repo import | ✅ Complete |
-| Multi-user login / signup | 🚧 Next |
-| LangGraph search agents | 🚧 Planned |
-| Job scoring & CV rewrite per JD | 🚧 Planned |
-| HITL approve → platform apply | 🚧 Planned |
-| Production deploy (Alibaba ECS) | ✅ Live — http://43.98.197.132 |
-
-**Live progress:** [`progress.md`](./progress.md) · **Active work:** [`currently-working-feature.md`](./currently-working-feature.md)
+JobPilot delivers the middle path: **agentic search, scoring, and drafting with human approval before anything is sent.**
 
 ---
 
-## Full product vision (when complete)
+## Features
 
-Everything JobPilot will do at launch:
-
-### Profile & onboarding
-- **CV upload** (`.docx`) with automatic skill extraction via profile LLM
-- **Target roles** — user-defined roles used per search run
-- **GitHub import** — OAuth connect, select repos, README → project cards + merged skills
-- **Gmail connect** — OAuth for sending approved applications
-- **Profile gate** — unlock Search when CV, skills, and projects meet minimum requirements
-- **Settings** — read-only skills, editable project cards
-
-### Search & agents
-- **Multi-platform search** — LinkedIn, Indeed (browser worker in user's real Chrome session)
-- **LangGraph orchestration** — parent graph + per-job sub-agents
-- **Job scoring** — match score per listing against skills, CV, and projects
-- **CV optimization** — recommend project swaps per JD (word-count aware)
-- **Real-time run progress** — polling `/search` runs with status updates
-
-### Human-in-the-loop (HITL)
-- **Approve before send** — review cover letter and email for every application
-- **Job detail screen** — listing, score, proposed CV changes, draft email
-- **One-click reject** — skip jobs that are not a fit
-- **Applications memory** — track what was applied to avoid duplicates
-
-### Integrations
-- **Gmail API** — send approved emails with CV attachment
-- **GitHub API** — repo list, README fetch, project summarization
-- **Qwen Cloud (Dashscope)** — scoring, CV rewrite, email drafting, profile extraction
-- **Kimi WebBridge** — control user's real Chrome for platform search (replacing Browser-Use)
-
-### Platform & ops (post-MVP)
-- CV storage on Alibaba Cloud OSS (optional; files on instance disk for MVP)
-- Managed database (RDS) — optional; SQLite on instance disk for hackathon
-- Multi-user auth (out of hackathon MVP scope)
-
-**Deploy guides:** [`System Design/aws-ec2-deploy.md`](System%20Design/aws-ec2-deploy.md) (active) · [`System Design/alibaba-cloud-trial.md`](System%20Design/alibaba-cloud-trial.md) (hackathon submit)
-
-**Live demo:** http://43.98.197.132
+- **Multi-user accounts** — signup, login, JWT httpOnly sessions, per-user data isolation
+- **Profile intelligence** — CV upload (`.docx`), Qwen skill extraction, target roles, GitHub OAuth repo import
+- **LinkedIn Posts search** — Search Helper captures hiring posts via Kimi WebBridge in real Chrome
+- **LangGraph orchestration** — parent graph with search subgraph, prefilter, and parallel application subgraphs
+- **Listing prefilter** — normalize, dedupe, drop already-applied jobs (no LLM cost)
+- **Per-job application agents** — structured Qwen scoring, match summary, CV guidance, draft email
+- **Worker task queue** — device pairing, heartbeat, async `browser_search` tasks over HTTPS
+- **Run polling API** — `POST /api/search`, status polling, `job_packages` results per run
+- **Encrypted storage** — Fernet for CV text and OAuth tokens; all tables scoped by `user_id`
+- **Cloud deploy** — Docker Compose, Nginx, GitHub Actions on Alibaba ECS
 
 ---
 
-## How it works (architecture)
+## Agentic architecture
 
-```
-┌─────────────┐     ┌──────────────┐     ┌─────────────────┐
-│  React UI   │────▶│  FastAPI     │────▶│  SQLite / DB    │
-│  :5173      │     │  :8000       │     │  profiles, OAuth│
-└─────────────┘     └──────┬───────┘     └─────────────────┘
-                           │
-              ┌────────────┼────────────┐
-              ▼            ▼            ▼
-         Qwen LLM    Gmail API    GitHub API
-              │
-              ▼
-    LangGraph agents + Kimi WebBridge (Search Helper)
+JobPilot uses a **deterministic LangGraph pipeline** — code routes between subgraphs. Qwen is invoked where structured judgment is required: the browser ReAct agent on the user's PC and `enrich_job` on the server.
+
+### Three-tier deployment
+
+```mermaid
+flowchart TB
+  subgraph T1 ["Tier 1 — Alibaba ECS (cloud)"]
+    UI["React SPA"]
+    API["FastAPI"]
+    LG["LangGraph orchestrator"]
+    DB[("SQLite")]
+    UI --> API --> LG --> DB
+  end
+
+  subgraph T2 ["Tier 2 — Search Helper (user PC)"]
+    WH["worker/main.py poll loop"]
+    BC["browser_client + agent_loop"]
+    WH --> BC
+  end
+
+  subgraph T3 ["Tier 3 — Kimi WebBridge"]
+    WB["HTTP :10086"]
+    Chrome["User Chrome — LinkedIn session"]
+    WB --> Chrome
+  end
+
+  API <-->|"HTTPS task queue"| WH
+  BC --> WB
+  Chrome -->|"raw listings JSON"| BC
+  BC -->|"POST /api/worker/tasks/{id}/result"| API
 ```
 
-**Principle:** Agent logic runs server-side; browser automation uses the user's real logged-in Chrome session on a residential IP.
+LinkedIn requires the user's home IP and logged-in session — ECS orchestrates; the Search Helper executes in real Chrome.
+
+### Parent graph pipeline
+
+```mermaid
+flowchart LR
+  A["init_run"] --> B["search_subgraph"]
+  B --> C["prefilter"]
+  C --> D{"matched_jobs?"}
+  D -->|yes| E["Send × N\napplication_subgraph"]
+  D -->|no| F["persist"]
+  E --> F
+```
+
+| Node | Layer | Responsibility |
+|------|-------|----------------|
+| `init_run` | Parent | Load profile snapshot, validate gates, set `search_runs.status` |
+| `search_subgraph` | Subgraph | Enqueue worker task → poll until listings arrive |
+| `prefilter` | Parent | Normalize → dedupe → drop already-applied |
+| `fan_out_applications` | Parent | LangGraph `Send` — parallel per-job subgraphs |
+| `application_subgraph` | Subgraph | `enrich_job` → score threshold → write `job_packages` |
+| `persist` | Parent | Finalize run status and counts |
+
+### End-to-end search flow
+
+```mermaid
+sequenceDiagram
+  participant U as User browser
+  participant ECS as FastAPI + LangGraph
+  participant H as Search Helper
+  participant C as Chrome (WebBridge)
+
+  U->>ECS: POST /api/search
+  ECS->>ECS: enqueue worker_tasks row
+  ECS-->>U: { runId, pending }
+  H->>ECS: GET /api/worker/tasks/next
+  ECS-->>H: browser_search task
+  H->>C: Kimi WebBridge + Qwen ReAct
+  C-->>H: RawJobListing[]
+  H->>ECS: POST /api/worker/tasks/{id}/result
+  ECS->>ECS: wait_for_listings → prefilter → fan-out
+  U->>ECS: GET /api/runs/{id}/status (poll)
+  U->>ECS: GET /api/jobs?runId=
+```
+
+**Contract:** one task out, one result back. ECS never imports browser SDKs — only HTTP and JSON across the boundary.
+
+### Data flow
+
+```text
+Search Helper
+  POST /api/worker/tasks/{taskId}/result
+  { listings: RawJobListing[], warnings: string[] }
+       ↓
+worker_tasks.result_json
+       ↓
+search_subgraph.wait_for_listings()
+       ↓
+prefilter → matched_jobs
+       ↓
+application_subgraph (per job) → job_packages
+       ↓
+search_runs (jobs_ready_count, status)
+```
+
+Posts without a public URL receive an internal `linkedin-post://{hash}` identifier for deduplication and storage — used server-side only, not shown as a user-facing link.
+
+---
+
+## Engineering highlights
+
+| Decision | Rationale |
+|----------|-----------|
+| **LangGraph parent + subgraphs** | Clean separation: search wait loop, per-job scoring, browser ReAct |
+| **Worker task queue (HTTP)** | Resilient polling; simple to debug; no WebSocket infra |
+| **Kimi WebBridge** | Real Chrome session, residential IP, existing LinkedIn login |
+| **Targeted Qwen usage** | Profile extraction, browser agent, `enrich_job` — no LLM supervisor router |
+| **Code-only prefilter** | Normalize, URL/email dedupe, drop applied before fan-out |
+| **Fernet + per-user scope** | Encrypted secrets; every row keyed by `user_id` |
+| **Docker + GitHub Actions** | Repeatable ECS deploy with public demo URL |
+
+**Key modules:**
+
+| Path | Role |
+|------|------|
+| [`backend/app/graph/orchestrator.py`](./backend/app/graph/orchestrator.py) | Parent LangGraph — nodes, edges, `Send` fan-out |
+| [`backend/app/graph/subgraphs/search/`](./backend/app/graph/subgraphs/search/) | Enqueue + wait for worker listings |
+| [`backend/app/graph/subgraphs/application/`](./backend/app/graph/subgraphs/application/) | Per-job enrich, score gate, package output |
+| [`backend/app/services/listing_prefilter.py`](./backend/app/services/listing_prefilter.py) | Normalize, dedupe, drop applied |
+| [`backend/app/services/worker_store.py`](./backend/app/services/worker_store.py) | Device pairing, task queue, result polling |
+| [`worker/agent_loop.py`](./worker/agent_loop.py) | Qwen ReAct loop over WebBridge snapshots |
+| [`worker/api_client.py`](./worker/api_client.py) | Search Helper ↔ ECS HTTP client |
 
 ---
 
@@ -109,13 +184,16 @@ Everything JobPilot will do at launch:
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | React 19, TypeScript, Vite, Tailwind CSS |
-| Backend | Python 3.11+, FastAPI, Uvicorn |
-| Database | SQLite (local MVP) → RDS (production) |
-| LLM | Qwen Cloud via OpenAI-compatible Dashscope API |
-| Agents | LangGraph (planned) |
-| Browser | Kimi WebBridge via Search Helper (replacing Browser-Use) |
-| Auth | Google OAuth (Gmail), GitHub OAuth |
+| **Frontend** | React 19, TypeScript, Vite, Tailwind CSS, Heroicons |
+| **Design** | Stitch UI exports, `design-system/MASTER.md`, responsive AppShell |
+| **Backend** | Python 3.11+, FastAPI, Uvicorn, Pydantic v2 |
+| **Database** | SQLite on ECS (schema ready for RDS migration) |
+| **Agents** | LangGraph — parent graph + compiled subgraphs |
+| **LLM** | Qwen Cloud (Dashscope OpenAI-compatible API) |
+| **Browser automation** | Kimi WebBridge (HTTP daemon + Chrome extension) |
+| **Desktop worker** | PyInstaller `.exe`, PySide6 settings UI |
+| **Auth** | Email/password + JWT httpOnly cookie; GitHub OAuth |
+| **Deploy** | Docker Compose, Nginx, GitHub Actions → Alibaba ECS |
 
 ---
 
@@ -125,8 +203,9 @@ Everything JobPilot will do at launch:
 
 - Python 3.11+
 - Node.js 18+
-- [Qwen Cloud API key](https://home.qwencloud.com)
-- Google & GitHub OAuth apps (optional; for Gmail/GitHub features)
+- [Qwen Cloud API key](https://home.qwencloud.com) (`DASHSCOPE_API_KEY`)
+- Kimi WebBridge extension + daemon
+- GitHub OAuth app (for repo import)
 
 ### 1. Clone and configure
 
@@ -134,10 +213,10 @@ Everything JobPilot will do at launch:
 git clone <repo-url>
 cd JobPilot
 cp .env.example .env
-# Edit .env — add DASHSCOPE_API_KEY, GOOGLE_*, GITHUB_*
+# Set DASHSCOPE_API_KEY, JWT_SECRET, DATA_ENCRYPTION_KEY, GITHUB_*
 ```
 
-### 2. Setup (first time)
+### 2. Setup
 
 **Windows:**
 ```bat
@@ -147,25 +226,28 @@ setup.cmd
 **Manual:**
 ```bash
 python -m venv .venv
-.venv\Scripts\activate        # Windows
+.venv\Scripts\activate
 pip install -r requirements.txt
 cd frontend && npm install
 ```
 
 ### 3. Run locally
 
-**Windows (recommended):**
+**Windows:**
 ```bat
 dev.cmd
 ```
 
-**Manual (two terminals):**
+**Manual:**
 ```bash
 # Terminal 1 — API
 uvicorn backend.app.main:app --reload --port 8000
 
 # Terminal 2 — UI
 cd frontend && npm run dev
+
+# Terminal 3 — Search Helper (after pairing in UI)
+cd worker && python main.py
 ```
 
 | Service | URL |
@@ -174,40 +256,71 @@ cd frontend && npm run dev
 | API | http://localhost:8000 |
 | Health | http://localhost:8000/health |
 
+Search Helper: [`worker/README.md`](./worker/README.md) · WebBridge: [`System Design/kimi-webbridge-provider.md`](./System%20Design/kimi-webbridge-provider.md)
+
 ---
 
 ## Project structure
 
-```
+```text
 JobPilot/
-├── backend/           # FastAPI app (profile, OAuth, GitHub import)
-├── frontend/          # Vite React SPA
-├── config/            # LLM defaults (llm.yaml)
-├── data/              # SQLite DB + CV uploads (gitignored)
-├── System Design/     # Architecture & design decisions
-├── .agent/plans/      # Build plans for /build command
-├── dev.cmd            # Start backend + frontend (Windows)
-├── setup.cmd          # First-time setup (Windows)
-├── progress.md        # Project progress tracker
-└── jobpilot_prd.md    # Product requirements
+├── backend/app/
+│   ├── graph/              # LangGraph orchestrator + subgraphs
+│   ├── routes/             # FastAPI routers (auth, search, worker, jobs)
+│   ├── services/           # worker_store, search_store, listing_prefilter, profile_llm
+│   └── models/             # Pydantic contracts (browser, search, worker)
+├── frontend/src/           # React SPA (Welcome, Profile, Search)
+├── worker/                 # JobPilot Search Helper (WebBridge + Qwen agent loop)
+├── config/llm.yaml         # Model routing defaults
+├── design-system/          # Design tokens (Stitch overrides)
+├── System Design/          # Architecture specs and ADRs
+├── deploy/                 # Docker, Nginx, ECS bootstrap
+└── tests/                  # Backend + worker unit tests
 ```
 
 ---
 
-## API surface (current)
+## API surface
+
+### User & profile
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/api/profile` | Full profile + OAuth flags |
-| `PUT` | `/api/profile` | Update roles & projects |
-| `POST` | `/api/profile/cv` | Upload `.docx`, extract skills |
-| `GET` | `/auth/google` | Start Gmail OAuth |
-| `DELETE` | `/api/auth/google` | Disconnect Gmail |
-| `GET` | `/auth/github` | Start GitHub OAuth |
-| `GET` | `/api/github/repos` | List user repos |
-| `POST` | `/api/github/import` | Import READMEs → projects |
+| `POST` | `/api/auth/signup` | Create account |
+| `POST` | `/api/auth/login` | Login (JWT cookie) |
+| `GET` | `/api/profile` | Profile + search preferences |
+| `PUT` | `/api/profile` | Update roles, projects, search prefs |
+| `POST` | `/api/profile/cv` | Upload `.docx`, extract skills (Qwen) |
+| `GET` | `/auth/github` | GitHub OAuth start |
+| `POST` | `/api/github/import` | Import READMEs → project cards |
 
-Search, job packages, and send endpoints are **planned** — see [`jobpilot_prd.md`](./jobpilot_prd.md).
+### Search & jobs
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/search` | Start search run → background graph |
+| `GET` | `/api/runs/latest/status` | Latest run for current user |
+| `GET` | `/api/runs/{runId}/status` | Poll run progress |
+| `GET` | `/api/jobs?runId=` | List scored `job_packages` for a run |
+
+### Search Helper (worker)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/worker/pair` | Issue `WORKER_TOKEN` |
+| `POST` | `/api/worker/heartbeat` | Liveness + browser health |
+| `GET` | `/api/worker/tasks/next` | Claim next `browser_search` task |
+| `POST` | `/api/worker/tasks/{id}/result` | Post `RawJobListing[]` |
+| `POST` | `/api/worker/tasks/{id}/fail` | Report task failure |
+
+---
+
+## Design & UI
+
+- **Stitch** desktop reference screens adapted to responsive web (`frontend/UI Design/`)
+- **Design tokens:** [`.stitch/DESIGN.md`](./.stitch/DESIGN.md), [`design-system/MASTER.md`](./design-system/MASTER.md)
+- **App shell:** sidebar desktop, drawer mobile, profile gate before search
+- **Core screens:** Welcome (`/`), Profile (`/profile`), Search (`/search`)
 
 ---
 
@@ -215,51 +328,36 @@ Search, job packages, and send endpoints are **planned** — see [`jobpilot_prd.
 
 | Document | Purpose |
 |----------|---------|
-| [`jobpilot_prd.md`](./jobpilot_prd.md) | Product requirements & MVP scope |
-| [`progress.md`](./progress.md) | Phase checklist & status |
-| [`currently-working-feature.md`](./currently-working-feature.md) | What we are building now |
-| [`System Design/`](./System%20Design/) | System design & decisions |
-| [`frontend/progress.md`](./frontend/progress.md) | Frontend screen checklist |
+| [`System Design/JobPilot-System-Design.md`](./System%20Design/JobPilot-System-Design.md) | System topology and state shapes |
+| [`System Design/jobpilot-agent-build-guide.md`](./System%20Design/jobpilot-agent-build-guide.md) | Agent architecture and API contracts |
+| [`System Design/kimi-webbridge-provider.md`](./System%20Design/kimi-webbridge-provider.md) | WebBridge integration |
+| [`System Design/browser-provider-abstraction.md`](./System%20Design/browser-provider-abstraction.md) | Browser provider protocol |
+| [`docs/database-schema.md`](./docs/database-schema.md) | SQLite schema reference |
 
 ---
 
-## Key principles
+## Principles
 
-1. **HITL first** — nothing is sent without explicit user approval
-2. **Privacy** — profile data is used only to personalize search and drafts
-3. **Real browser** — job platform automation uses the user's Chrome, not headless bots
-4. **Developer-centric** — built for engineers with GitHub projects and technical CVs
-
----
-
-## Roadmap
-
-| Phase | Focus | Status |
-|-------|-------|--------|
-| 0 | Design & UI reference | ✅ |
-| 1 | Welcome, Profile, Search UI | ✅ |
-| 2 | Profile API, OAuth, LLM extraction | ✅ |
-| 3 | `POST /search`, LangGraph agents | 🚧 Next |
-| 4 | Job results, HITL, Gmail send | 🚧 |
-| 5 | Applications tracking UI | 🚧 |
-| 6 | Production deploy (http://43.98.197.132) | `[x]` Alibaba ECS |
+1. **Human-in-the-loop** — user approves before any application is sent
+2. **Real browser sessions** — LinkedIn automation uses the user's Chrome, not datacenter bots
+3. **Server-side secrets** — Qwen keys stay on ECS; never exposed in the frontend bundle
+4. **Per-user isolation** — profiles, runs, tokens, and job packages scoped by `user_id`
+5. **Production patterns** — deterministic graph routing, typed contracts, tested worker protocol
 
 ---
 
-## Contributing
+## Hackathon
 
-This project is in active development for the **Qwen Cloud Global AI Hackathon** (Track 4: Autopilot Agent). Contribution guidelines will be added as the codebase stabilizes.
+Submitted to the **Qwen Cloud Global AI Hackathon** (Track 4: Autopilot Agent).
 
----
-
-## License
-
-License TBD. All rights reserved during active development.
+- **Alibaba Cloud deployment** — ECS, Docker, public URL
+- **Qwen Cloud APIs** — CV skills, README summarization, browser ReAct agent, per-job scoring
+- **Agentic system** — LangGraph multi-subgraph orchestration with distributed Search Helper
 
 ---
 
 <p align="center">
-  <strong>JobPilot</strong> — built with human approval at every step.
+  <strong>JobPilot</strong> — agentic job search with production architecture patterns.
   <br />
-  <sub>Under active development · Last updated June 2026</sub>
+  <sub>July 2026</sub>
 </p>
