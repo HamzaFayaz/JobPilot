@@ -489,7 +489,7 @@ Browser-Use spike is deprecated; WebBridge implementation is the active browser 
 | 2026-07-02 | Separate Chrome **job-search profile** for v1; JobPilot tab stays open |
 | 2026-07-02 | LangGraph never imports provider SDKs — only `BrowserProvider` |
 | 2026-07-02 | **Deployment locked:** Alibaba ECS + **JobPilot Search Helper** on user PC (rejected: full client-side SPA, full local backend) |
-| 2026-07-02 | Helper install **once per PC**; **run** each search session; mock search on ECS for judges |
+| 2026-07-02 | Helper install **once per PC**; **run** each search session; real search via worker queue |
 
 ---
 
@@ -504,7 +504,7 @@ Full narrative, LangGraph build order, and API tables: **[`jobpilot-agent-build-
 | Each search | **Run** Helper in background — do not reinstall |
 | JobPilot website | Always on ECS — no local backend for users |
 | Chrome | **Job search** profile separate from main JobPilot window |
-| Hackathon judges | **Demo/mock search** on website; real LinkedIn on presenter PC |
+| Hackathon judges | ECS website + paired Search Helper for real LinkedIn search |
 | WebBridge migration | Same Helper + ECS protocol; implement `providers/webbridge.py`, remove Browser-Use |
 
 ---

@@ -175,7 +175,7 @@ Use this section to record decisions. Strike or move rows to §7 when resolved.
 | # | Question | Options | Lean |
 |---|----------|---------|------|
 | D | How does `search_subgraph` wait on ECS? | (1) Poll `worker_tasks` in a loop (2) asyncio.Event wired from result POST handler | **(2)** cleaner; **(1)** simpler first |
-| E | Demo mode without Helper? | Mock listings injected in `search_subgraph` when `DEMO_SEARCH=true` | **Yes** — required for judges on ECS |
+| E | Demo mode without Helper? | Mock listings injected in `search_subgraph` when `DEMO_SEARCH=true` | **Rejected** — real worker queue + Search Helper only |
 | F | `BROWSER_EXECUTION=local` for dev? | Same subgraph calls `get_browser_provider()` in-process | **Yes** — avoids worker during early graph work |
 
 ### 6.3 Prefilter and caps
@@ -219,14 +219,14 @@ Use this section to record decisions. Strike or move rows to §7 when resolved.
 
 Does this order still feel right?
 
-1. **Phase A** — Types, DB (`worker_devices`, `worker_tasks`), stub APIs (mock data OK)
+1. **Phase A** — Types, DB (`worker_devices`, `worker_tasks`), real APIs `[x]`
 2. **Phase B** — Worker pairing + poll loop (no Chrome)
 3. **Phase C** — Kimi WebBridge in Helper (real listings) — [`kimi-webbridge-provider.md`](../../System%20Design/kimi-webbridge-provider.md)
 4. **Phase D** — LangGraph parent + `search_subgraph` wired to worker queue
 5. **Phase E** — `application_subgraph` + `enrich_job` + `Send` fan-out
-6. **Phase F** — Run progress UI + demo mode
+6. **Phase F** — Run progress UI + job list
 
-**Alternative discussed in some teams:** build D+E with `BROWSER_EXECUTION=local` and mock listings **before** B/C, to validate graph + Qwen without Helper. Tradeoff: might drift from worker contract if types aren’t done in Phase A first.
+**Rejected:** mock listings or `DEMO_SEARCH` shortcut — build only the real worker → ECS → graph path.
 
 ---
 

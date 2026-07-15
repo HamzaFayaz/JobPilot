@@ -4,6 +4,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.types import Send
 
 from backend.app.graph.nodes.init_run import init_run
+from backend.app.graph.nodes.prefilter import prefilter
 from backend.app.graph.state import RunState
 from backend.app.services.search_store import get_search_run, save_raw_listings_as_packages, update_search_run
 from backend.app.graph.subgraphs.application.graph import build_application_subgraph
@@ -64,11 +65,6 @@ def search_subgraph(state: RunState) -> dict:
         return updates
 
     return updates
-
-
-def prefilter(state: RunState) -> dict:
-    """Placeholder until listing normalization and scoring are implemented."""
-    return {}
 
 
 def persist(state: RunState) -> dict:

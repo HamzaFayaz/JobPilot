@@ -753,7 +753,7 @@ Do **not** ship public `.exe` with our Dashscope key inside.
 
 ### 8. Hackathon demo (agreed)
 
-- **Judges:** ECS website — signup, profile, demo/mock search path if Helper absent  
+- **Judges:** ECS website — signup, profile, search (requires paired Search Helper)  
 - **Presenter:** Search Helper on presenter PC — real LinkedIn search in video  
 - **Proof:** Alibaba ECS deploy + Qwen on server; browser proof from local Helper  
 

@@ -153,4 +153,4 @@ Single-user MVP: one row in `oauth_tokens`. Multi-user later: keyed by `user_id`
 | 2 | Async `/search` + poll | Change API contract; background graph execution |
 | 3 | Gmail OAuth lifecycle | Token table, refresh-on-send, explicit error codes |
 | 4 | Browser provider abstraction | `BrowserProvider` protocol + worker; **Kimi WebBridge v1** (replaces Browser-Use) |
-| 5 | Deployment + Search Helper | ECS + Helper install once; mock search for judges — [build guide](./jobpilot-agent-build-guide.md) |
+| 5 | Deployment + Search Helper | ECS + Helper install once; real search via worker queue — [build guide](./jobpilot-agent-build-guide.md) |

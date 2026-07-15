@@ -123,9 +123,9 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | ECS search subgraph (`enqueue` → `wait` → listings in `job_packages`) | `[x]` LinkedIn Posts E2E |
 | `worker_tasks` + worker API routes | `[x]` |
 | Wire `POST /api/search` → background graph | `[x]` |
-| `prefilter` node (normalize + `matched_jobs`) | `[ ]` **before application subagent** |
+| `prefilter` node (normalize + `matched_jobs`) | `[x]` |
 | JobPilot Search Helper (Kimi WebBridge + Qwen) | `[x]` `.exe` built — **upload after application data-contract discussion** → [`currently-working-feature.md`](currently-working-feature.md) |
-| Per-job application sub-agent (`enrich_job`) | `[o]` **next** — stubs in `application/graph.py` |
+| Per-job application sub-agent (`enrich_job`) | `[ ]` after prefilter — not implemented in `application/graph.py` |
 
 **Worker → storage path (verified):** Worker `POST /api/worker/tasks/{id}/result` → `worker_tasks.result_json` → search subgraph `wait_for_listings` → orchestrator `persist` → `job_packages` + `search_runs`. See [`currently-working-feature.md`](currently-working-feature.md) for full diagram and open data-contract question before exe upload.
 | Qwen / model integration | `[x]` profile LLM (CV skills, README) · `[ ]` enrich_job |

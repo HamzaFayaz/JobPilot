@@ -13,7 +13,7 @@ The search path is working end-to-end. Before distributing the Search Helper `.e
 
 | Topic | Question |
 |-------|----------|
-| **Application subagent** | Implement `enrich_job` → `score_threshold_gate` → `package_out` in [`backend/app/graph/subgraphs/application/graph.py`](backend/app/graph/subgraphs/application/graph.py) (currently stubs). |
+| **Application subagent** | Implement `enrich_job` → `score_threshold_gate` → `package_out` in [`backend/app/graph/subgraphs/application/graph.py`](backend/app/graph/subgraphs/application/graph.py) (not implemented yet). |
 | **Data contract** | Does the worker’s `RawJobListing` payload need changes, or only backend orchestration (`prefilter`, `matched_jobs`, application nodes)? |
 | **Worker upload** | If contract is OK → upload [`worker/dist/JobPilot-SearchHelper.exe`](worker/dist/JobPilot-SearchHelper.exe) and integrate with JobPilot cloud. **No worker/agent logic changes** unless the discussion says otherwise. |
 
@@ -53,7 +53,7 @@ SQLite   job_packages  (title, company, url, platform, description_text, status=
 | Worker/agent logic | **Frozen** — do not edit `agent_loop.py`, `prompts.py`, etc. unless data-contract discussion requires it |
 | LinkedIn **Jobs** phase | ⏸ Deferred — disabled in [`worker/prompts.py`](worker/prompts.py) ([`job-section-issue.md`](job-section-issue.md)) |
 | **Indeed** | ⏸ Deferred — handle later if time |
-| `prefilter` / scoring / `matched_jobs` | ⏸ Stub — needed before application fan-out |
+| `prefilter` / scoring / `matched_jobs` | ✅ normalize, dedupe, drop applied |
 
 UI polish plan (reference only): [`worker/SEARCH_HELPER_UI_PLAN.md`](worker/SEARCH_HELPER_UI_PLAN.md)
 
