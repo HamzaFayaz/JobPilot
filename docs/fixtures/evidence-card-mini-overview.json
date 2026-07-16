@@ -1,7 +1,118 @@
 {
-  "fixture_dir": "evidence-card-mini-overview/",
-  "manifest": "evidence-card-mini-overview/manifest.json",
-  "overview": "evidence-card-mini-overview/evidence-card-mini-overview.md",
-  "output": "evidence-card-mini-overview/output.json",
-  "note": "Formatted fixture set. Verbatim text lives in the fixture directory files."
+  "test": "evidence-card-mini-overview",
+  "generated_from": "README.md",
+  "model_config": {
+    "section": "evidence",
+    "model": "qwen3.7-plus",
+    "temperature": 0.1,
+    "max_tokens": 4096
+  },
+  "input": {
+    "system_prompt": "You are extracting factual, source-grounded project evidence for a job-search profile.\n\nUse only facts present in the supplied repository README and project metadata.\nDo not invent the candidate's role, technologies, achievements, metrics, users,\nscale, architecture, or outcomes. If something is unclear or unsupported, put\nit in limitations_or_unknowns.\n\nReturn ONLY valid JSON with these fields:\n- name: short project name\n- description: technical project description of at least 80 words, as newline-separated lines\n- repo_skills: string[]\n- portfolio_overview: 30-50 word overview\n- evidence_card: object with project_purpose, tech_stack, architecture,\n  key_features, role_relevance, evidence, supported_metrics, and\n  limitations_or_unknowns\n- evidence items: objects with claim and source_section\n\nEvery evidence claim must be specific and traceable to a README heading or\nsection. Use only technologies and facts supported by the README. Return no\nmarkdown and no text outside the JSON object.",
+    "user_message": "Repository: JobPilot/JobPilot\n\nCV summary (context only — do not invent facts from this):\nSoftware engineer with Python, FastAPI, and agent systems experience.\n\nREADME:\n# JobPilot\n\n**AI job application copilot — LangGraph orchestration, distributed browser automation, and human-in-the-loop control.**\n\n[![Live Demo](https://img.shields.io/badge/demo-Alibaba%20ECS-43.98.197.132-blue?style=flat-square)](http://43.98.197.132)\n[![Stack](https://img.shields.io/badge/stack-React%20%7C%20FastAPI%20%7C%20LangGraph-blue?style=flat-square)](#tech-stack)\n[![LLM](https://img.shields.io/badge/LLM-Qwen%20Cloud-purple?style=flat-square)](https://home.qwencloud.com)\n[![Search](https://img.shields.io/badge/search-LinkedIn%20Posts-0A66C2?style=flat-square)](#features)\n\n---\n\n## Overview\n\nJobPilot is a **multi-tier agentic system** built for developers who want high-quality job applications without manual grind on every listing. Users build a profile from their CV and GitHub, start a search from the web app, and a **cloud orchestrator** coordinates a **desktop Search Helper** that browses LinkedIn Posts in the user's real Chrome session. Listings return to the server, pass through normalization and deduplication, and flow into **per-job application sub-agents** that score, summarize, and package each opportunity.\n\nThe platform is optimized for **LinkedIn Posts** — the format where hiring managers and recruiters post roles directly in the feed.\n\n| Tier | Components |\n|------|------------|\n| **Cloud (Alibaba ECS)** | React UI · FastAPI · LangGraph · SQLite · Qwen API |\n| **Desktop** | JobPilot Search Helper — Windows `.exe`, task queue client |\n| **Browser** | Kimi WebBridge + Qwen ReAct loop in logged-in Chrome |\n\n**Live demo:** [http://43.98.197.132](http://43.98.197.132)\n\n---\n\n## The problem\n\nTechnical job search at scale breaks down in two directions:\n\n- **Manual:** reading every post, tailoring every CV, writing every email — accurate but exhausting\n- **Bulk automation:** fast but low conversion, platform risk, no user control\n\nJobPilot delivers the middle path: **agentic search, scoring, and drafting with human approval before anything is sent.**\n\n---\n\n## Features\n\n- **Multi-user accounts** — signup, login, JWT httpOnly sessions, per-user data isolation\n- **Profile intelligence** — CV upload (`.docx`), Qwen skill extraction, target roles, GitHub OAuth repo import\n- **LinkedIn Posts search** — Search Helper captures hiring posts via Kimi WebBridge in real Chrome\n- **LangGraph orchestration** — parent graph with search subgraph, prefilter, and parallel application subgraphs\n- **Listing prefilter** — normalize, dedupe, drop already-applied jobs (no LLM cost)\n- **Per-job application agents** — structured Qwen scoring, match summary, CV guidance, draft email\n- **Worker task queue** — device pairing, heartbeat, async `browser_search` tasks over HTTPS\n- **Run polling API** — `POST /api/search`, status polling, `job_packages` results per run\n- **Encrypted storage** — Fernet for CV text and OAuth tokens; all tables scoped by `user_id`\n- **Cloud deploy** — Docker Compose, Nginx, GitHub Actions on Alibaba ECS\n\n---\n\n## Agentic architecture\n\nJobPilot uses a **deterministic LangGraph pipeline** — code routes between subgraphs. Qwen is invoked where structured judgment is required: the browser ReAct agent on the user's PC and `enrich_job` on the server.\n\n### Three-tier deployment\n\n```mermaid\nflowchart TB\n  subgraph T1 [\"Tier 1 — Alibaba ECS (cloud)\"]\n    UI[\"React SPA\"]\n    API[\"FastAPI\"]\n    LG[\"LangGraph orchestrator\"]\n    DB[(\"SQLite\")]\n    UI --> API --> LG --> DB\n  end\n\n  subgraph T2 [\"Tier 2 — Search Helper (user PC)\"]\n    WH[\"worker/main.py poll loop\"]\n    BC[\"browser_client + agent_loop\"]\n    WH --> BC\n  end\n\n  subgraph T3 [\"Tier 3 — Kimi WebBridge\"]\n    WB[\"HTTP :10086\"]\n    Chrome[\"User Chrome — LinkedIn session\"]\n    WB --> Chrome\n  end\n\n  API <-->|\"HTTPS task queue\"| WH\n  BC --> WB\n  Chrome -->|\"raw listings JSON\"| BC\n  BC -->|\"POST /api/worker/tasks/{id}/result\"| API\n```\n\nLinkedIn requires the user's home IP and logged-in session — ECS orchestrates; the Search Helper executes in real Chrome.\n\n### Parent graph pipeline\n\n```mermaid\nflowchart LR\n  A[\"init_run\"] --> B[\"search_subgraph\"]\n  B --> C[\"prefilter\"]\n  C --> D{\"matched_jobs?\"}\n  D -->|yes| E[\"Send × N\\napplication_subgraph\"]\n  D -->|no| F[\"persist\"]\n  E --> F\n```\n\n| Node | Layer | Responsibility |\n|------|-------|----------------|\n| `init_run` | Parent | Load profile snapshot, validate gates, set `search_runs.status` |\n| `search_subgraph` | Subgraph | Enqueue worker task → poll until listings arrive |\n| `prefilter` | Parent | Normalize → dedupe → drop already-applied |\n| `fan_out_applications` | Parent | LangGraph `Send` — parallel per-job subgraphs |\n| `application_subgraph` | Subgraph | `enrich_job` → score threshold → write `job_packages` |\n| `persist` | Parent | Finalize run status and counts |\n\n### End-to-end search flow\n\n```mermaid\nsequenceDiagram\n  participant U as User browser\n  participant ECS as FastAPI + LangGraph\n  participant H as Search Helper\n  participant C as Chrome (WebBridge)\n\n  U->>ECS: POST /api/search\n  ECS->>ECS: enqueue worker_tasks row\n  ECS-->>U: { runId, pending }\n  H->>ECS: GET /api/worker/tasks/next\n  ECS-->>H: browser_search task\n  H->>C: Kimi WebBridge + Qwen ReAct\n  C-->>H: RawJobListing[]\n  H->>ECS: POST /api/worker/tasks/{id}/result\n  ECS->>ECS: wait_for_listings → prefilter → fan-out\n  U->>ECS: GET /api/runs/{id}/status (poll)\n  U->>ECS: GET /api/jobs?runId=\n```\n\n**Contract:** one task out, one result back. ECS never imports browser SDKs — only HTTP and JSON across the boundary.\n\n### Data flow\n\n```text\nSearch Helper\n  POST /api/worker/tasks/{taskId}/result\n  { listings: RawJobListing[], warnings: string[] }\n       ↓\nworker_tasks.result_json\n       ↓\nsearch_subgraph.wait_for_listings()\n       ↓\nprefilter → matched_jobs\n       ↓\napplication_subgraph (per job) → job_packages\n       ↓\nsearch_runs (jobs_ready_count, status)\n```\n\nPosts without a public URL receive an internal `linkedin-post://{hash}` identifier for deduplication and storage — used server-side only, not shown as a user-facing link.\n\n---\n\n## Engineering highlights\n\n| Decision | Rationale |\n|----------|-----------|\n| **LangGraph parent + subgraphs** | Clean separation: search wait loop, per-job scoring, browser ReAct |\n| **Worker task queue (HTTP)** | Resilient polling; simple to debug; no WebSocket infra |\n| **Kimi WebBridge** | Real Chrome session, residential IP, existing LinkedIn login |\n| **Targeted Qwen usage** | Profile extraction, browser agent, `enrich_job` — no LLM supervisor router |\n| **Code-only prefilter** | Normalize, URL/email dedupe, drop applied before fan-out |\n| **Fernet + per-user scope** | Encrypted secrets; every row keyed by `user_id` |\n| **Docker + GitHub Actions** | Repeatable ECS deploy with public demo URL |\n\n**Key modules:**\n\n| Path | Role |\n|------|------|\n| [`backend/app/graph/orchestrator.py`](./backend/app/graph/orchestrator.py) | Parent LangGraph — nodes, edges, `Send` fan-out |\n| [`backend/app/graph/subgraphs/search/`](./backend/app/graph/subgraphs/search/) | Enqueue + wait for worker listings |\n| [`backend/app/graph/subgraphs/application/`](./backend/app/graph/subgraphs/application/) | Per-job enrich, score gate, package output |\n| [`backend/app/services/listing_prefilter.py`](./backend/app/services/listing_prefilter.py) | Normalize, dedupe, drop applied |\n| [`backend/app/services/worker_store.py`](./backend/app/services/worker_store.py) | Device pairing, task queue, result polling |\n| [`worker/agent_loop.py`](./worker/agent_loop.py) | Qwen ReAct loop over WebBridge snapshots |\n| [`worker/api_client.py`](./worker/api_client.py) | Search Helper ↔ ECS HTTP client |\n\n---\n\n## Tech stack\n\n| Layer | Technology |\n|-------|------------|\n| **Frontend** | React 19, TypeScript, Vite, Tailwind CSS, Heroicons |\n| **Design** | Stitch UI exports, `design-system/MASTER.md`, responsive AppShell |\n| **Backend** | Python 3.11+, FastAPI, Uvicorn, Pydantic v2 |\n| **Database** | SQLite on ECS (schema ready for RDS migration) |\n| **Agents** | LangGraph — parent graph + compiled subgraphs |\n| **LLM** | Qwen Cloud (Dashscope OpenAI-compatible API) |\n| **Browser automation** | Kimi WebBridge (HTTP daemon + Chrome extension) |\n| **Desktop worker** | PyInstaller `.exe`, PySide6 settings UI |\n| **Auth** | Email/password + JWT httpOnly cookie; GitHub OAuth |\n| **Deploy** | Docker Compose, Nginx, GitHub Actions → Alibaba ECS |\n\n---\n\n## Quick start\n\n### Prerequisites\n\n- Python 3.11+\n- Node.js 18+\n- [Qwen Cloud API key](https://home.qwencloud.com) (`DASHSCOPE_API_KEY`)\n- Kimi WebBridge extension + daemon\n- GitHub OAuth app (for repo import)\n\n### 1. Clone and configure\n\n```bash\ngit clone <repo-url>\ncd JobPilot\ncp .env.example .env\n# Set DASHSCOPE_API_KEY, JWT_SECRET, DATA_ENCRYPTION_KEY, GITHUB_*\n```\n\n### 2. Setup\n\n**Windows:**\n```bat\nsetup.cmd\n```\n\n**Manual:**\n```bash\npython -m venv .venv\n.venv\\Scripts\\activate\npip install -r requirements.txt\ncd frontend && npm install\n```\n\n### 3. Run locally\n\n**Windows:**\n```bat\ndev.cmd\n```\n\n**Manual:**\n```bash\n# Terminal 1 — API\nuvicorn backend.app.main:app --reload --port 8000\n\n# Terminal 2 — UI\ncd frontend && npm run dev\n\n# Terminal 3 — Search Helper (after pairing in UI)\ncd worker && python main.py\n```\n\n| Service | URL |\n|---------|-----|\n| Frontend | http://localhost:5173 |\n| API | http://localhost:8000 |\n| Health | http://localhost:8000/health |\n\nSearch Helper: [`worker/README.md`](./worker/README.md) · WebBridge: [`System Design/kimi-webbridge-provider.md`](./System%20Design/kimi-webbridge-provider.md)\n\n---\n\n## Project structure\n\n```text\nJobPilot/\n├── backend/app/\n│   ├── graph/              # LangGraph orchestrator + subgraphs\n│   ├── routes/             # FastAPI routers (auth, search, worker, jobs)\n│   ├── services/           # worker_store, search_store, listing_prefilter, profile_llm\n│   └── models/             # Pydantic contracts (browser, search, worker)\n├── frontend/src/           # React SPA (Welcome, Profile, Search)\n├── worker/                 # JobPilot Search Helper (WebBridge + Qwen agent loop)\n├── config/llm.yaml         # Model routing defaults\n├── design-system/          # Design tokens (Stitch overrides)\n├── System Design/          # Architecture specs and ADRs\n├── deploy/                 # Docker, Nginx, ECS bootstrap\n└── tests/                  # Backend + worker unit tests\n```\n\n---\n\n## API surface\n\n### User & profile\n\n| Method | Path | Description |\n|--------|------|-------------|\n| `POST` | `/api/auth/signup` | Create account |\n| `POST` | `/api/auth/login` | Login (JWT cookie) |\n| `GET` | `/api/profile` | Profile + search preferences |\n| `PUT` | `/api/profile` | Update roles, projects, search prefs |\n| `POST` | `/api/profile/cv` | Upload `.docx`, extract skills (Qwen) |\n| `GET` | `/auth/github` | GitHub OAuth start |\n| `POST` | `/api/github/import` | Import READMEs → project cards |\n\n### Search & jobs\n\n| Method | Path | Description |\n|--------|------|-------------|\n| `POST` | `/api/search` | Start search run → background graph |\n| `GET` | `/api/runs/latest/status` | Latest run for current user |\n| `GET` | `/api/runs/{runId}/status` | Poll run progress |\n| `GET` | `/api/jobs?runId=` | List scored `job_packages` for a run |\n\n### Search Helper (worker)\n\n| Method | Path | Description |\n|--------|------|-------------|\n| `POST` | `/api/worker/pair` | Issue `WORKER_TOKEN` |\n| `POST` | `/api/worker/heartbeat` | Liveness + browser health |\n| `GET` | `/api/worker/tasks/next` | Claim next `browser_search` task |\n| `POST` | `/api/worker/tasks/{id}/result` | Post `RawJobListing[]` |\n| `POST` | `/api/worker/tasks/{id}/fail` | Report task failure |\n\n---\n\n## Design & UI\n\n- **Stitch** desktop reference screens adapted to responsive web (`frontend/UI Design/`)\n- **Design tokens:** [`.stitch/DESIGN.md`](./.stitch/DESIGN.md), [`design-system/MASTER.md`](./design-system/MASTER.md)\n- **App shell:** sidebar desktop, drawer mobile, profile gate before search\n- **Core screens:** Welcome (`/`), Profile (`/profile`), Search (`/search`)\n\n---\n\n## Documentation\n\n| Document | Purpose |\n|----------|---------|\n| [`System Design/JobPilot-System-Design.md`](./System%20Design/JobPilot-System-Design.md) | System topology and state shapes |\n| [`System Design/jobpilot-agent-build-guide.md`](./System%20Design/jobpilot-agent-build-guide.md) | Agent architecture and API contracts |\n| [`System Design/kimi-webbridge-provider.md`](./System%20Design/kimi-webbridge-provider.md) | WebBridge integration |\n| [`System Design/browser-provider-abstraction.md`](./System%20Design/browser-provider-abstraction.md) | Browser provider protocol |\n| [`docs/database-schema.md`](./docs/database-schema.md) | SQLite schema reference |\n\n---\n\n## Principles\n\n1. **Human-in-the-loop** — user approves before any application is sent\n2. **Real browser sessions** — LinkedIn automation uses the user's Chrome, not datacenter bots\n3. **Server-side secrets** — Qwen keys stay on ECS; never exposed in the frontend bundle\n4. **Per-user isolation** — profiles, runs, tokens, and job packages scoped by `user_id`\n5. **Production patterns** — deterministic graph routing, typed contracts, tested worker protocol\n\n---\n\n## Hackathon\n\nSubmitted to the **Qwen Cloud Global AI Hackathon** (Track 4: Autopilot Agent).\n\n- **Alibaba Cloud deployment** — ECS, Docker, public URL\n- **Qwen Cloud APIs** — CV skills, README summarization, browser ReAct agent, per-job scoring\n- **Agentic system** — LangGraph multi-subgraph orchestration with distributed Search Helper\n\n---\n\n<p align=\"center\">\n  <strong>JobPilot</strong> — agentic job search with production architecture patterns.\n  <br />\n  <sub>July 2026</sub>\n</p>\n",
+    "repository": "JobPilot/JobPilot",
+    "cv_summary": "Software engineer with Python, FastAPI, and agent systems experience.",
+    "readme_path": "README.md",
+    "readme_char_count": 13603
+  },
+  "output": {
+    "name": "JobPilot",
+    "description": "JobPilot is a multi-tier agentic system designed to automate and streamline technical job applications.\nIt utilizes a cloud orchestrator built with FastAPI and LangGraph to coordinate a distributed desktop Search Helper.\nThe desktop client executes browser automation in the user's real Chrome session via Kimi WebBridge to capture LinkedIn job posts.\nRetrieved listings are processed through a deterministic pipeline that normalizes, deduplicates, and routes them to per-job application sub-agents.\nThese sub-agents leverage Qwen Cloud to score, summarize, and draft application materials for human approval.",
+    "repo_skills": [
+      "Python",
+      "FastAPI",
+      "LangGraph",
+      "React",
+      "TypeScript",
+      "SQLite",
+      "Docker",
+      "Qwen Cloud",
+      "Browser Automation",
+      "Agentic Systems",
+      "Pydantic",
+      "JWT",
+      "GitHub Actions"
+    ],
+    "portfolio_overview": "JobPilot is an AI-driven job application copilot featuring a multi-tier agentic architecture. It combines a FastAPI and LangGraph cloud orchestrator with a distributed desktop browser automation client to search LinkedIn, score roles, and draft applications with human-in-the-loop approval.",
+    "evidence_card": {
+      "project_purpose": "To automate technical job search and application drafting using agentic systems, balancing bulk automation speed with manual accuracy through human-in-the-loop approval before sending applications.",
+      "tech_stack": [
+        "React 19",
+        "TypeScript",
+        "Vite",
+        "Tailwind CSS",
+        "Python 3.11+",
+        "FastAPI",
+        "Uvicorn",
+        "Pydantic v2",
+        "SQLite",
+        "LangGraph",
+        "Qwen Cloud",
+        "Kimi WebBridge",
+        "PyInstaller",
+        "PySide6",
+        "Docker Compose",
+        "Nginx",
+        "GitHub Actions",
+        "Alibaba ECS"
+      ],
+      "architecture": [
+        "Three-tier distributed architecture: Tier 1 is the Alibaba ECS cloud hosting React UI, FastAPI, LangGraph orchestrator, and SQLite. Tier 2 is the desktop Search Helper (Windows .exe) running a worker poll loop and agent loop. Tier 3 is the browser layer using Kimi WebBridge to interact with the user's logged-in Chrome session. The backend uses a deterministic LangGraph parent graph with search, prefilter, and parallel application subgraphs."
+      ],
+      "key_features": [
+        "Multi-user accounts with JWT httpOnly sessions",
+        "Profile intelligence via CV upload and GitHub OAuth",
+        "LinkedIn Posts search via real Chrome session",
+        "LangGraph orchestration with parallel application subgraphs",
+        "Code-only listing prefilter for normalization and deduplication",
+        "Per-job application agents for scoring and drafting",
+        "Worker task queue with device pairing and heartbeat",
+        "Fernet encrypted storage for CV text and tokens"
+      ],
+      "role_relevance": [
+        "Demonstrates extensive experience in Python, FastAPI, and agent systems, specifically in building distributed LangGraph orchestrations, integrating LLMs (Qwen) for structured judgment, and designing resilient HTTP-based worker task queues for browser automation."
+      ],
+      "evidence": [
+        {
+          "claim": "JobPilot is a multi-tier agentic system using LangGraph orchestration and distributed browser automation.",
+          "source_section": "Overview"
+        },
+        {
+          "claim": "The cloud orchestrator coordinates a desktop Search Helper that browses LinkedIn Posts in the user's real Chrome session.",
+          "source_section": "Overview"
+        },
+        {
+          "claim": "Listings pass through normalization and deduplication before flowing into per-job application sub-agents that score, summarize, and package opportunities.",
+          "source_section": "Overview"
+        },
+        {
+          "claim": "The system uses a deterministic LangGraph pipeline with a parent graph, search subgraph, prefilter, and parallel application subgraphs.",
+          "source_section": "Agentic architecture"
+        },
+        {
+          "claim": "The backend is built with Python 3.11+, FastAPI, and Pydantic v2, utilizing SQLite for the database.",
+          "source_section": "Tech stack"
+        },
+        {
+          "claim": "The frontend is built with React 19, TypeScript, Vite, and Tailwind CSS.",
+          "source_section": "Tech stack"
+        },
+        {
+          "claim": "Browser automation is handled by Kimi WebBridge and a Qwen ReAct loop in the user's logged-in Chrome.",
+          "source_section": "Overview"
+        },
+        {
+          "claim": "The project was submitted to the Qwen Cloud Global AI Hackathon (Track 4: Autopilot Agent).",
+          "source_section": "Hackathon"
+        }
+      ],
+      "supported_metrics": [],
+      "limitations_or_unknowns": [
+        "Candidate's specific individual role or team size is not specified",
+        "Exact scale, user base, or conversion metrics are not provided",
+        "Specific hackathon placement or awards are not mentioned",
+        "Production traffic or load handling metrics are unknown"
+      ]
+    }
+  }
 }

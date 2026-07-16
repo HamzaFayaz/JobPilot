@@ -41,3 +41,4 @@ ssh_keys/
 
 # Local agent handoff plans (not part of the app)
 .agent/plans/
+New UI design/

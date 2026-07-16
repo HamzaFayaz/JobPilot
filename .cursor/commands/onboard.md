@@ -11,7 +11,7 @@ description: Onboard  cursor  into the codebase
 
 2. **Read key files**
    - Read the progress.md root level file for the progress of the project
-   - Read the currently-working-feature to understand what we are working on 
+   - Read the currently-working-feature.md to understand what we are working on (next: application subagent)
    - cursor.md, PRD.md (jobpilot_prd.md), and any other architecture docs
    - Core schemas/models
 
