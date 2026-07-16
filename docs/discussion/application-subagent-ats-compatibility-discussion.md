@@ -4,7 +4,8 @@
 
 **Related docs:**
 
-- Project evidence inputs → [`project-evidence-retrieval-discussion.md`](project-evidence-retrieval-discussion.md)
+- **`enrich_job` input bundle (layers, retrieval, chunks)** → [`application-subagent-input-spec.md`](application-subagent-input-spec.md)
+- Project evidence retrieval → [`project-evidence-retrieval-discussion.md`](project-evidence-retrieval-discussion.md)
 - Portfolio overview at import → [`project-evidence-portfolio-overview-addendum.md`](project-evidence-portfolio-overview-addendum.md)
 - Active build tracker → [`currently-working-feature.md`](../../currently-working-feature.md)
 
@@ -103,13 +104,9 @@ work.
 ### Project evidence (production path)
 
 Before `enrich_job`, the backend runs **hybrid retrieval** over evidence cards
-and README chunks (see project-evidence docs). Inputs per call:
-
-```text
-Job: title, company, description_text, platform
-Profile: cv_text, skills, target_roles
-Projects: all portfolio_overviews + top retrieved evidence cards + chunks
-```
+and README chunks, then packs one input bundle (layer 1 + 2a for all projects,
+layer 2b chunks for a swap-aware subset). Full input shape:
+[`application-subagent-input-spec.md`](application-subagent-input-spec.md).
 
 Worker listing contract unchanged: `title`, `company`, `url`, `description_text`.
 

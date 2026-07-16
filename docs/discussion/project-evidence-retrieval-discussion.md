@@ -1,6 +1,10 @@
 # Project Evidence Retrieval Discussion
 
-**Status:** Design discussion — implementation deferred
+**Status:** Design discussion — Phase 2 in progress
+
+**Related:** [`enrich_job` input bundle spec](application-subagent-input-spec.md) — how retrieval output is packed for the application sub-agent (layers, chunk caps, swap-aware selection).
+
+**Storage (locked):** [`phase-2-retrieval-storage-design.md`](phase-2-retrieval-storage-design.md) — SQLite + FAISS + FTS5 schema and index layout.
 
 ## Goal
 

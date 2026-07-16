@@ -1,0 +1,35 @@
+{
+  "name": "phase2-rag-chunking-eval-corpus",
+  "location": "tests/rag/pipeline",
+  "purpose": "Hierarchical semantic chunking eval — parents, boundary units, final chunks",
+  "created": "2026-07-17",
+  "primary_output": "chunking-results.md",
+  "optional_outputs": [
+    "output-parents.json",
+    "output-units.json",
+    "output-chunks.json",
+    "manifest.json"
+  ],
+  "projects": [
+    {
+      "slug": "jobpilot",
+      "repo": "JobPilot/JobPilot",
+      "input": "jobpilot/input-readme.md"
+    },
+    {
+      "slug": "agentic-rag-sub-agents",
+      "repo": "HamzaFayaz/agentic-rag-sub-agents",
+      "input": "agentic-rag-sub-agents/input-readme.md"
+    },
+    {
+      "slug": "voice-automation",
+      "repo": "HamzaFayaz/voice-automation",
+      "input": "voice-automation/input-readme.md"
+    },
+    {
+      "slug": "whatsapp-mcp-assistant",
+      "repo": "HamzaFayaz/whatsapp-mcp-assistant",
+      "input": "whatsapp-mcp-assistant/input-readme.md"
+    }
+  ]
+}

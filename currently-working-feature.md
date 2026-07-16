@@ -5,7 +5,9 @@
 
 **After retrieval:** Application subagent (`enrich_job` → `classify_fit` → `package_out`) — see [`application-subagent-ats-compatibility-discussion.md`](docs/discussion/application-subagent-ats-compatibility-discussion.md).
 
-**Plan:** [`.agent/plans/jobpilot_project_evidence_pipeline_plan.md`](.agent/plans/jobpilot_project_evidence_pipeline_plan.md)
+**Plan:** [`.agent/plans/jobpilot_project_evidence_phase2_plan.md`](.agent/plans/jobpilot_project_evidence_phase2_plan.md) · Phase 1 (done): [`jobpilot_project_evidence_phase1_plan.md`](.agent/plans/jobpilot_project_evidence_phase1_plan.md)
+
+**Phase 2 storage:** [`docs/discussion/phase-2-retrieval-storage-design.md`](docs/discussion/phase-2-retrieval-storage-design.md)
 
 ---
 
@@ -24,14 +26,17 @@
 | README fixture snapshot | ✅ [`docs/fixtures/evidence-card-mini-overview/`](docs/fixtures/evidence-card-mini-overview/) |
 
 ### Phase 2 — README retrieval pipeline (current)
+
+**Plan:** [`.agent/plans/jobpilot_project_evidence_phase2_plan.md`](.agent/plans/jobpilot_project_evidence_phase2_plan.md)
+
 | Step | Area | Task |
 |------|------|------|
-| **Chunking** | new service | Markdown-aware hierarchical README chunks at import |
-| **Storage** | DB / project JSON | Chunk + embedding store |
-| **Retrieval** | new `retrieve_project_evidence()` | Hybrid BM25 + semantic + rerank → top cards + 4–6 chunks per job |
-| **Tests** | `tests/` | Retrieval returns bounded bundle for a sample JD |
+| **1. Chunking** | `readme_chunker.py` | Hierarchical semantic chunks at import |
+| **2. Storage** | SQLite + FAISS + FTS5 | Per [`phase-2-retrieval-storage-design.md`](docs/discussion/phase-2-retrieval-storage-design.md) |
+| **3. Retrieval** | `retrieve_project_evidence()` | Hybrid BM25 + vector + rerank → bundle (no LLM) |
+| **4. Tests** | `tests/rag/` | `test_chunking_pipeline.py` + `pipeline/` corpus & results |
 
-**Design docs:** [`project-evidence-retrieval-discussion.md`](docs/discussion/project-evidence-retrieval-discussion.md) · [`project-evidence-portfolio-overview-addendum.md`](docs/discussion/project-evidence-portfolio-overview-addendum.md)
+**Design docs:** [`phase-2-retrieval-storage-design.md`](docs/discussion/phase-2-retrieval-storage-design.md) · [`application-subagent-input-spec.md`](docs/discussion/application-subagent-input-spec.md)
 
 **Worker contract:** unchanged — [`worker/models.py`](worker/models.py) `RawJobListing` is sufficient.
 

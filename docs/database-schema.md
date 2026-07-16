@@ -233,3 +233,5 @@ Deleting a `job_packages` row sets `job_applications.job_package_id` to null.
 ---
 
 *Last updated: 2026-07-03 — expanded `search_runs`, `job_packages`, and `job_applications` for Phase A agent/search work.*
+
+**Phase 2 extension (planned):** `project_readme_chunks`, `user_evidence_indexes`, FTS5, and per-user FAISS files — full design in [`discussion/phase-2-retrieval-storage-design.md`](discussion/phase-2-retrieval-storage-design.md).
