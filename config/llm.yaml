@@ -13,3 +13,34 @@ evidence:
   model: qwen3.7-plus
   temperature: 0.1
   max_tokens: 4096
+
+embedding:
+  model: text-embedding-v4
+  fallback_model: text-embedding-v3
+  dimensions: 1024
+  text_type_document: document
+  text_type_query: query
+  batch_size: 10
+
+rerank:
+  model: qwen3-rerank
+  top_n: 20
+  candidate_pool: 25
+  instruct: >-
+    Given a job posting, retrieve relevant project evidence passages
+    that demonstrate the candidate's fit for the role.
+
+chunking:
+  child_target_min: 350
+  child_max_tokens: 500
+  child_min_tokens: 120
+  overlap_tokens: 50
+  similarity_threshold: 0.55
+
+retrieval:
+  bm25_top_k: 30
+  vector_top_k: 30
+  rrf_k: 60
+  target_chunks_per_job: 14
+  max_chunks_per_job: 20
+  max_chunks_per_project: 3

@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     # Paths
     data_dir: Path = ROOT / "data"
     uploads_dir: Path = ROOT / "data" / "uploads"
+    faiss_dir: Path = ROOT / "data" / "faiss"
     db_path: Path = ROOT / "data" / "jobpilot.db"
     llm_config_path: Path = ROOT / "config" / "llm.yaml"
 
@@ -78,6 +79,58 @@ class Settings(BaseSettings):
     @property
     def evidence_max_tokens(self) -> int:
         return int(self.llm_config.get("evidence", {}).get("max_tokens", 4096))
+
+    @property
+    def embedding_config(self) -> dict:
+        return self.llm_config.get("embedding", {})
+
+    @property
+    def embedding_model(self) -> str:
+        return self.embedding_config.get("model", "text-embedding-v4")
+
+    @property
+    def embedding_fallback_model(self) -> str:
+        return self.embedding_config.get("fallback_model", "text-embedding-v3")
+
+    @property
+    def embedding_dimensions(self) -> int:
+        return int(self.embedding_config.get("dimensions", 1024))
+
+    @property
+    def embedding_batch_size(self) -> int:
+        return int(self.embedding_config.get("batch_size", 10))
+
+    @property
+    def rerank_config(self) -> dict:
+        return self.llm_config.get("rerank", {})
+
+    @property
+    def rerank_model(self) -> str:
+        return self.rerank_config.get("model", "qwen3-rerank")
+
+    @property
+    def rerank_top_n(self) -> int:
+        return int(self.rerank_config.get("top_n", 20))
+
+    @property
+    def rerank_candidate_pool(self) -> int:
+        return int(self.rerank_config.get("candidate_pool", 25))
+
+    @property
+    def rerank_instruct(self) -> str:
+        return self.rerank_config.get(
+            "instruct",
+            "Given a job posting, retrieve relevant project evidence passages "
+            "that demonstrate the candidate's fit for the role.",
+        )
+
+    @property
+    def chunking_config(self) -> dict:
+        return self.llm_config.get("chunking", {})
+
+    @property
+    def retrieval_config(self) -> dict:
+        return self.llm_config.get("retrieval", {})
 
     @property
     def llm_config(self) -> dict:
