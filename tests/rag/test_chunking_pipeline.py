@@ -1,7 +1,7 @@
 """Phase 2 chunking pipeline eval — placeholder until readme_chunker ships.
 
 Corpus: tests/rag/pipeline/{slug}/input-readme.md
-Outputs: tests/rag/pipeline/{slug}/chunking-results.md (+ optional JSON)
+Outputs: tests/rag/pipeline/{slug}/chunking-results.md (primary; JSON only if needed)
 
 Run (after implementation):
     pytest tests/rag/test_chunking_pipeline.py -v
