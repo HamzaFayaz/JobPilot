@@ -1,0 +1,7 @@
+{
+  "fixture_dir": "evidence-card-mini-overview/",
+  "manifest": "evidence-card-mini-overview/manifest.json",
+  "overview": "evidence-card-mini-overview/evidence-card-mini-overview.md",
+  "output": "evidence-card-mini-overview/output.json",
+  "note": "Formatted fixture set. Verbatim text lives in the fixture directory files."
+}

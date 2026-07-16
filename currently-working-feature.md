@@ -1,75 +1,114 @@
 # Currently Working On
 
-**Status:** Search subgraph + Search Helper **done** for hackathon scope (LinkedIn **Posts** only).  
-**Next:** **Application subagent** — discuss design and data contract **before** uploading the worker build.
+**Status:** Search subgraph, Search Helper, **prefilter**, and **Phase 1 project evidence** are done.  
+**Now:** **Phase 2 — README retrieval** (chunking, embeddings, `retrieve_project_evidence()`).
+
+**After retrieval:** Application subagent (`enrich_job` → `classify_fit` → `package_out`) — see [`application-subagent-ats-compatibility-discussion.md`](docs/discussion/application-subagent-ats-compatibility-discussion.md).
+
+**Plan:** [`.agent/plans/jobpilot_project_evidence_pipeline_plan.md`](.agent/plans/jobpilot_project_evidence_pipeline_plan.md)
 
 ---
 
 ## Start here (new chat)
 
-### 1. Discuss application subagent
+### Phase 1 — Evidence at GitHub import `[x]`
 
-The search path is working end-to-end. Before distributing the Search Helper `.exe`, align on how the **application subgraph** consumes listing data.
+| Item | Status |
+|------|--------|
+| `build_project_evidence()` + `EVIDENCE_SYSTEM_PROMPT` | ✅ [`profile_llm.py`](backend/app/services/profile_llm.py) |
+| `ProjectEvidenceCard` / `ProjectEvidenceResult` models | ✅ [`project_evidence.py`](backend/app/models/project_evidence.py) |
+| `StoredProject.portfolio_overview` + `evidence_card` | ✅ [`profile.py`](backend/app/models/profile.py) |
+| GitHub import wiring | ✅ [`github.py`](backend/app/routes/github.py) |
+| Preserve evidence on profile edit | ✅ [`profile_store.py`](backend/app/services/profile_store.py) |
+| Tests | ✅ [`tests/test_project_evidence.py`](tests/test_project_evidence.py) |
+| README fixture snapshot | ✅ [`docs/fixtures/evidence-card-mini-overview/`](docs/fixtures/evidence-card-mini-overview/) |
 
-| Topic | Question |
-|-------|----------|
-| **Application subagent** | Implement `enrich_job` → `score_threshold_gate` → `package_out` in [`backend/app/graph/subgraphs/application/graph.py`](backend/app/graph/subgraphs/application/graph.py) (not implemented yet). |
-| **Data contract** | Does the worker’s `RawJobListing` payload need changes, or only backend orchestration (`prefilter`, `matched_jobs`, application nodes)? |
-| **Worker upload** | If contract is OK → upload [`worker/dist/JobPilot-SearchHelper.exe`](worker/dist/JobPilot-SearchHelper.exe) and integrate with JobPilot cloud. **No worker/agent logic changes** unless the discussion says otherwise. |
+### Phase 2 — README retrieval pipeline (current)
+| Step | Area | Task |
+|------|------|------|
+| **Chunking** | new service | Markdown-aware hierarchical README chunks at import |
+| **Storage** | DB / project JSON | Chunk + embedding store |
+| **Retrieval** | new `retrieve_project_evidence()` | Hybrid BM25 + semantic + rerank → top cards + 4–6 chunks per job |
+| **Tests** | `tests/` | Retrieval returns bounded bundle for a sample JD |
 
-### 2. Where worker sends data (verify before upload)
+**Design docs:** [`project-evidence-retrieval-discussion.md`](docs/discussion/project-evidence-retrieval-discussion.md) · [`project-evidence-portfolio-overview-addendum.md`](docs/discussion/project-evidence-portfolio-overview-addendum.md)
+
+**Worker contract:** unchanged — [`worker/models.py`](worker/models.py) `RawJobListing` is sufficient.
+
+### Then: application subagent (blocked until Phase 2 retrieval works)
+
+Prefilter produces `matched_jobs`. Fan-out is wired — each job gets `application_subgraph`.
+
+| Step | File | Task |
+|------|------|------|
+| **`retrieve_project_evidence`** | new service | Called before `enrich_job` in application subgraph |
+| **`enrich_job`** | [`backend/app/graph/subgraphs/application/graph.py`](backend/app/graph/subgraphs/application/graph.py) | One Qwen call — fit facts, `current_cv_score`, `suggested_cv_score`, `project_swaps[]` |
+| **`classify_fit`** | same | Clamp scores, swap validation, `fit_tier` + `fit_message` (show all jobs, including below threshold) |
+| **`package_out`** | same | Write enriched row to `job_packages` |
+| **`persist` refactor** | [`backend/app/graph/orchestrator.py`](backend/app/graph/orchestrator.py) | Finalize run only — `package_out` owns inserts |
+
+**Design:** [`docs/discussion/application-subagent-ats-compatibility-discussion.md`](docs/discussion/application-subagent-ats-compatibility-discussion.md)
+
+### Locked prefilter (done)
+
+- Normalize — field mapping, synthetic `linkedin-post://` URL when empty, title fallback from description
+- Dedupe — real URL → apply email → synthetic URL → description hash
+- Drop applied — `job_applications` by URL or title+company
+- No skill filter, no cap N (worker already bounds listings)
+
+**Code:** [`backend/app/services/listing_prefilter.py`](backend/app/services/listing_prefilter.py) · **Tests:** [`tests/test_prefilter.py`](tests/test_prefilter.py)
+
+---
+
+## End-to-end data flow
 
 ```
 Search Helper (worker)
   POST /api/worker/tasks/{taskId}/result
-  Body: { listings: RawJobListing[], warnings: string[] }
        ↓
-ECS API  backend/app/routes/worker.py → worker_store.complete_worker_task()
+search_subgraph → prefilter → matched_jobs
        ↓
-SQLite   worker_tasks.result_json  (status = completed)
+retrieve_project_evidence(job, profile)   ← BUILD NOW (per job, no LLM)
        ↓
-Search subgraph  wait_for_listings() polls wait_for_worker_task_result()
+fan_out_applications → application_subgraph
+  enrich_job (one LLM) → classify_fit → package_out
        ↓
-Parent graph  persist() → search_store.save_raw_listings_as_packages()
-       ↓
-SQLite   job_packages  (title, company, url, platform, description_text, status=ready)
-         search_runs   (jobs_ready_count, status=completed)
+persist → search_runs (status, jobs_ready_count)
 ```
 
-**Worker client:** [`worker/api_client.py`](worker/api_client.py) · **Models:** [`worker/models.py`](worker/models.py)  
-**Backend store:** [`backend/app/services/worker_store.py`](backend/app/services/worker_store.py) · [`backend/app/services/search_store.py`](backend/app/services/search_store.py)  
-**Graph:** [`backend/app/graph/subgraphs/search/graph.py`](backend/app/graph/subgraphs/search/graph.py) · [`backend/app/graph/orchestrator.py`](backend/app/graph/orchestrator.py)
+**Profile side (build now, at import — not per search):**
 
-**Open decision:** Application subagent reads from `job_packages` / `RunState` — confirm fields are enough for enrich + score, or extend worker listing shape / `persist` step first.
+```
+GitHub import → readme_md + evidence_card + portfolio_overview
+        ↓
+(chunks/embeddings — Phase 2)
+```
 
 ---
 
-## Search subgraph — done (hackathon scope)
+## Done (hackathon scope)
 
 | Item | Status |
 |------|--------|
-| LinkedIn **Posts** phase | ✅ Working E2E (website search → worker → listings on ECS) |
-| Search Helper desktop UI + `.exe` | ✅ [`worker/dist/JobPilot-SearchHelper.exe`](worker/dist/JobPilot-SearchHelper.exe) |
-| Worker/agent logic | **Frozen** — do not edit `agent_loop.py`, `prompts.py`, etc. unless data-contract discussion requires it |
-| LinkedIn **Jobs** phase | ⏸ Deferred — disabled in [`worker/prompts.py`](worker/prompts.py) ([`job-section-issue.md`](job-section-issue.md)) |
-| **Indeed** | ⏸ Deferred — handle later if time |
-| `prefilter` / scoring / `matched_jobs` | ✅ normalize, dedupe, drop applied |
+| LinkedIn **Posts** search E2E | ✅ |
+| Search Helper `.exe` | ✅ [`worker/dist/JobPilot-SearchHelper.exe`](worker/dist/JobPilot-SearchHelper.exe) |
+| Prefilter | ✅ |
+| Fan-out routing | ✅ [`orchestrator.py`](backend/app/graph/orchestrator.py) |
+| Project evidence Phase 1 (import) | ✅ |
+| Project evidence Phase 2 (retrieval) | 🔨 **in progress** |
+| Application subagent | ⏳ after retrieval |
+| LinkedIn **Jobs** phase | ⏸ deferred — [`job-section-issue.md`](job-section-issue.md) |
+| **Indeed** | ⏸ deferred |
 
-UI polish plan (reference only): [`worker/SEARCH_HELPER_UI_PLAN.md`](worker/SEARCH_HELPER_UI_PLAN.md)
-
----
-
-## Locked decisions (unchanged)
-
-- **Posts phase only** in worker — Jobs phase off in `prompts.py`
-- **LinkedIn only** for live search — Indeed later
-- Packaging shell + UI OK to edit; search loop is frozen after contract sign-off
+**Frozen:** worker search loop (`agent_loop.py`, `prompts.py`) — no edits unless listing contract changes.
 
 ---
 
 ## Background
 
-- Worker packaging → [`worker/README.md`](worker/README.md)
+- Project evidence → [`docs/discussion/project-evidence-retrieval-discussion.md`](docs/discussion/project-evidence-retrieval-discussion.md)
+- Portfolio overview → [`docs/discussion/project-evidence-portfolio-overview-addendum.md`](docs/discussion/project-evidence-portfolio-overview-addendum.md)
+- Application subagent → [`docs/discussion/application-subagent-ats-compatibility-discussion.md`](docs/discussion/application-subagent-ats-compatibility-discussion.md)
+- Agent build guide → [`System Design/jobpilot-agent-build-guide.md`](System%20Design/jobpilot-agent-build-guide.md)
 - WebBridge → [`System Design/kimi-webbridge-provider.md`](System%20Design/kimi-webbridge-provider.md)
 - Search design → [`docs/discussion/search-subgraph-discussion-and-finalization.md`](docs/discussion/search-subgraph-discussion-and-finalization.md)
-- Jobs deferral → [`job-section-issue.md`](job-section-issue.md)

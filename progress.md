@@ -7,7 +7,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 
 **Build plans:** [`.agent/plans/`](.agent/plans/) — naming: `jobpilot_<domain>_<scope>_plan.md`
 
-> **Current focus (hackathon — 2 days left):** **Search subgraph is done** for LinkedIn **Posts** only (E2E verified). Search Helper **`.exe` built** — upload pending discussion of **application subagent** data contract. **Indeed** and LinkedIn **Jobs** phase remain deferred. Start at **[`currently-working-feature.md`](currently-working-feature.md)** — application subagent is next; worker/agent search logic stays **frozen** unless the data-contract review says otherwise.
+> **Current focus (hackathon — July 20):** **Prefilter done** · **Phase 1 project evidence done** (`build_project_evidence` at GitHub import). **Next:** **Phase 2 retrieval** (chunks, embeddings, `retrieve_project_evidence`) then application subagent (`enrich_job` → `classify_fit` → `package_out`). Start at **[`currently-working-feature.md`](currently-working-feature.md)**. Worker search logic stays **frozen**.
 
 ---
 
@@ -100,7 +100,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | `users` table + login/signup | `[x]` | Email/password + JWT httpOnly cookie |
 | Profile + tokens scoped by `user_id` | `[x]` | Fernet encryption for cv_text + OAuth tokens |
 | Future tables (`search_runs`, `job_packages`, `job_applications`) | `[x]` | Schema stubs with `user_id` |
-| `POST /search` + polling | `[o]` | DB-backed API wiring done; graph/worker execution still pending |
+| `POST /search` + polling | `[x]` | Graph + worker execution live for LinkedIn Posts |
 
 ### Integrations
 
@@ -123,12 +123,15 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | ECS search subgraph (`enqueue` → `wait` → listings in `job_packages`) | `[x]` LinkedIn Posts E2E |
 | `worker_tasks` + worker API routes | `[x]` |
 | Wire `POST /api/search` → background graph | `[x]` |
-| `prefilter` node (normalize + `matched_jobs`) | `[x]` |
-| JobPilot Search Helper (Kimi WebBridge + Qwen) | `[x]` `.exe` built — **upload after application data-contract discussion** → [`currently-working-feature.md`](currently-working-feature.md) |
-| Per-job application sub-agent (`enrich_job`) | `[ ]` after prefilter — not implemented in `application/graph.py` |
+| `prefilter` node (normalize, dedupe, drop applied → `matched_jobs`) | `[x]` — [`listing_prefilter.py`](backend/app/services/listing_prefilter.py) |
+| Project evidence Phase 1 (import: card + portfolio overview) | `[x]` — [`profile_llm.py`](backend/app/services/profile_llm.py), [`project_evidence.py`](backend/app/models/project_evidence.py) |
+| Project evidence Phase 2 (chunking + retrieval) | `[o]` **next** |
+| JobPilot Search Helper (Kimi WebBridge + Qwen) | `[x]` `.exe` built |
+| Per-job application sub-agent (`enrich_job`) | `[ ]` after Phase 2 retrieval — [`application/graph.py`](backend/app/graph/subgraphs/application/graph.py) |
+| Fan-out (`Send` × N application subgraph) | `[x]` wired in [`orchestrator.py`](backend/app/graph/orchestrator.py) |
+| Qwen / model integration | `[x]` profile LLM (CV skills, evidence card) · `[ ]` enrich_job |
 
-**Worker → storage path (verified):** Worker `POST /api/worker/tasks/{id}/result` → `worker_tasks.result_json` → search subgraph `wait_for_listings` → orchestrator `persist` → `job_packages` + `search_runs`. See [`currently-working-feature.md`](currently-working-feature.md) for full diagram and open data-contract question before exe upload.
-| Qwen / model integration | `[x]` profile LLM (CV skills, README) · `[ ]` enrich_job |
+**Worker → graph path:** Worker `POST …/result` → `worker_tasks` → `wait_for_listings` → **prefilter** → `matched_jobs` → fan-out → application subgraph → `job_packages` + `search_runs`.
 
 ### Documentation
 
@@ -195,9 +198,9 @@ Long-term memory (DB-backed current state):
 |------|----------|-------------|-------------|
 | Design | 7 | 0 | 0 |
 | Frontend web app | 13 | 0 | 0 |
-| Backend & DB | 10 | 1 | search subgraph + worker |
-| Agents | 8 | 1 | prefilter, application enrich |
+| Backend & DB | 11 | 0 | 0 |
+| Agents | 10 | 1 | application enrich + persist refactor |
 | Integrations | 1 | 0 | search platforms |
 | Deploy | 5 | 0 | 0 |
 
-**Last updated:** 2026-07-07
+**Last updated:** 2026-07-16

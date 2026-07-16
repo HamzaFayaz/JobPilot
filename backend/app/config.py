@@ -68,6 +68,18 @@ class Settings(BaseSettings):
         return int(self.llm_config.get("profile", {}).get("max_tokens", 2048))
 
     @property
+    def evidence_model(self) -> str:
+        return self.llm_config.get("evidence", {}).get("model", "qwen3.7-plus")
+
+    @property
+    def evidence_temperature(self) -> float:
+        return float(self.llm_config.get("evidence", {}).get("temperature", 0.1))
+
+    @property
+    def evidence_max_tokens(self) -> int:
+        return int(self.llm_config.get("evidence", {}).get("max_tokens", 4096))
+
+    @property
     def llm_config(self) -> dict:
         return _load_llm_yaml(self.llm_config_path)
 

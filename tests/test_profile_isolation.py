@@ -56,17 +56,28 @@ def _seed_github_project(user_id: int, project_id: str = "proj-1") -> None:
     )
 
 
-@patch("backend.app.routes.github.profile_llm.summarize_repo")
+@patch("backend.app.routes.github.profile_llm.build_project_evidence")
 @patch("backend.app.routes.github.github_service.get_readme")
-def test_github_import_stores_readme_server_side(mock_readme, mock_summary, client):
+def test_github_import_stores_readme_server_side(mock_readme, mock_evidence, client):
     user = signup(client, "alice@example.com")
     save_token(user["id"], "github", access_token="gh-test-token", email="alice")
 
     mock_readme.return_value = SAMPLE_README
-    mock_summary.return_value = {
+    mock_evidence.return_value = {
         "name": "JobPilot",
         "description": _long_description(),
         "repo_skills": ["Python", "FastAPI"],
+        "portfolio_overview": "JobPilot: FastAPI and LangGraph job-search platform.",
+        "evidence_card": {
+            "project_purpose": "AI job application copilot.",
+            "tech_stack": ["Python", "FastAPI"],
+            "architecture": ["ECS API with desktop Search Helper."],
+            "key_features": ["LangGraph orchestration."],
+            "role_relevance": ["Backend engineering"],
+            "evidence": [{"claim": "Uses LangGraph.", "source_section": "Stack"}],
+            "supported_metrics": [],
+            "limitations_or_unknowns": [],
+        },
     }
 
     response = client.post(

@@ -22,15 +22,17 @@ MAX_PARALLEL = 4
 def _import_one_repo(full_name: str, cv_summary: str, access_token: str) -> dict:
     readme = github_service.get_readme(full_name, access_token=access_token)
     readme_stored = readme[:README_MAX_CHARS] if readme else ""
-    summary = profile_llm.summarize_repo(readme, cv_summary)
+    evidence = profile_llm.build_project_evidence(readme_stored, full_name, cv_summary)
     return {
         "id": str(uuid.uuid4()),
-        "name": summary["name"],
-        "description": summary["description"],
+        "name": evidence["name"],
+        "description": evidence["description"],
         "source": "github",
         "repo_full_name": full_name,
         "readme_md": readme_stored,
-        "repo_skills": summary.get("repo_skills", []),
+        "portfolio_overview": evidence["portfolio_overview"],
+        "evidence_card": evidence["evidence_card"],
+        "repo_skills": evidence.get("repo_skills", []),
     }
 
 

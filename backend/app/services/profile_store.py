@@ -96,6 +96,10 @@ def _merge_project_update(existing: StoredProject | None, incoming: Project) -> 
     if existing:
         if existing.readme_md:
             merged["readme_md"] = existing.readme_md
+        if existing.portfolio_overview:
+            merged["portfolio_overview"] = existing.portfolio_overview
+        if existing.evidence_card:
+            merged["evidence_card"] = existing.evidence_card.model_dump(by_alias=False)
         if existing.repo_full_name and not merged.get("repo_full_name"):
             merged["repo_full_name"] = existing.repo_full_name
     return merged

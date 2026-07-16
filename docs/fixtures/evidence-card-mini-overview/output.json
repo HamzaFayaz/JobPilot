@@ -1,0 +1,100 @@
+{
+  "name": "JobPilot",
+  "description": "JobPilot is a multi-tier agentic system designed to automate and streamline technical job applications.\nIt utilizes a cloud orchestrator built with FastAPI and LangGraph to coordinate a distributed desktop Search Helper.\nThe desktop client executes browser automation in the user's real Chrome session via Kimi WebBridge to capture LinkedIn job posts.\nRetrieved listings are processed through a deterministic pipeline that normalizes, deduplicates, and routes them to per-job application sub-agents.\nThese sub-agents leverage Qwen Cloud to score, summarize, and draft application materials for human approval.",
+  "repo_skills": [
+    "Python",
+    "FastAPI",
+    "LangGraph",
+    "React",
+    "TypeScript",
+    "SQLite",
+    "Docker",
+    "Qwen Cloud",
+    "Browser Automation",
+    "Agentic Systems",
+    "Pydantic",
+    "JWT",
+    "GitHub Actions"
+  ],
+  "portfolio_overview": "JobPilot is an AI-driven job application copilot featuring a multi-tier agentic architecture. It combines a FastAPI and LangGraph cloud orchestrator with a distributed desktop browser automation client to search LinkedIn, score roles, and draft applications with human-in-the-loop approval.",
+  "evidence_card": {
+    "project_purpose": "To automate technical job search and application drafting using agentic systems, balancing bulk automation speed with manual accuracy through human-in-the-loop approval before sending applications.",
+    "tech_stack": [
+      "React 19",
+      "TypeScript",
+      "Vite",
+      "Tailwind CSS",
+      "Python 3.11+",
+      "FastAPI",
+      "Uvicorn",
+      "Pydantic v2",
+      "SQLite",
+      "LangGraph",
+      "Qwen Cloud",
+      "Kimi WebBridge",
+      "PyInstaller",
+      "PySide6",
+      "Docker Compose",
+      "Nginx",
+      "GitHub Actions",
+      "Alibaba ECS"
+    ],
+    "architecture": [
+      "Three-tier distributed architecture: Tier 1 is the Alibaba ECS cloud hosting React UI, FastAPI, LangGraph orchestrator, and SQLite. Tier 2 is the desktop Search Helper (Windows .exe) running a worker poll loop and agent loop. Tier 3 is the browser layer using Kimi WebBridge to interact with the user's logged-in Chrome session. The backend uses a deterministic LangGraph parent graph with search, prefilter, and parallel application subgraphs."
+    ],
+    "key_features": [
+      "Multi-user accounts with JWT httpOnly sessions",
+      "Profile intelligence via CV upload and GitHub OAuth",
+      "LinkedIn Posts search via real Chrome session",
+      "LangGraph orchestration with parallel application subgraphs",
+      "Code-only listing prefilter for normalization and deduplication",
+      "Per-job application agents for scoring and drafting",
+      "Worker task queue with device pairing and heartbeat",
+      "Fernet encrypted storage for CV text and tokens"
+    ],
+    "role_relevance": [
+      "Demonstrates extensive experience in Python, FastAPI, and agent systems, specifically in building distributed LangGraph orchestrations, integrating LLMs (Qwen) for structured judgment, and designing resilient HTTP-based worker task queues for browser automation."
+    ],
+    "evidence": [
+      {
+        "claim": "JobPilot is a multi-tier agentic system using LangGraph orchestration and distributed browser automation.",
+        "source_section": "Overview"
+      },
+      {
+        "claim": "The cloud orchestrator coordinates a desktop Search Helper that browses LinkedIn Posts in the user's real Chrome session.",
+        "source_section": "Overview"
+      },
+      {
+        "claim": "Listings pass through normalization and deduplication before flowing into per-job application sub-agents that score, summarize, and package opportunities.",
+        "source_section": "Overview"
+      },
+      {
+        "claim": "The system uses a deterministic LangGraph pipeline with a parent graph, search subgraph, prefilter, and parallel application subgraphs.",
+        "source_section": "Agentic architecture"
+      },
+      {
+        "claim": "The backend is built with Python 3.11+, FastAPI, and Pydantic v2, utilizing SQLite for the database.",
+        "source_section": "Tech stack"
+      },
+      {
+        "claim": "The frontend is built with React 19, TypeScript, Vite, and Tailwind CSS.",
+        "source_section": "Tech stack"
+      },
+      {
+        "claim": "Browser automation is handled by Kimi WebBridge and a Qwen ReAct loop in the user's logged-in Chrome.",
+        "source_section": "Overview"
+      },
+      {
+        "claim": "The project was submitted to the Qwen Cloud Global AI Hackathon (Track 4: Autopilot Agent).",
+        "source_section": "Hackathon"
+      }
+    ],
+    "supported_metrics": [],
+    "limitations_or_unknowns": [
+      "Candidate's specific individual role or team size is not specified",
+      "Exact scale, user base, or conversion metrics are not provided",
+      "Specific hackathon placement or awards are not mentioned",
+      "Production traffic or load handling metrics are unknown"
+    ]
+  }
+}

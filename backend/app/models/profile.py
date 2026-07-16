@@ -6,6 +6,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend.app.models.browser import Platform
+from backend.app.models.project_evidence import ProjectEvidenceCard
 from backend.app.models.search_prefs import (
     DEFAULT_JOB_AGE,
     DEFAULT_MAX_LISTINGS,
@@ -38,6 +39,8 @@ class StoredProject(Project):
     """Full project record persisted in SQLite (includes server-only fields)."""
 
     readme_md: str | None = Field(None, alias="readmeMd")
+    portfolio_overview: str | None = Field(None, alias="portfolioOverview")
+    evidence_card: ProjectEvidenceCard | None = Field(None, alias="evidenceCard")
 
     model_config = ConfigDict(populate_by_name=True)
 
