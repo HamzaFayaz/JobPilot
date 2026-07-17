@@ -1,5 +1,6 @@
 """Search run persistence helpers for graph execution."""
 
+import json
 from datetime import datetime, timezone
 from typing import Any
 
@@ -113,3 +114,100 @@ def save_raw_listings_as_packages(
         conn.commit()
 
     return count
+
+
+def upsert_job_package(
+    *,
+    run_id: int,
+    user_id: int,
+    job: dict[str, Any],
+    package_key: str,
+    analysis: dict[str, Any],
+    status: str,
+    summary: str = "",
+    current_cv_score: int | None = None,
+    suggested_cv_score: int | None = None,
+    error: dict[str, Any] | None = None,
+    model_name: str | None = None,
+    prompt_version: str | None = None,
+    profile_snapshot_hash: str | None = None,
+) -> int:
+    """Atomically insert or update the canonical package for one run/job."""
+    now = _now_iso()
+    with get_connection() as conn:
+        row = conn.execute(
+            """
+            INSERT INTO job_packages (
+                user_id, run_id, title, company, url, platform, description_text,
+                summary, match_score, current_cv_score, suggested_cv_score,
+                status, error, analysis_json, model_name, prompt_version,
+                profile_snapshot_hash, package_key, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(run_id, package_key)
+            WHERE run_id IS NOT NULL AND package_key IS NOT NULL
+            DO UPDATE SET
+                title = excluded.title,
+                company = excluded.company,
+                url = excluded.url,
+                platform = excluded.platform,
+                description_text = excluded.description_text,
+                summary = excluded.summary,
+                match_score = excluded.match_score,
+                current_cv_score = excluded.current_cv_score,
+                suggested_cv_score = excluded.suggested_cv_score,
+                status = excluded.status,
+                error = excluded.error,
+                analysis_json = excluded.analysis_json,
+                model_name = excluded.model_name,
+                prompt_version = excluded.prompt_version,
+                profile_snapshot_hash = excluded.profile_snapshot_hash,
+                updated_at = excluded.updated_at
+            RETURNING id
+            """,
+            (
+                user_id,
+                run_id,
+                job.get("title"),
+                job.get("company"),
+                job.get("url"),
+                job.get("source_platform") or job.get("platform"),
+                job.get("description_text") or "",
+                summary,
+                current_cv_score,
+                current_cv_score,
+                suggested_cv_score,
+                status,
+                json.dumps(error, ensure_ascii=False) if error else None,
+                json.dumps(analysis, ensure_ascii=False, sort_keys=True),
+                model_name,
+                prompt_version,
+                profile_snapshot_hash,
+                package_key,
+                now,
+            ),
+        ).fetchone()
+        conn.commit()
+    return int(row["id"])
+
+
+def finalize_search_run(run_id: int) -> int:
+    """Count ready packages and complete a run exactly once."""
+    now = _now_iso()
+    with get_connection() as conn:
+        count_row = conn.execute(
+            "SELECT COUNT(*) AS n FROM job_packages WHERE run_id = ? AND status = 'ready'",
+            (run_id,),
+        ).fetchone()
+        ready_count = int(count_row["n"])
+        conn.execute(
+            """
+            UPDATE search_runs
+            SET jobs_ready_count = ?, status = 'completed',
+                finished_at = COALESCE(finished_at, ?), updated_at = ?
+            WHERE id = ? AND status IN ('pending', 'running')
+            """,
+            (ready_count, now, now, run_id),
+        )
+        conn.commit()
+    return ready_count

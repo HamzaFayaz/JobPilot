@@ -57,6 +57,9 @@ class JobPackageResponse(BaseModel):
     swap_out_project: str | None = Field(default=None, alias="swapOutProject")
     swap_in_text: str | None = Field(default=None, alias="swapInText")
     draft_email: str = Field(default="", alias="draftEmail")
+    analysis: dict = Field(default_factory=dict)
+    model_name: str | None = Field(default=None, alias="modelName")
+    prompt_version: str | None = Field(default=None, alias="promptVersion")
     status: JobPackageStatus = "ready"
     error: str | None = None
     created_at: datetime | None = Field(default=None, alias="createdAt")

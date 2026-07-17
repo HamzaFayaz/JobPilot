@@ -1,0 +1,372 @@
+"""Deterministic Phase 3 application-subgraph contract tests."""
+
+import json
+import importlib
+from types import SimpleNamespace
+
+import pytest
+from pydantic import ValidationError
+
+from backend.app.db import get_connection
+from backend.app.graph.subgraphs.application.nodes.classify_fit import classify_fit
+from backend.app.graph.subgraphs.application.nodes.package_out import package_out
+from backend.app.models.application import EnrichJobResult
+from backend.app.services.application_llm import (
+    ApplicationAnalysisError,
+    _parse_result,
+    analyze_job,
+)
+
+
+def _cv_ref() -> dict:
+    return {
+        "source_type": "cv",
+        "quote": "Built LangGraph workflows",
+        "cv_section": "Projects",
+        "project_id": None,
+        "project_name": None,
+        "heading_path": None,
+        "source_id": None,
+    }
+
+
+def _keep(slot_index: int = 0) -> dict:
+    return {
+        "slot_index": slot_index,
+        "action": "keep",
+        "current_project_name": f"Current {slot_index}",
+        "swap_in_project_id": None,
+        "swap_in_project_name": None,
+        "target_requirement_ids": [],
+        "evidence_refs": [],
+        "rationale": "The current project remains relevant.",
+        "impact": None,
+    }
+
+
+def _valid_result(*, slots: int = 1) -> dict:
+    return {
+        "analysis_status": "completed",
+        "explicit_requirements": [
+            {
+                "requirement_id": "req_1",
+                "text": "Experience with LangGraph",
+                "importance": "required",
+                "category": "skill",
+                "status": "matched",
+                "evidence_refs": [_cv_ref()],
+                "rationale": "The current CV explicitly names LangGraph.",
+            }
+        ],
+        "inferred_requirements": [],
+        "confidence": "medium",
+        "current_cv_score": 70,
+        "suggested_cv_score": 70,
+        "current_score_rationale": "The required skill is visible.",
+        "suggested_score_rationale": "No replacement improves the evidence.",
+        "project_decisions": [_keep(index) for index in range(slots)],
+        "limitations": [],
+        "summary": "Moderate visible fit with grounded LangGraph evidence.",
+    }
+
+
+def _profile() -> dict:
+    return {
+        "cv_text": "Projects\n- Current 0\n",
+        "skills": ["Python", "LangGraph", "FastAPI"],
+        "target_roles": ["AI Engineer"],
+        "projects": [
+            {
+                "id": "current",
+                "name": "Current 0",
+                "description": "Current project",
+                "source": "github",
+                "repo_full_name": "owner/current",
+                "readme_md": "LangGraph",
+                "portfolio_overview": "A workflow project.",
+                "evidence_card": {},
+                "chars_per_line": None,
+            }
+        ],
+    }
+
+
+def _job(index: int = 1) -> dict:
+    return {
+        "title": "AI Engineer",
+        "company": "Acme",
+        "url": f"https://example.com/jobs/{index}",
+        "platform": "linkedin",
+        "description_text": "Required: experience with LangGraph.",
+    }
+
+
+def test_schema_accepts_completed_and_insufficient_results():
+    assert EnrichJobResult.model_validate(_valid_result()).current_cv_score == 70
+    insufficient = _valid_result()
+    insufficient.update(
+        {
+            "analysis_status": "insufficient_job_detail",
+            "explicit_requirements": [],
+            "confidence": "low",
+            "current_cv_score": None,
+            "suggested_cv_score": None,
+        }
+    )
+    assert EnrichJobResult.model_validate(insufficient).current_cv_score is None
+
+
+def test_schema_rejects_extras_and_invalid_keep_shape():
+    payload = _valid_result()
+    payload["unexpected"] = True
+    with pytest.raises(ValidationError):
+        EnrichJobResult.model_validate(payload)
+
+
+def test_schema_allows_current_cv_evidence_on_keep_decision():
+    payload = _valid_result()
+    payload["project_decisions"][0]["evidence_refs"] = [_cv_ref()]
+    assert EnrichJobResult.model_validate(payload).project_decisions[0].action == "keep"
+
+    payload = _valid_result()
+    payload["project_decisions"][0]["swap_in_project_id"] = "other"
+    with pytest.raises(ValidationError):
+        EnrichJobResult.model_validate(payload)
+
+
+@pytest.mark.parametrize("raw", ["", "```json\n{}\n```", "prefix {}"])
+def test_strict_json_handling_rejects_empty_fenced_and_wrapped(raw):
+    with pytest.raises(ApplicationAnalysisError):
+        _parse_result(raw)
+
+
+def test_application_call_uses_one_repair_retry(monkeypatch):
+    bundle = {
+        "job": _job(),
+        "profile": {
+            "cv_text": _profile()["cv_text"],
+            "skills": _profile()["skills"],
+            "target_roles": _profile()["target_roles"],
+            "cv_project_slots": [
+                {
+                    "slot_index": 0,
+                    "cv_project_name": "Current 0",
+                    "chars_budget": 100,
+                    "matched_portfolio_project_id": "current",
+                }
+            ],
+        },
+        "layer1_portfolio_overviews": [
+            {
+                "source_id": "project:current:overview",
+                "project_id": "current",
+                "name": "Current 0",
+            }
+        ],
+        "layer2a_evidence_cards": [],
+        "layer2b_readme_chunks": [],
+        "retrieval_debug": {},
+    }
+    monkeypatch.setattr(
+        "backend.app.services.application_llm.retrieve_project_evidence",
+        lambda user_id, job, profile: bundle,
+    )
+    monkeypatch.setattr(
+        "backend.app.services.application_llm.settings.application_repair_retries_override",
+        1,
+    )
+    responses = iter(["not json", json.dumps(_valid_result())])
+
+    class Completions:
+        def create(self, **kwargs):
+            return SimpleNamespace(
+                choices=[
+                    SimpleNamespace(
+                        message=SimpleNamespace(content=next(responses))
+                    )
+                ]
+            )
+
+    client = SimpleNamespace(chat=SimpleNamespace(completions=Completions()))
+    result, context, payload = analyze_job(1, _job(), _profile(), client=client)
+    assert result["current_cv_score"] == 70
+    assert context["portfolio_project_ids"] == ["current"]
+    assert payload["validated_response"] == result
+
+
+def test_classify_fit_preserves_model_result_and_corrects_slots():
+    original = _valid_result(slots=0)
+    original["current_cv_score"] = 110
+    original["suggested_cv_score"] = 20
+    result = classify_fit(
+        {
+            "enrich_result": original,
+            "validation_context": {
+                "cv_project_slots": [
+                    {
+                        "slot_index": 0,
+                        "cv_project_name": "Current 0",
+                        "matched_portfolio_project_id": "current",
+                    }
+                ],
+                "portfolio_project_ids": ["current", "other"],
+                "evidence_sources": {},
+            },
+        }
+    )
+    classified = result["classified_result"]
+    assert original["current_cv_score"] == 110
+    assert classified["current_cv_score"] == 100
+    assert classified["suggested_cv_score"] == 100
+    assert classified["project_decisions"][0]["action"] == "keep"
+    assert classified["fit_tier"] == "strong"
+
+
+def test_package_out_upserts_structured_analysis(test_db):
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT INTO users (email, password_hash) VALUES (?, ?)",
+            ("phase3@example.com", "hash"),
+        )
+        user_id = int(conn.execute("SELECT last_insert_rowid()").fetchone()[0])
+        conn.execute(
+            "INSERT INTO search_runs (user_id, status) VALUES (?, 'running')",
+            (user_id,),
+        )
+        run_id = int(conn.execute("SELECT last_insert_rowid()").fetchone()[0])
+        conn.commit()
+
+    classified = {
+        **_valid_result(),
+        "passes_threshold": True,
+        "fit_tier": "moderate",
+        "fit_message": "Moderate fit.",
+        "corrections": [],
+    }
+    state = {
+        "run_id": run_id,
+        "user_id": user_id,
+        "job": _job(),
+        "profile": _profile(),
+        "enrich_result": _valid_result(),
+        "classified_result": classified,
+    }
+    first = package_out(state)
+    second = package_out(state)
+    assert first["package_id"] == second["package_id"]
+    with get_connection() as conn:
+        rows = conn.execute(
+            "SELECT analysis_json, status FROM job_packages WHERE run_id = ?",
+            (run_id,),
+        ).fetchall()
+    assert len(rows) == 1
+    assert rows[0]["status"] == "ready"
+    assert json.loads(rows[0]["analysis_json"])["classified_result"]["fit_tier"] == "moderate"
+
+
+def test_parent_fan_out_persists_each_job_and_finalizes_once(test_db, monkeypatch):
+    from backend.app.graph import orchestrator
+    from backend.app.graph.nodes.persist import persist as real_persist
+
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT INTO users (email, password_hash) VALUES (?, ?)",
+            ("fanout@example.com", "hash"),
+        )
+        user_id = int(conn.execute("SELECT last_insert_rowid()").fetchone()[0])
+        conn.execute(
+            "INSERT INTO search_runs (user_id, status) VALUES (?, 'running')",
+            (user_id,),
+        )
+        run_id = int(conn.execute("SELECT last_insert_rowid()").fetchone()[0])
+        conn.commit()
+
+    profile = _profile()
+    jobs = [_job(1), _job(2), _job(3)]
+    monkeypatch.setattr(
+        orchestrator,
+        "init_run",
+        lambda state: {
+            "role": "AI Engineer",
+            "platform": "linkedin",
+            "country": "Pakistan",
+            "work_mode": "both",
+            "max_listings": 3,
+            "job_age": "week",
+            "profile": profile,
+            "status": "running",
+            "errors": [],
+        },
+    )
+    monkeypatch.setattr(
+        orchestrator,
+        "search_subgraph",
+        lambda state: {"raw_listings": [], "errors": []},
+    )
+    monkeypatch.setattr(
+        orchestrator,
+        "prefilter",
+        lambda state: {"listings": jobs, "matched_jobs": jobs},
+    )
+    enrich_node_module = importlib.import_module(
+        "backend.app.graph.subgraphs.application.nodes.enrich_job"
+    )
+    monkeypatch.setattr(
+        enrich_node_module,
+        "analyze_job",
+        lambda user_id, job, profile: (
+            _valid_result(),
+            {
+                "cv_project_slots": [
+                    {
+                        "slot_index": 0,
+                        "cv_project_name": "Current 0",
+                        "matched_portfolio_project_id": "current",
+                    }
+                ],
+                "portfolio_project_ids": ["current"],
+                "evidence_sources": {},
+            },
+            {},
+        ),
+    )
+    finalized = 0
+
+    def counted_persist(state):
+        nonlocal finalized
+        finalized += 1
+        return real_persist(state)
+
+    monkeypatch.setattr(orchestrator, "persist", counted_persist)
+    graph = orchestrator.build_parent_graph()
+    graph.invoke(
+        {
+            "run_id": run_id,
+            "user_id": user_id,
+            "role": "",
+            "platform": "linkedin",
+            "country": "",
+            "work_mode": "both",
+            "max_listings": 3,
+            "job_age": "week",
+            "profile": profile,
+            "listings": [],
+            "raw_listings": [],
+            "warnings": [],
+            "matched_jobs": [],
+            "packages": [],
+            "errors": [],
+            "status": "pending",
+        }
+    )
+    with get_connection() as conn:
+        package_count = conn.execute(
+            "SELECT COUNT(*) FROM job_packages WHERE run_id = ?", (run_id,)
+        ).fetchone()[0]
+        run = conn.execute(
+            "SELECT status, jobs_ready_count FROM search_runs WHERE id = ?", (run_id,)
+        ).fetchone()
+    assert package_count == 3
+    assert finalized == 1
+    assert run["status"] == "completed"
+    assert run["jobs_ready_count"] == 3

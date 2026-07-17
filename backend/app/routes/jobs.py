@@ -1,5 +1,7 @@
 """Job package polling API routes."""
 
+import json
+
 from fastapi import APIRouter, Depends, Query
 
 from backend.app.db import get_connection
@@ -34,6 +36,9 @@ def list_jobs(
                 swap_out_project,
                 swap_in_text,
                 draft_email,
+                analysis_json,
+                model_name,
+                prompt_version,
                 status,
                 error,
                 created_at,
@@ -62,6 +67,9 @@ def list_jobs(
             swapOutProject=row["swap_out_project"],
             swapInText=row["swap_in_text"],
             draftEmail=row["draft_email"] or "",
+            analysis=json.loads(row["analysis_json"] or "{}"),
+            modelName=row["model_name"],
+            promptVersion=row["prompt_version"],
             status=row["status"] or "ready",
             error=row["error"],
             createdAt=row["created_at"],

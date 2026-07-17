@@ -82,6 +82,11 @@ CREATE TABLE IF NOT EXISTS job_packages (
     draft_email TEXT NOT NULL DEFAULT '',
     status TEXT NOT NULL DEFAULT 'ready',
     error TEXT,
+    analysis_json TEXT NOT NULL DEFAULT '{}',
+    model_name TEXT,
+    prompt_version TEXT,
+    profile_snapshot_hash TEXT,
+    package_key TEXT,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -199,6 +204,11 @@ def _ensure_search_schema(conn: sqlite3.Connection) -> None:
             "draft_email": "draft_email TEXT NOT NULL DEFAULT ''",
             "status": "status TEXT NOT NULL DEFAULT 'ready'",
             "error": "error TEXT",
+            "analysis_json": "analysis_json TEXT NOT NULL DEFAULT '{}'",
+            "model_name": "model_name TEXT",
+            "prompt_version": "prompt_version TEXT",
+            "profile_snapshot_hash": "profile_snapshot_hash TEXT",
+            "package_key": "package_key TEXT",
             "updated_at": "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
         },
     )
@@ -215,6 +225,13 @@ def _ensure_search_schema(conn: sqlite3.Connection) -> None:
             "cv_filename": "cv_filename TEXT",
             "sent_at": "sent_at TIMESTAMP",
         },
+    )
+    conn.execute(
+        """
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_job_packages_run_package_key
+        ON job_packages (run_id, package_key)
+        WHERE run_id IS NOT NULL AND package_key IS NOT NULL
+        """
     )
     conn.execute(
         """
