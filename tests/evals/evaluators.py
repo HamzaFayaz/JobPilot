@@ -16,7 +16,7 @@ class DeterministicContracts(Evaluator):
         return case.deterministic_checks
 
     def get_evaluator_version(self) -> str:
-        return "phase_3_v2"
+        return "phase_3_v3"
 
 
 @dataclass

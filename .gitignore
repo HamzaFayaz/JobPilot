@@ -36,6 +36,7 @@ data/uploads/
 data/jobpilot.db
 tests/complete-pipeline-test/cv/*.docx
 tests/complete-pipeline-test/results/
+tests/complete-pipeline-test/labels/
 logfire-logs/
 worker/debug_snapshots/
 worker/.worker.lock

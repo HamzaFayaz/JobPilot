@@ -25,7 +25,6 @@ from backend.app.graph.nodes.persist import persist
 from backend.app.graph.subgraphs.application.graph import build_application_subgraph
 from backend.app.observability import setup_observability, span
 from backend.app.services import crypto, evidence_index_store
-from backend.app.services.application_scoring import score_requirements, suggested_statuses
 from backend.app.services.application_validation import quote_is_contained
 from backend.app.services.cv_parser import extract_text_from_docx
 from backend.app.services.evidence_indexing import index_project_evidence
@@ -436,14 +435,21 @@ def _retrieval_checks(bundle: dict) -> dict[str, bool]:
         ),
         "reported_chunks_are_packed": bundle["retrieval_debug"]["packed_chunk_ids"]
         == ids,
-        "requirements_have_coverage_diagnostics": all(
+        "requirements_have_supply_diagnostics": all(
             query.get("is_fallback")
             or query["requirement_id"]
-            in bundle["retrieval_debug"]["requirement_coverage"]
+            in bundle["retrieval_debug"]["retrieval_supply"]
             for query in bundle["retrieval_debug"]["requirement_queries"]
         ),
+        "full_job_fallback_executed": bool(
+            bundle["retrieval_debug"].get("full_job_fallback_executed")
+        ),
         "packed_content_hashes_present": all(
-            bool(item.get("content_hash") and item.get("requirement_ids"))
+            bool(
+                item.get("content_hash")
+                and item.get("retrieved_requirement_ids")
+                and "packed_for_requirement_ids" in item
+            )
             for item in chunks
         ),
     }
@@ -456,6 +462,8 @@ def _application_checks(
     job_description: str = "",
     cv_text: str = "",
     persisted: dict | None = None,
+    model_result: dict | None = None,
+    contract_validation: dict | None = None,
 ) -> dict[str, bool]:
     scores = [result.get("current_cv_score"), result.get("suggested_cv_score")]
     decisions = result.get("project_decisions") or []
@@ -493,28 +501,33 @@ def _application_checks(
             quote_is_contained(item.get("job_quote") or "", job_description)
             for item in result.get("explicit_requirements") or []
         ),
-        "cv_quotes_traceable": all(
-            quote_is_contained(reference.get("quote") or "", cv_text)
+        "cv_span_ids_present": all(
+            bool(reference.get("cv_span_id"))
             for requirement in result.get("explicit_requirements") or []
             for reference in requirement.get("evidence_refs") or []
         ),
-        "current_score_recomputes": (
-            result.get("current_cv_score")
-            == score_requirements(result.get("explicit_requirements") or [])
-            if result.get("analysis_status") == "completed"
-            else result.get("current_cv_score") is None
+        "accepted_scores_equal_validated_model": model_result is None
+        or (
+            result.get("current_cv_score") == model_result.get("current_cv_score")
+            and result.get("suggested_cv_score") == model_result.get("suggested_cv_score")
         ),
-        "suggested_score_recomputes": (
-            result.get("suggested_cv_score")
-            == max(
-                score_requirements(result.get("explicit_requirements") or []),
-                score_requirements(
-                    result.get("explicit_requirements") or [],
-                    status_overrides=suggested_statuses(decisions),
-                ),
+        "accepted_narrative_equal_validated_model": model_result is None
+        or all(
+            result.get(key) == model_result.get(key)
+            for key in (
+                "explicit_requirements",
+                "project_decisions",
+                "current_score_rationale",
+                "suggested_score_rationale",
+                "limitations",
+                "confidence",
+                "summary",
             )
-            if result.get("analysis_status") == "completed"
-            else result.get("suggested_cv_score") is None
+        ),
+        "contract_validation_passed": contract_validation is None
+        or (
+            contract_validation.get("valid") is True
+            and not contract_validation.get("errors")
         ),
         "every_swap_has_direct_targets": all(
             item["action"] == "keep"
@@ -579,9 +592,10 @@ def _reproducibility_metadata() -> dict:
             "backend/app/models/application.py",
             "backend/app/services/application_llm.py",
             "backend/app/services/application_prompt.py",
-            "backend/app/services/application_scoring.py",
             "backend/app/services/application_validation.py",
+            "backend/app/services/cv_evidence_spans.py",
             "backend/app/services/cv_project_slots.py",
+            "backend/app/services/job_requirement_llm.py",
             "backend/app/services/job_requirement_queries.py",
             "backend/app/services/readme_chunker.py",
             "backend/app/services/retrieve_project_evidence.py",
@@ -608,7 +622,7 @@ def _reproducibility_metadata() -> dict:
         ),
         "artifact_fingerprint": _artifact_fingerprint(),
         "index_fingerprint": _index_fingerprint(),
-        "evaluator_version": "phase_3_v2",
+        "evaluator_version": "phase_3_v3",
     }
 
 
@@ -636,6 +650,7 @@ def _write_reports(
             "application_model": settings.application_model,
             "application_prompt_version": settings.application_prompt_version,
             "application_schema_version": settings.application_schema_version,
+            "requirement_extraction_model": settings.requirement_extraction_model,
             "judge_model": settings.eval_judge_model,
             "judge_rubric_version": "jobpilot_rubric_v1",
             "same_family_judge_bias": (
@@ -835,10 +850,11 @@ def run() -> tuple[Path, Path]:
                 "retrieval_debug": {
                     "packed_chunk_ids": retrieval.get("packed_chunk_ids") or [],
                     "packed_project_ids": retrieval.get("packed_project_ids") or [],
-                    "requirement_coverage": retrieval.get("requirement_coverage") or {},
+                    "retrieval_supply": retrieval.get("retrieval_supply") or {},
                     "fallback_reasons": retrieval.get("fallback_reasons") or [],
                     "requirement_queries": [],
                     "candidate_project_ids": [],
+                    "full_job_fallback_executed": False,
                 },
             }
             persisted_bundle = envelope.get("retrieval_bundle")
@@ -859,6 +875,7 @@ def run() -> tuple[Path, Path]:
                         "evidence_cards": bundle["layer2a_evidence_cards"],
                         "selected_chunks": bundle["layer2b_readme_chunks"],
                         "retrieval_debug": bundle["retrieval_debug"],
+                        "requirement_extraction": bundle.get("requirement_extraction"),
                     },
                     deterministic_checks=_retrieval_checks(bundle),
                 )
@@ -877,6 +894,8 @@ def run() -> tuple[Path, Path]:
                         },
                         "model_result": result,
                         "classified_result": classified,
+                        "contract_validation": envelope.get("contract_validation"),
+                        "raw_model_result": envelope.get("raw_model_result"),
                     },
                     deterministic_checks=_application_checks(
                         classified,
@@ -884,6 +903,8 @@ def run() -> tuple[Path, Path]:
                         job_description=job["description_text"],
                         cv_text=profile["cv_text"],
                         persisted=persisted,
+                        model_result=result,
+                        contract_validation=envelope.get("contract_validation"),
                     ),
                 )
             )

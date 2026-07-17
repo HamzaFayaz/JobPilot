@@ -108,14 +108,34 @@ def main() -> None:
         encoding="utf-8",
     )
     csv_path.write_text(csv_data, encoding="utf-8")
-    names = {
+    names = [
         str(row.get("span_name") or row.get("message") or "")
         for row in rows
+    ]
+    span_counts = {
+        expected: sum(expected in name for name in names)
+        for expected in (
+            "complete_pipeline_evaluation",
+            "job_requirement_extraction_model",
+            "bm25_search",
+            "rerank_candidates",
+            "pack_retrieval_candidates",
+            "application_model",
+            "application_contract_validation",
+            "package_result",
+            "parent_finalization",
+        )
     }
     required = {
-        "complete_pipeline_evaluation": any("complete_pipeline_evaluation" in name for name in names),
-        "application_model": any("application_model" in name for name in names),
-        "package_result": any("package_result" in name for name in names),
+        "complete_pipeline_evaluation": span_counts["complete_pipeline_evaluation"] >= 1,
+        "four_requirement_extractions": span_counts["job_requirement_extraction_model"] >= 4,
+        "requirement_retrieval": span_counts["bm25_search"] >= 4,
+        "reranking": span_counts["rerank_candidates"] >= 1,
+        "packing": span_counts["pack_retrieval_candidates"] >= 4,
+        "four_application_models": span_counts["application_model"] >= 4,
+        "four_contract_validations": span_counts["application_contract_validation"] >= 4,
+        "four_package_persistences": span_counts["package_result"] >= 4,
+        "one_parent_finalization": span_counts["parent_finalization"] >= 1,
     }
     manifest_path = output / "manifest.json"
     manifest_path.write_text(
@@ -128,6 +148,8 @@ def main() -> None:
                 "record_count": len(rows),
                 "formats": ["json", "csv"],
                 "required_spans_present": required,
+                "required_spans_complete": all(required.values()),
+                "span_counts": span_counts,
                 "file_hashes": {
                     json_path.name: _sha256(json_path),
                     csv_path.name: _sha256(csv_path),
