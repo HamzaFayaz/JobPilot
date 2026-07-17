@@ -38,10 +38,14 @@ class EvidenceReference(StrictModel):
     project_name: str | None
     heading_path: str | None
     source_id: str | None
+    cv_span_id: str | None
 
     @model_validator(mode="after")
     def validate_source_identity(self) -> "EvidenceReference":
-        if self.source_type != "cv" and not self.source_id:
+        if self.source_type == "cv":
+            if not self.cv_span_id or self.source_id is not None:
+                raise ValueError("CV evidence requires cv_span_id only")
+        elif not self.source_id or self.cv_span_id is not None:
             raise ValueError("non-CV evidence requires an exact source_id")
         return self
 
@@ -50,11 +54,14 @@ class RequirementAssessment(StrictModel):
     requirement_id: str
     retrieval_requirement_id: str | None
     job_quote: str = Field(min_length=1)
+    job_source_start: int = Field(ge=0)
+    job_source_end: int = Field(gt=0)
     text: str
     importance: RequirementImportance
     category: RequirementCategory
     status: RequirementStatus
     evidence_refs: list[EvidenceReference]
+    date_fact_ids: list[str]
     rationale: str
 
     @model_validator(mode="after")
@@ -125,8 +132,8 @@ class EnrichJobResult(StrictModel):
     explicit_requirements: list[RequirementAssessment]
     inferred_requirements: list[InferredRequirement]
     confidence: Confidence
-    current_cv_score: int | None
-    suggested_cv_score: int | None
+    current_cv_score: int | None = Field(ge=0, le=100)
+    suggested_cv_score: int | None = Field(ge=0, le=100)
     current_score_rationale: str
     suggested_score_rationale: str
     project_decisions: list[ProjectDecision]
@@ -140,6 +147,12 @@ class EnrichJobResult(StrictModel):
                 raise ValueError("completed analysis requires both scores")
             if not self.explicit_requirements:
                 raise ValueError("completed analysis requires an explicit requirement")
+            if self.suggested_cv_score < self.current_cv_score:
+                raise ValueError("suggested score cannot be lower than current score")
+            if all(item.action == "keep" for item in self.project_decisions) and (
+                self.suggested_cv_score != self.current_cv_score
+            ):
+                raise ValueError("all-keep decisions require equal scores")
         else:
             if self.current_cv_score is not None or self.suggested_cv_score is not None:
                 raise ValueError("insufficient analysis requires null scores")
