@@ -116,6 +116,24 @@ def _validation_context(bundle: dict[str, Any]) -> dict[str, Any]:
     cv_text = bundle["profile"].get("cv_text") or ""
     slots = bundle["profile"].get("cv_project_slots") or []
     cv_spans = bundle["profile"].get("cv_evidence_spans") or []
+    date_facts = bundle["profile"].get("date_facts") or []
+    cv_evidence_sources = {
+        item["source_id"]: item for item in cv_spans if item.get("source_id")
+    }
+    cv_evidence_sources.update(
+        {
+            item["cv_span_id"]: {
+                "source_id": item["cv_span_id"],
+                "content": item.get("quote") or "",
+                "source_start": item.get("source_start"),
+                "source_end": item.get("source_end"),
+                "section": "Date fact",
+                "project_slot_id": None,
+            }
+            for item in date_facts
+            if item.get("cv_span_id")
+        }
+    )
     retrieval_debug = bundle.get("retrieval_debug") or {}
     return {
         "cv_text": cv_text,
@@ -128,10 +146,8 @@ def _validation_context(bundle: dict[str, Any]) -> dict[str, Any]:
             }
             for slot in slots
         ],
-        "cv_evidence_sources": {
-            item["source_id"]: item for item in cv_spans if item.get("source_id")
-        },
-        "date_facts": bundle["profile"].get("date_facts") or [],
+        "cv_evidence_sources": cv_evidence_sources,
+        "date_facts": date_facts,
         "job_description": bundle.get("job", {}).get("description_text") or "",
         "cv_project_slots": slots,
         "cv_project_ids": [

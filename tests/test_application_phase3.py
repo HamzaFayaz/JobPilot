@@ -20,7 +20,7 @@ from backend.app.services.application_llm import (
 )
 from backend.app.services.application_validation import validate_application_contract
 from backend.app.services.cv_evidence_spans import build_cv_evidence_spans
-from backend.app.services.date_tenure import completed_months
+from backend.app.services.date_tenure import build_date_facts, completed_months
 
 
 def _cv_ref() -> dict:
@@ -410,6 +410,12 @@ def test_contract_rejects_unknown_cv_span_without_mutating_model_result():
 def test_overlapping_date_ranges_are_not_double_counted():
     cv = "Jan 2024 to Dec 2024\nJun 2024 to Jun 2025"
     assert completed_months(cv, date(2025, 6, 30)) == 18
+    facts = build_date_facts(cv, date(2025, 6, 30))
+    assert all(
+        cv[item["source_start"] : item["source_end"]] == item["quote"]
+        for item in facts
+    )
+    assert all(item["cv_span_id"].startswith("cv:") for item in facts)
 
 
 def test_cv_evidence_spans_preserve_crlf_nbsp_and_unicode_bullets():

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import calendar
+import hashlib
 import re
 from datetime import date
 from typing import Any
@@ -92,6 +93,10 @@ def build_date_facts(text: str, reference_date: date) -> list[dict[str, Any]]:
             {
                 "date_fact_id": f"cv_date_{index:02d}",
                 "quote": match.group(0),
+                "cv_span_id": (
+                    f"cv:{match.start()}:{match.end()}:"
+                    f"{hashlib.sha256(match.group(0).encode('utf-8')).hexdigest()[:12]}"
+                ),
                 "source_start": match.start(),
                 "source_end": match.end(),
                 "completed_months": end - start + 1,

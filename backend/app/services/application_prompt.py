@@ -42,7 +42,8 @@ The CURRENT CV and PORTFOLIO SOURCES are separate evidence domains. Every
 matched or partial requirement must reference one or more supplied cv_span_id
 values. A display quote may be short, but the cv_span_id is authoritative.
 Never put a date_fact_id in cv_span_id; date facts are referenced only through
-the requirement's date_fact_ids list.
+the requirement's date_fact_ids list. If the exact date quote is also needed
+as current-CV evidence, use that date fact's supplied cv_span_id.
 Portfolio-only details must not increase current_cv_score. Portfolio evidence
 may support swap recommendations and suggested_cv_score. Swap evidence may
 reference only packed portfolio source_id values owned by the replacement
