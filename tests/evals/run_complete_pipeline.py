@@ -717,6 +717,18 @@ def _write_reports(
     return json_path, md_path
 
 
+def _write_failed_package(case_name: str, envelope: dict) -> Path:
+    results_dir = _results_dir()
+    results_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    path = results_dir / f"failed-{case_name}-{timestamp}.json"
+    path.write_text(
+        json.dumps(envelope, ensure_ascii=False, indent=2, default=str),
+        encoding="utf-8",
+    )
+    return path
+
+
 def _prepare_phase1() -> tuple[int, dict, list[EvaluationCaseInput]]:
     restored = _restore_phase1_checkpoint()
     if restored is not None:
@@ -878,9 +890,10 @@ def run() -> tuple[Path, Path]:
             if persisted_bundle:
                 bundle = persisted_bundle
             elif not classified:
+                failure_path = _write_failed_package(job["case_name"], envelope)
                 raise RuntimeError(
                     f"Persisted application package failed for {job['case_name']}: "
-                    f"{envelope.get('error')}"
+                    f"{envelope.get('error')}. Details: {failure_path}"
                 )
             cases.append(
                 EvaluationCaseInput(
