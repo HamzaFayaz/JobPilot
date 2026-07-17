@@ -53,6 +53,9 @@ class Settings(BaseSettings):
     application_fit_threshold_override: int | None = Field(
         None, validation_alias="APPLICATION_FIT_THRESHOLD"
     )
+    requirement_extraction_model_override: str = Field(
+        "", validation_alias="REQUIREMENT_EXTRACTION_MODEL"
+    )
     eval_judge_model_override: str = Field("", validation_alias="EVAL_JUDGE_MODEL")
     eval_judge_temperature_override: float | None = Field(
         None, validation_alias="EVAL_JUDGE_TEMPERATURE"
@@ -162,6 +165,18 @@ class Settings(BaseSettings):
         if self.application_fit_threshold_override is not None:
             return self.application_fit_threshold_override
         return int(self.llm_config.get("application", {}).get("fit_threshold", 60))
+
+    @property
+    def requirement_extraction_model(self) -> str:
+        return self.requirement_extraction_model_override or self.llm_config.get(
+            "requirement_extraction", {}
+        ).get("model", self.application_model)
+
+    @property
+    def requirement_extraction_temperature(self) -> float:
+        return float(
+            self.llm_config.get("requirement_extraction", {}).get("temperature", 0.0)
+        )
 
     @property
     def eval_judge_model(self) -> str:

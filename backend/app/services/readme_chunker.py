@@ -371,6 +371,7 @@ def _semantic_split_units(
     cfg: dict,
 ) -> list[list[BoundaryUnit]]:
     max_tokens = cfg["child_max_tokens"]
+    target_min = cfg["child_target_min"]
     overlap_tokens = cfg["overlap_tokens"]
     threshold = cfg["similarity_threshold"]
 
@@ -420,7 +421,7 @@ def _semantic_split_units(
         similarity = _cosine_similarity(centroid, vec)
         would_exceed = group_tokens + unit.token_count > max_tokens
 
-        if would_exceed or similarity < threshold:
+        if would_exceed or (group_tokens >= target_min and similarity < threshold):
             previous_units = list(group_units)
             flush_group()
             overlap = _overlap_units(previous_units, overlap_tokens)
@@ -514,7 +515,7 @@ def chunk_readme(
         child_groups = _merge_undersized_groups(
             child_groups,
             parent.content,
-            cfg["child_min_tokens"],
+            cfg["child_target_min"],
             cfg["child_max_tokens"],
         )
         all_units.extend(units)
@@ -529,7 +530,7 @@ def chunk_readme(
                 and token_count > cfg["child_max_tokens"]
             )
             short_reason = None
-            if token_count < cfg["child_min_tokens"]:
+            if token_count < cfg["child_target_min"]:
                 short_reason = (
                     "atomic_unit"
                     if len(child_group) == 1 and child_group[0].atomic

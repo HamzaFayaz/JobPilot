@@ -188,9 +188,22 @@ def test_index_and_retrieve_project_evidence(test_db, client):
             "target_roles": ["Backend Engineer"],
             "projects": [project],
         },
+        requirement_client=False,
     )
     assert bundle["layer1_portfolio_overviews"]
     assert bundle["layer2a_evidence_cards"]
     assert bundle["layer2b_readme_chunks"]
     headings = {c["heading_path"] for c in bundle["layer2b_readme_chunks"]}
     assert any("Engineering" in h or "API" in h or "Agentic" in h for h in headings)
+    assert bundle["retrieval_debug"]["full_job_fallback_executed"] is True
+    assert any(
+        item["requirement_id"] == "retrieval_full_job"
+        for item in bundle["retrieval_debug"]["stage_counts"]
+    )
+    assert "requirement_coverage" not in bundle["retrieval_debug"]
+    assert all(
+        "retrieved_requirement_ids" in chunk
+        and "packed_for_requirement_ids" in chunk
+        and "requirement_ids" not in chunk
+        for chunk in bundle["layer2b_readme_chunks"]
+    )

@@ -5,6 +5,7 @@ from __future__ import annotations
 import calendar
 import re
 from datetime import date
+from typing import Any
 
 MONTHS = {
     name.casefold(): index
@@ -68,3 +69,33 @@ def required_months(requirement_text: str) -> int | None:
         re.IGNORECASE,
     )
     return round(float(match.group(1)) * 12) if match else None
+
+
+def build_date_facts(text: str, reference_date: date) -> list[dict[str, Any]]:
+    """Expose exact CV date ranges and deterministic completed-month facts."""
+    facts: list[dict[str, Any]] = []
+    reference = reference_date.year * 12 + reference_date.month - 1
+    for index, match in enumerate(DATE_RANGE_RE.finditer(text), start=1):
+        start_year = int(match.group("start_year"))
+        start = _month_index(match.group("start_month"), start_year, end=False)
+        end_value = match.group("end_year").casefold()
+        if end_value in {"present", "current", "now"}:
+            end = reference
+        else:
+            end = min(
+                _month_index(match.group("end_month"), int(end_value), end=True),
+                reference,
+            )
+        if start > end:
+            continue
+        facts.append(
+            {
+                "date_fact_id": f"cv_date_{index:02d}",
+                "quote": match.group(0),
+                "source_start": match.start(),
+                "source_end": match.end(),
+                "completed_months": end - start + 1,
+                "as_of_date": reference_date.isoformat(),
+            }
+        )
+    return facts

@@ -81,7 +81,8 @@ def _candidate_fragments(description: str) -> list[tuple[int, str, str]]:
             section_hint = re.sub(r"\W+", " ", raw.casefold()).strip()
             continue
         if BULLET_RE.match(raw):
-            candidates.append((match.start(), BULLET_RE.sub("", raw).strip(), section_hint))
+            quote = BULLET_RE.sub("", raw).strip()
+            candidates.append((match.start() + raw.find(quote), quote, section_hint))
             continue
         # Keep marker-bearing sentences independently. Product names remain
         # untouched because splitting occurs only at sentence punctuation.
@@ -89,7 +90,13 @@ def _candidate_fragments(description: str) -> list[tuple[int, str, str]]:
         for sentence in re.finditer(r".+?(?:[.!?](?=\s+|$)|$)", raw):
             quote = sentence.group(0).strip()
             if quote and (MARKER_RE.search(quote) or section_hint):
-                candidates.append((match.start() + sentence.start(), quote, section_hint))
+                candidates.append(
+                    (
+                        match.start() + sentence.start() + sentence.group(0).find(quote),
+                        quote,
+                        section_hint,
+                    )
+                )
             cursor = sentence.end()
         if cursor == 0 and MARKER_RE.search(raw):
             candidates.append((match.start(), raw.strip(), section_hint))
@@ -101,8 +108,9 @@ def extract_requirement_queries(
     description: str,
     *,
     max_queries: int = 12,
+    include_full_job_fallback: bool = True,
 ) -> list[dict[str, Any]]:
-    """Extract bounded, exact-quote requirement queries plus one fallback."""
+    """Extract bounded exact-quote queries, optionally plus a full-job fallback."""
     max_queries = max(1, max_queries)
     selected: list[tuple[int, str, str]] = []
     seen: set[str] = set()
@@ -118,7 +126,7 @@ def extract_requirement_queries(
             continue
         seen.add(key)
         selected.append((position, quote, section_hint))
-        if len(selected) >= max_queries - 1:
+        if len(selected) >= max_queries:
             break
 
     queries: list[dict[str, Any]] = []
@@ -132,9 +140,15 @@ def extract_requirement_queries(
                 "importance": _importance(quote, section_hint),
                 "category": _category(quote),
                 "source_position": position,
+                "source_start": position,
+                "source_end": position + len(quote),
+                "interpretation": normalized,
                 "is_fallback": False,
             }
         )
+
+    if not include_full_job_fallback:
+        return queries[:max_queries]
 
     fallback_text = _normalize_query(f"{job_title}. {description}")
     if fallback_text:
@@ -150,4 +164,6 @@ def extract_requirement_queries(
                 "is_fallback": True,
             }
         )
-    return queries[:max_queries]
+    nonfallback = [item for item in queries if not item["is_fallback"]][:max_queries]
+    fallback = next((item for item in reversed(queries) if item["is_fallback"]), None)
+    return [*nonfallback, *([fallback] if fallback else [])]

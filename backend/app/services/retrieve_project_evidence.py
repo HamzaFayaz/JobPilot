@@ -5,13 +5,16 @@ from __future__ import annotations
 import hashlib
 import logging
 import re
+from datetime import datetime, timezone
 from typing import Any
 
 from backend.app.config import settings
 from backend.app.observability import span
 from backend.app.services import embedding_client, evidence_index_store, faiss_index
 from backend.app.services.cv_project_slots import parse_cv_project_slots
-from backend.app.services.job_requirement_queries import extract_requirement_queries
+from backend.app.services.cv_evidence_spans import build_cv_evidence_spans
+from backend.app.services.date_tenure import build_date_facts
+from backend.app.services.job_requirement_llm import extract_job_requirements
 
 logger = logging.getLogger(__name__)
 
@@ -93,65 +96,38 @@ def _content_tokens(content: str) -> set[str]:
     return set(re.findall(r"[a-z0-9+#.]+", content.casefold()))
 
 
-def _pack_for_coverage(
+def _pack_for_recall(
     candidates: list[dict[str, Any]],
     requirements: list[dict[str, Any]],
     cfg: dict[str, int],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     importance_order = {"required": 0, "preferred": 1, "general": 2}
-    requirement_order = {
-        item["requirement_id"]: importance_order.get(item["importance"], 2)
-        for item in requirements
-        if not item.get("is_fallback")
-    }
-    uncovered = set(requirement_order)
     per_project: dict[str, int] = {}
     packed: list[dict[str, Any]] = []
     removals: list[dict[str, Any]] = []
     used_fingerprints: set[str] = set()
     used_token_sets: list[set[str]] = []
-    remaining = list(candidates)
-    while remaining and len(packed) < cfg["max_chunks_per_job"]:
-        eligible = [
-            chunk
-            for chunk in remaining
-            if per_project.get(chunk.get("project_id"), 0)
-            < cfg["max_chunks_per_project"]
-        ]
-        if not eligible:
-            break
-        eligible.sort(
-            key=lambda chunk: (
-                min(
-                    (
-                        requirement_order.get(requirement_id, 3)
-                        for requirement_id in chunk["requirement_ids"]
-                        if requirement_id in uncovered
-                    ),
-                    default=4,
-                ),
-                -len(set(chunk["requirement_ids"]) & uncovered),
-                -float(chunk.get("best_retrieval_score", 0.0)),
-                chunk["id"],
-            )
-        )
-        chunk = eligible[0]
-        remaining.remove(chunk)
+    used_ids: set[str] = set()
+
+    def add_candidate(chunk: dict[str, Any], packed_for: list[str]) -> bool:
+        if chunk["id"] in used_ids or len(packed) >= cfg["max_chunks_per_job"]:
+            return False
+        pid = chunk.get("project_id")
+        if per_project.get(pid, 0) >= cfg["max_chunks_per_project"]:
+            return False
         fingerprint = chunk["content_fingerprint"]
         if fingerprint in used_fingerprints:
             removals.append({"chunk_id": chunk["id"], "reason": "normalized_duplicate"})
-            continue
+            used_ids.add(chunk["id"])
+            return False
         tokens = _content_tokens(chunk.get("content") or "")
         if any(
             len(tokens & existing) / max(1, len(tokens | existing)) >= 0.85
             for existing in used_token_sets
         ):
             removals.append({"chunk_id": chunk["id"], "reason": "near_duplicate"})
-            continue
-        adds_coverage = bool(set(chunk["requirement_ids"]) & uncovered)
-        if not adds_coverage and packed:
-            break
-        pid = chunk.get("project_id")
+            used_ids.add(chunk["id"])
+            return False
         packed.append(
             {
                 "source_id": chunk["id"],
@@ -165,17 +141,58 @@ def _pack_for_coverage(
                 else "readme_chunk",
                 "source_start": chunk.get("source_start"),
                 "source_end": chunk.get("source_end"),
-                "requirement_ids": sorted(chunk["requirement_ids"]),
+                "retrieved_requirement_ids": sorted(
+                    chunk["retrieved_requirement_ids"]
+                ),
+                "packed_for_requirement_ids": sorted(set(packed_for)),
                 "content_hash": hashlib.sha256(
                     (chunk.get("content") or "").encode("utf-8")
                 ).hexdigest(),
                 "retrieval_provenance": chunk["per_requirement"],
             }
         )
+        used_ids.add(chunk["id"])
         used_fingerprints.add(fingerprint)
         used_token_sets.append(tokens)
         per_project[pid] = per_project.get(pid, 0) + 1
-        uncovered -= set(chunk["requirement_ids"])
+        return True
+
+    ranked = sorted(
+        candidates,
+        key=lambda chunk: (
+            -float(chunk.get("best_retrieval_score", 0.0)),
+            chunk["id"],
+        ),
+    )
+    ordered_requirements = sorted(
+        (item for item in requirements if not item.get("is_fallback")),
+        key=lambda item: (
+            importance_order.get(item.get("importance"), 2),
+            item.get("source_start", item.get("source_position", 0)),
+        ),
+    )
+    for requirement in ordered_requirements:
+        requirement_id = requirement["requirement_id"]
+        quota = 2 if requirement.get("importance") == "required" else 1
+        added = 0
+        for chunk in ranked:
+            if requirement_id not in chunk["retrieved_requirement_ids"]:
+                continue
+            if add_candidate(chunk, [requirement_id]):
+                added += 1
+            if added >= quota:
+                break
+
+    target = min(cfg["target_chunks_per_job"], cfg["max_chunks_per_job"])
+    for chunk in ranked:
+        if len(packed) >= target:
+            break
+        packed_for = [
+            requirement_id
+            for requirement_id in chunk["retrieved_requirement_ids"]
+            if requirement_id != "retrieval_full_job"
+        ]
+        add_candidate(chunk, packed_for)
     return packed, removals
 
 
@@ -183,8 +200,10 @@ def retrieve_project_evidence(
     user_id: int,
     job: dict[str, Any],
     profile: dict[str, Any],
+    *,
+    requirement_client: Any | None = None,
 ) -> dict[str, Any]:
-    """Build EnrichJobInputBundle via hybrid search — no LLM."""
+    """Build the application bundle from extracted requirements and hybrid search."""
     cfg = _retrieval_cfg()
     projects = profile.get("projects") or []
     cv_text = profile.get("cv_text") or ""
@@ -192,14 +211,43 @@ def retrieve_project_evidence(
     title = job.get("title") or ""
     description = job.get("description_text") or ""
     cv_slots = parse_cv_project_slots(cv_text, projects)
-    requirement_queries = extract_requirement_queries(
+    run_date = datetime.now(timezone.utc).date()
+    cv_spans = build_cv_evidence_spans(cv_text, cv_slots)
+    date_facts = build_date_facts(cv_text, run_date)
+    extracted_requirements, extraction_metadata = extract_job_requirements(
         title,
         description,
-        max_queries=cfg["max_requirement_queries"],
+        client=requirement_client,
+        max_requirements=cfg["max_requirement_queries"],
     )
+    full_job_query = re.sub(r"\s+", " ", f"{title}. {description}").strip()[:2000]
+    requirement_queries = [
+        *extracted_requirements,
+        {
+            "requirement_id": "retrieval_full_job",
+            "job_quote": description[:2000],
+            "query": full_job_query,
+            "importance": "general",
+            "category": "other",
+            "source_position": 0,
+            "source_start": 0,
+            "source_end": min(len(description), 2000),
+            "interpretation": "Bounded complete-job fallback retrieval.",
+            "is_fallback": True,
+            "extraction_source": "full_job_fallback",
+        },
+    ]
     candidate_matrix: dict[str, dict[str, Any]] = {}
     query_cache: dict[str, tuple[list[tuple[str, float]], list[tuple[str, float]]]] = {}
     fallback_reasons: list[dict[str, str]] = []
+    if extraction_metadata.get("fallback_used"):
+        fallback_reasons.append(
+            {
+                "requirement_id": "requirement_extraction",
+                "stage": "requirement_extraction",
+                "reason": str(extraction_metadata.get("fallback_reason") or "unknown"),
+            }
+        )
     stage_counts: list[dict[str, Any]] = []
 
     for requirement in requirement_queries:
@@ -259,16 +307,21 @@ def retrieve_project_evidence(
         rerank_scores: dict[str, tuple[int, float]] = {}
         if ordered:
             try:
-                reranked = embedding_client.rerank_documents(
-                    query_text,
-                    [chunk["content"] for chunk in ordered][
-                        : cfg["rerank_candidates_per_requirement"]
-                    ],
-                    top_n=min(
-                        settings.rerank_top_n,
-                        cfg["rerank_candidates_per_requirement"],
-                    ),
-                )
+                with span(
+                    "rerank_candidates",
+                    user_id=user_id,
+                    requirement_id=requirement_id,
+                ):
+                    reranked = embedding_client.rerank_documents(
+                        query_text,
+                        [chunk["content"] for chunk in ordered][
+                            : cfg["rerank_candidates_per_requirement"]
+                        ],
+                        top_n=min(
+                            settings.rerank_top_n,
+                            cfg["rerank_candidates_per_requirement"],
+                        ),
+                    )
                 for rank, (document_index, score) in enumerate(reranked, start=1):
                     if document_index < len(ordered):
                         rerank_scores[ordered[document_index]["id"]] = (rank, float(score))
@@ -288,7 +341,7 @@ def retrieve_project_evidence(
                 chunk_id,
                 {
                     **chunk,
-                    "requirement_ids": set(),
+                    "retrieved_requirement_ids": set(),
                     "per_requirement": {},
                     "best_retrieval_score": 0.0,
                     "content_fingerprint": _content_fingerprint(chunk.get("content") or ""),
@@ -297,7 +350,7 @@ def retrieve_project_evidence(
             rerank_rank, rerank_score = rerank_scores.get(
                 chunk_id, (None, fused_scores.get(chunk_id, 0.0))
             )
-            entry["requirement_ids"].add(requirement_id)
+            entry["retrieved_requirement_ids"].add(requirement_id)
             entry["per_requirement"][requirement_id] = {
                 "bm25_rank": bm25_rank.get(chunk_id),
                 "vector_rank": vector_rank.get(chunk_id),
@@ -319,13 +372,14 @@ def retrieve_project_evidence(
             }
         )
 
-    layer2b, deduplication_removals = _pack_for_coverage(
-        list(candidate_matrix.values()), requirement_queries, cfg
-    )
+    with span("pack_retrieval_candidates", user_id=user_id):
+        layer2b, deduplication_removals = _pack_for_recall(
+            list(candidate_matrix.values()), requirement_queries, cfg
+        )
     packed_requirement_ids = {
         requirement_id
         for chunk in layer2b
-        for requirement_id in chunk["requirement_ids"]
+        for requirement_id in chunk["retrieved_requirement_ids"]
     }
     nonfallback_ids = {
         item["requirement_id"]
@@ -356,26 +410,32 @@ def retrieve_project_evidence(
             "skills": profile.get("skills") or [],
             "target_roles": profile.get("target_roles") or profile.get("targetRoles") or [],
             "cv_project_slots": cv_slots,
+            "cv_evidence_spans": cv_spans,
+            "date_facts": date_facts,
+            "date_facts_as_of": run_date.isoformat(),
         },
         "layer1_portfolio_overviews": _layer1_projects(projects),
         "layer2a_evidence_cards": _layer2a_projects(projects),
         "layer2b_readme_chunks": layer2b,
+        "extracted_job_requirements": extracted_requirements,
+        "requirement_extraction": extraction_metadata,
         "retrieval_debug": {
             "candidate_project_ids": candidate_project_ids,
             "packed_project_ids": packed_project_ids,
             "packed_chunk_ids": [chunk["source_id"] for chunk in layer2b],
             "requirement_queries": requirement_queries,
-            "requirement_coverage": {
+            "retrieval_supply": {
                 requirement_id: [
                     chunk["source_id"]
                     for chunk in layer2b
-                    if requirement_id in chunk["requirement_ids"]
+                    if requirement_id in chunk["retrieved_requirement_ids"]
                 ]
                 for requirement_id in nonfallback_ids
             },
-            "uncovered_requirement_ids": sorted(
+            "unsupplied_requirement_ids": sorted(
                 nonfallback_ids - packed_requirement_ids
             ),
+            "full_job_fallback_executed": True,
             "stage_counts": stage_counts,
             "deduplication_removals": deduplication_removals,
             "fallback_reasons": fallback_reasons,
