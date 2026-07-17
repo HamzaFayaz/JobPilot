@@ -8,10 +8,21 @@ from backend.app.db import get_connection
 from tests.evals.dataset import deterministic_dataset, semantic_dataset
 from tests.evals.models import EvaluationCaseInput
 from tests.evals.run_complete_pipeline import (
+    RUN3_FOUR_JOB_CHECKPOINT_SCHEMA,
+    RUN3_JOB_CHECKPOINT_SCHEMA,
+    RUN3_PREJUDGE_CHECKPOINT_SCHEMA,
     _checkpoint_embedding_model_matches,
-    _restore_phase1_checkpoint,
-    _save_phase1_checkpoint,
+    _four_job_checkpoint_path,
+    _job_checkpoint_path,
+    _job_input_fingerprint,
+    _load_matching_job_checkpoint,
     _prejudge_checkpoint_path,
+    _restore_job_checkpoint_into_run,
+    _restore_phase1_checkpoint,
+    _run3_fingerprints,
+    _save_phase1_checkpoint,
+    _write_four_job_checkpoint,
+    _write_job_checkpoint,
     _write_prejudge_checkpoint,
     _write_reports,
 )
@@ -24,6 +35,43 @@ def _case(phase: str) -> EvaluationCaseInput:
         payload={"fixture": True},
         deterministic_checks={"contract_ok": True},
     )
+
+
+def _job_fixture(case_name: str = "job1_deerbiation") -> dict:
+    return {
+        "case_name": case_name,
+        "title": "AI Engineer",
+        "company": "Acme",
+        "url": f"https://example.com/jobs/{case_name}",
+        "platform": "linkedin",
+        "description_text": "Required: Python.",
+    }
+
+
+def _envelope() -> dict:
+    return {
+        "schema_version": "job_package_analysis_v3",
+        "raw_model_result": "{}",
+        "raw_model_attempts": ["{}"],
+        "parsed_model_result": {"current_cv_score": 70},
+        "accepted_model_result": {"current_cv_score": 70},
+        "enrich_result": {"current_cv_score": 70},
+        "classified_result": {
+            "current_cv_score": 70,
+            "suggested_cv_score": 70,
+            "summary": "ok",
+        },
+        "contract_validation": {"valid": True, "errors": []},
+        "requirement_extraction": {"requirements": []},
+        "retrieval_bundle": {"layer2b_readme_chunks": []},
+        "retrieval": {
+            "packed_chunk_ids": ["chunk-1"],
+            "packed_project_ids": ["jobpilot"],
+            "retrieval_supply": {},
+            "fallback_reasons": [],
+        },
+        "error": None,
+    }
 
 
 def test_phase_prefixes_make_case_names_unique_and_reports_serialize(
@@ -133,6 +181,233 @@ def test_prejudge_checkpoint_preserves_cases_and_run_metadata(tmp_path, monkeypa
     )
     assert path == _prejudge_checkpoint_path()
     payload = json.loads(path.read_text(encoding="utf-8"))
-    assert payload["schema_version"] == "jobpilot_prejudge_checkpoint_v1"
+    assert payload["schema_version"] == RUN3_PREJUDGE_CHECKPOINT_SCHEMA
     assert payload["cases"][0]["phase"] == "phase_3_application"
     assert payload["run_metadata"]["evaluation_run_id"] == 7
+    assert (tmp_path / "run3-prejudge-checkpoint.json").exists()
+
+
+def test_per_job_checkpoint_save_and_reuse(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "eval_results_dir", tmp_path)
+    job = _job_fixture()
+    fingerprints = {
+        "implementation_commit": "abc",
+        "prompt_schema_config": "cfg",
+        "profile": "profile",
+        "index": "index",
+        "artifact": "artifact",
+    }
+    retrieval = _case("phase_2_retrieval")
+    retrieval.case_name = job["case_name"]
+    application = _case("phase_3_application")
+    application.case_name = job["case_name"]
+    path = _write_job_checkpoint(
+        job=job,
+        fingerprints=fingerprints,
+        envelope=_envelope(),
+        persisted={
+            "status": "ready",
+            "summary": "ok",
+            "current_cv_score": 70,
+            "suggested_cv_score": 70,
+            "model_name": "test-model",
+            "prompt_version": "enrich_job_v3",
+            "profile_snapshot_hash": "sha256:test",
+            "package_key": "pkg-key",
+            "error": None,
+        },
+        retrieval_case=retrieval,
+        application_case=application,
+    )
+    assert path == _job_checkpoint_path(job["case_name"])
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert payload["schema_version"] == RUN3_JOB_CHECKPOINT_SCHEMA
+    assert payload["fingerprints"]["job_input"] == _job_input_fingerprint(job)
+    reused = _load_matching_job_checkpoint(job, fingerprints)
+    assert reused is not None
+    assert reused["case_name"] == job["case_name"]
+
+
+def test_per_job_checkpoint_rejects_stale_fingerprints(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "eval_results_dir", tmp_path)
+    job = _job_fixture()
+    fingerprints = {
+        "implementation_commit": "abc",
+        "prompt_schema_config": "cfg",
+        "profile": "profile",
+        "index": "index",
+        "artifact": "artifact",
+    }
+    retrieval = _case("phase_2_retrieval")
+    retrieval.case_name = job["case_name"]
+    application = _case("phase_3_application")
+    application.case_name = job["case_name"]
+    _write_job_checkpoint(
+        job=job,
+        fingerprints=fingerprints,
+        envelope=_envelope(),
+        persisted={
+            "status": "ready",
+            "summary": "ok",
+            "current_cv_score": 70,
+            "suggested_cv_score": 70,
+            "package_key": "pkg-key",
+            "error": None,
+        },
+        retrieval_case=retrieval,
+        application_case=application,
+    )
+    stale = dict(fingerprints)
+    stale["implementation_commit"] = "different"
+    assert _load_matching_job_checkpoint(job, stale) is None
+    changed_job = dict(job)
+    changed_job["description_text"] = "Changed description"
+    assert _load_matching_job_checkpoint(changed_job, fingerprints) is None
+
+
+def test_interrupted_run_resumes_only_unfinished_jobs(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "eval_results_dir", tmp_path)
+    fingerprints = {
+        "implementation_commit": "abc",
+        "prompt_schema_config": "cfg",
+        "profile": "profile",
+        "index": "index",
+        "artifact": "artifact",
+    }
+    finished = _job_fixture("job1_deerbiation")
+    unfinished = _job_fixture("job2_deerbiation")
+    retrieval = _case("phase_2_retrieval")
+    retrieval.case_name = finished["case_name"]
+    application = _case("phase_3_application")
+    application.case_name = finished["case_name"]
+    _write_job_checkpoint(
+        job=finished,
+        fingerprints=fingerprints,
+        envelope=_envelope(),
+        persisted={
+            "status": "ready",
+            "summary": "ok",
+            "current_cv_score": 70,
+            "suggested_cv_score": 70,
+            "package_key": "pkg-1",
+            "error": None,
+        },
+        retrieval_case=retrieval,
+        application_case=application,
+    )
+    assert _load_matching_job_checkpoint(finished, fingerprints) is not None
+    assert _load_matching_job_checkpoint(unfinished, fingerprints) is None
+
+
+def test_four_job_and_prejudge_checkpoints(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "eval_results_dir", tmp_path)
+    jobs = [_job_fixture(f"job{index}_deerbiation") for index in range(1, 5)]
+    fingerprints = _run3_fingerprints(
+        {"cv_text": "cv", "skills": [], "target_roles": [], "projects": []}
+    )
+    four_path = _write_four_job_checkpoint(
+        jobs=jobs,
+        fingerprints=fingerprints,
+        job_artifacts=[
+            {"case_name": job["case_name"], "source": "live"} for job in jobs
+        ],
+        run_id=9,
+        persistence_state={"run_status": "completed", "expected_ready": 4},
+    )
+    assert four_path == _four_job_checkpoint_path()
+    four_payload = json.loads(four_path.read_text(encoding="utf-8"))
+    assert four_payload["schema_version"] == RUN3_FOUR_JOB_CHECKPOINT_SCHEMA
+    assert four_payload["job_case_names"] == [job["case_name"] for job in jobs]
+
+    cases = [_case("phase_1_cv_skills")]
+    for job in jobs:
+        cases.append(
+            EvaluationCaseInput(
+                phase="phase_2_retrieval",
+                case_name=job["case_name"],
+                payload={"job": job},
+                deterministic_checks={"ok": True},
+            )
+        )
+        cases.append(
+            EvaluationCaseInput(
+                phase="phase_3_application",
+                case_name=job["case_name"],
+                payload={"job": job},
+                deterministic_checks={"ok": True},
+            )
+        )
+    while len(cases) < 17:
+        cases.append(
+            EvaluationCaseInput(
+                phase="phase_1_project_evidence",
+                case_name=f"project_{len(cases)}",
+                payload={},
+                deterministic_checks={"ok": True},
+            )
+        )
+    prejudge = _write_prejudge_checkpoint(cases, {"evaluation_run_id": 9})
+    payload = json.loads(prejudge.read_text(encoding="utf-8"))
+    assert len(payload["cases"]) == 17
+    assert prejudge == _prejudge_checkpoint_path()
+
+
+def test_restore_job_checkpoint_into_run_skips_paid_path(test_db, tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "eval_results_dir", tmp_path)
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT INTO users (email, password_hash) VALUES (?, ?)",
+            ("resume@example.com", "hash"),
+        )
+        user_id = int(conn.execute("SELECT last_insert_rowid()").fetchone()[0])
+        conn.execute(
+            "INSERT INTO search_runs (user_id, status) VALUES (?, 'running')",
+            (user_id,),
+        )
+        run_id = int(conn.execute("SELECT last_insert_rowid()").fetchone()[0])
+        conn.commit()
+    job = _job_fixture()
+    fingerprints = {
+        "implementation_commit": "abc",
+        "prompt_schema_config": "cfg",
+        "profile": "profile",
+        "index": "index",
+        "artifact": "artifact",
+    }
+    retrieval = _case("phase_2_retrieval")
+    retrieval.case_name = job["case_name"]
+    application = _case("phase_3_application")
+    application.case_name = job["case_name"]
+    _write_job_checkpoint(
+        job=job,
+        fingerprints=fingerprints,
+        envelope=_envelope(),
+        persisted={
+            "status": "ready",
+            "summary": "ok",
+            "current_cv_score": 70,
+            "suggested_cv_score": 70,
+            "package_key": "pkg-key",
+            "model_name": "test-model",
+            "prompt_version": "enrich_job_v3",
+            "profile_snapshot_hash": "sha256:test",
+            "error": None,
+        },
+        retrieval_case=retrieval,
+        application_case=application,
+    )
+    checkpoint = _load_matching_job_checkpoint(job, fingerprints)
+    restored_cases = _restore_job_checkpoint_into_run(
+        run_id=run_id,
+        user_id=user_id,
+        job=job,
+        checkpoint=checkpoint,
+    )
+    assert len(restored_cases) == 2
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT status, analysis_json FROM job_packages WHERE run_id = ?",
+            (run_id,),
+        ).fetchone()
+    assert row["status"] == "ready"
+    assert json.loads(row["analysis_json"])["classified_result"]["current_cv_score"] == 70

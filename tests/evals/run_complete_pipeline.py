@@ -35,6 +35,7 @@ from backend.app.services.profile_store import (
     merge_github_import,
     update_cv,
 )
+from backend.app.services.search_store import upsert_job_package
 from tests.evals.dataset import (
     CORPUS_ROOT,
     deterministic_dataset,
@@ -730,8 +731,235 @@ def _write_failed_package(case_name: str, envelope: dict) -> Path:
     return path
 
 
+RUN3_JOB_CHECKPOINT_SCHEMA = "jobpilot_run3_job_checkpoint_v1"
+RUN3_FOUR_JOB_CHECKPOINT_SCHEMA = "jobpilot_run3_four_job_checkpoint_v1"
+RUN3_PREJUDGE_CHECKPOINT_SCHEMA = "jobpilot_prejudge_checkpoint_v1"
+
+
+def _run3_checkpoint_dir() -> Path:
+    return _results_dir() / "run3-checkpoint"
+
+
+def _run3_jobs_dir() -> Path:
+    return _run3_checkpoint_dir() / "jobs"
+
+
+def _four_job_checkpoint_path() -> Path:
+    return _run3_checkpoint_dir() / "four-jobs.json"
+
+
 def _prejudge_checkpoint_path() -> Path:
+    primary = _run3_checkpoint_dir() / "prejudge.json"
+    if primary.exists():
+        return primary
     return _results_dir() / "run3-prejudge-checkpoint.json"
+
+
+def _canonical_digest(payload: object) -> str:
+    canonical = json.dumps(
+        payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _job_input_fingerprint(job: dict) -> str:
+    return _canonical_digest(
+        {
+            "case_name": job.get("case_name"),
+            "title": job.get("title"),
+            "company": job.get("company"),
+            "url": job.get("url"),
+            "platform": job.get("platform") or job.get("source_platform"),
+            "description_text": job.get("description_text"),
+        }
+    )
+
+
+def _profile_fingerprint(profile: dict) -> str:
+    return _canonical_digest(profile)
+
+
+def _prompt_schema_config_fingerprint() -> str:
+    root = CORPUS_ROOT.parents[1]
+    return _canonical_digest(
+        {
+            "application_model": settings.application_model,
+            "application_prompt_version": settings.application_prompt_version,
+            "application_schema_version": settings.application_schema_version,
+            "requirement_extraction_model": settings.requirement_extraction_model,
+            "llm_config_hash": _hash_file(root / "config/llm.yaml"),
+            "sources": _source_hashes(
+                [
+                    "backend/app/models/application.py",
+                    "backend/app/services/application_llm.py",
+                    "backend/app/services/application_prompt.py",
+                    "backend/app/services/application_validation.py",
+                    "backend/app/services/job_requirement_llm.py",
+                    "backend/app/services/retrieve_project_evidence.py",
+                ]
+            ),
+        }
+    )
+
+
+def _run3_fingerprints(profile: dict) -> dict[str, str]:
+    return {
+        "implementation_commit": _git_commit(),
+        "prompt_schema_config": _prompt_schema_config_fingerprint(),
+        "profile": _profile_fingerprint(profile),
+        "index": _index_fingerprint(),
+        "artifact": _artifact_fingerprint(),
+    }
+
+
+def _job_checkpoint_path(case_name: str) -> Path:
+    return _run3_jobs_dir() / f"{case_name}.json"
+
+
+def _write_job_checkpoint(
+    *,
+    job: dict,
+    fingerprints: dict[str, str],
+    envelope: dict,
+    persisted: dict,
+    retrieval_case: EvaluationCaseInput,
+    application_case: EvaluationCaseInput,
+) -> Path:
+    path = _job_checkpoint_path(job["case_name"])
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "schema_version": RUN3_JOB_CHECKPOINT_SCHEMA,
+        "case_name": job["case_name"],
+        "fingerprints": {
+            **fingerprints,
+            "job_input": _job_input_fingerprint(job),
+        },
+        "job": job,
+        "requirement_extraction": envelope.get("requirement_extraction"),
+        "retrieval_bundle": envelope.get("retrieval_bundle"),
+        "packed_sources": {
+            "packed_chunk_ids": (envelope.get("retrieval") or {}).get("packed_chunk_ids")
+            or [],
+            "packed_project_ids": (envelope.get("retrieval") or {}).get(
+                "packed_project_ids"
+            )
+            or [],
+        },
+        "raw_model_attempts": envelope.get("raw_model_attempts") or [],
+        "raw_model_result": envelope.get("raw_model_result"),
+        "parsed_model_result": envelope.get("parsed_model_result"),
+        "accepted_model_result": envelope.get("accepted_model_result")
+        or envelope.get("enrich_result"),
+        "classified_result": envelope.get("classified_result"),
+        "contract_validation": envelope.get("contract_validation"),
+        "persisted_package": {
+            "status": persisted.get("status"),
+            "summary": persisted.get("summary"),
+            "current_cv_score": persisted.get("current_cv_score"),
+            "suggested_cv_score": persisted.get("suggested_cv_score"),
+            "analysis": envelope,
+            "model_name": persisted.get("model_name"),
+            "prompt_version": persisted.get("prompt_version"),
+            "profile_snapshot_hash": persisted.get("profile_snapshot_hash"),
+            "package_key": persisted.get("package_key"),
+            "error": persisted.get("error"),
+        },
+        "evaluation_cases": [
+            retrieval_case.model_dump(mode="json"),
+            application_case.model_dump(mode="json"),
+        ],
+        "saved_at_utc": datetime.now(timezone.utc).isoformat(),
+    }
+    path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2, default=str),
+        encoding="utf-8",
+    )
+    return path
+
+
+def _load_matching_job_checkpoint(
+    job: dict,
+    fingerprints: dict[str, str],
+) -> dict | None:
+    path = _job_checkpoint_path(job["case_name"])
+    if not path.is_file():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if payload.get("schema_version") != RUN3_JOB_CHECKPOINT_SCHEMA:
+        return None
+    saved = payload.get("fingerprints") or {}
+    expected = {
+        **fingerprints,
+        "job_input": _job_input_fingerprint(job),
+    }
+    if any(saved.get(key) != value for key, value in expected.items()):
+        return None
+    if not payload.get("classified_result") or not payload.get("persisted_package"):
+        return None
+    return payload
+
+
+def _restore_job_checkpoint_into_run(
+    *,
+    run_id: int,
+    user_id: int,
+    job: dict,
+    checkpoint: dict,
+) -> list[EvaluationCaseInput]:
+    package = checkpoint["persisted_package"]
+    analysis = package.get("analysis") or {}
+    upsert_job_package(
+        run_id=run_id,
+        user_id=user_id,
+        job=job,
+        package_key=package.get("package_key")
+        or hashlib.sha256(
+            f"{job.get('platform', '')}|{job.get('url', '')}".lower().strip().encode()
+        ).hexdigest(),
+        analysis=analysis,
+        status=package.get("status") or "ready",
+        summary=package.get("summary") or "",
+        current_cv_score=package.get("current_cv_score"),
+        suggested_cv_score=package.get("suggested_cv_score"),
+        error=package.get("error"),
+        model_name=package.get("model_name") or settings.application_model,
+        prompt_version=package.get("prompt_version")
+        or settings.application_prompt_version,
+        profile_snapshot_hash=package.get("profile_snapshot_hash"),
+    )
+    return [
+        EvaluationCaseInput.model_validate(item)
+        for item in checkpoint.get("evaluation_cases") or []
+    ]
+
+
+def _write_four_job_checkpoint(
+    *,
+    jobs: list[dict],
+    fingerprints: dict[str, str],
+    job_artifacts: list[dict],
+    run_id: int,
+    persistence_state: dict,
+) -> Path:
+    path = _four_job_checkpoint_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "schema_version": RUN3_FOUR_JOB_CHECKPOINT_SCHEMA,
+        "fingerprints": fingerprints,
+        "job_case_names": [job["case_name"] for job in jobs],
+        "job_artifacts": job_artifacts,
+        "evaluation_run_id": run_id,
+        "persistence_finalization": persistence_state,
+        "saved_at_utc": datetime.now(timezone.utc).isoformat(),
+    }
+    path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2, default=str),
+        encoding="utf-8",
+    )
+    return path
 
 
 def _trace_id(evaluation_span) -> str | None:
@@ -747,12 +975,12 @@ def _write_prejudge_checkpoint(
     cases: list[EvaluationCaseInput],
     metadata: dict,
 ) -> Path:
-    path = _prejudge_checkpoint_path()
+    path = _run3_checkpoint_dir() / "prejudge.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         json.dumps(
             {
-                "schema_version": "jobpilot_prejudge_checkpoint_v1",
+                "schema_version": RUN3_PREJUDGE_CHECKPOINT_SCHEMA,
                 "cases": [case.model_dump(mode="json") for case in cases],
                 "run_metadata": metadata,
             },
@@ -761,13 +989,17 @@ def _write_prejudge_checkpoint(
         ),
         encoding="utf-8",
     )
+    # Keep the legacy path as a pointer for older resume commands.
+    legacy = _results_dir() / "run3-prejudge-checkpoint.json"
+    legacy.parent.mkdir(parents=True, exist_ok=True)
+    legacy.write_text(path.read_text(encoding="utf-8"), encoding="utf-8")
     return path
 
 
 def _resume_prejudge_checkpoint() -> tuple[Path, Path]:
     path = _prejudge_checkpoint_path()
     payload = json.loads(path.read_text(encoding="utf-8"))
-    if payload.get("schema_version") != "jobpilot_prejudge_checkpoint_v1":
+    if payload.get("schema_version") != RUN3_PREJUDGE_CHECKPOINT_SCHEMA:
         raise RuntimeError("Unsupported pre-judge checkpoint schema.")
     cases = [
         EvaluationCaseInput.model_validate(item) for item in payload.get("cases") or []
@@ -930,8 +1162,39 @@ def run() -> tuple[Path, Path]:
         user_id, profile, cases = _prepare_phase1()
         jobs = load_jobs()
         run_id = _create_evaluation_run(user_id)
+        fingerprints = _run3_fingerprints(profile)
         application_graph = build_application_subgraph()
+        job_artifacts: list[dict] = []
         for job_index, job in enumerate(jobs, start=1):
+            reused = _load_matching_job_checkpoint(job, fingerprints)
+            if reused is not None:
+                print(
+                    f"Phases 2–3: resuming job {job_index}/{len(jobs)} — "
+                    f"{job['case_name']} from durable checkpoint "
+                    "(skipping paid extraction/application calls)",
+                    flush=True,
+                )
+                cases.extend(
+                    _restore_job_checkpoint_into_run(
+                        run_id=run_id,
+                        user_id=user_id,
+                        job=job,
+                        checkpoint=reused,
+                    )
+                )
+                job_artifacts.append(
+                    {
+                        "case_name": job["case_name"],
+                        "source": "checkpoint",
+                        "checkpoint_path": str(
+                            _job_checkpoint_path(job["case_name"])
+                        ),
+                        "classified_result": reused.get("classified_result"),
+                        "contract_validation": reused.get("contract_validation"),
+                    }
+                )
+                continue
+
             print(
                 f"Phases 2–3: analyzing job {job_index}/{len(jobs)} — "
                 f"{job['case_name']}",
@@ -974,48 +1237,67 @@ def run() -> tuple[Path, Path]:
                     f"Persisted application package failed for {job['case_name']}: "
                     f"{envelope.get('error')}. Details: {failure_path}"
                 )
-            cases.append(
-                EvaluationCaseInput(
-                    phase="phase_2_retrieval",
-                    case_name=job["case_name"],
-                    payload={
-                        "job": job,
-                        "portfolio": bundle["layer1_portfolio_overviews"],
-                        "evidence_cards": bundle["layer2a_evidence_cards"],
-                        "selected_chunks": bundle["layer2b_readme_chunks"],
-                        "retrieval_debug": bundle["retrieval_debug"],
-                        "requirement_extraction": bundle.get("requirement_extraction"),
-                    },
-                    deterministic_checks=_retrieval_checks(bundle),
-                )
+            retrieval_case = EvaluationCaseInput(
+                phase="phase_2_retrieval",
+                case_name=job["case_name"],
+                payload={
+                    "job": job,
+                    "portfolio": bundle["layer1_portfolio_overviews"],
+                    "evidence_cards": bundle["layer2a_evidence_cards"],
+                    "selected_chunks": bundle["layer2b_readme_chunks"],
+                    "retrieval_debug": bundle["retrieval_debug"],
+                    "requirement_extraction": bundle.get("requirement_extraction"),
+                },
+                deterministic_checks=_retrieval_checks(bundle),
             )
-            cases.append(
-                EvaluationCaseInput(
-                    phase="phase_3_application",
-                    case_name=job["case_name"],
-                    payload={
-                        "job": job,
-                        "profile": profile,
-                        "retrieved_evidence": {
-                            "overviews": bundle["layer1_portfolio_overviews"],
-                            "evidence_cards": bundle["layer2a_evidence_cards"],
-                            "chunks": bundle["layer2b_readme_chunks"],
-                        },
-                        "model_result": result,
-                        "classified_result": classified,
-                        "contract_validation": envelope.get("contract_validation"),
-                        "raw_model_result": envelope.get("raw_model_result"),
+            application_case = EvaluationCaseInput(
+                phase="phase_3_application",
+                case_name=job["case_name"],
+                payload={
+                    "job": job,
+                    "profile": profile,
+                    "retrieved_evidence": {
+                        "overviews": bundle["layer1_portfolio_overviews"],
+                        "evidence_cards": bundle["layer2a_evidence_cards"],
+                        "chunks": bundle["layer2b_readme_chunks"],
                     },
-                    deterministic_checks=_application_checks(
-                        classified,
-                        len((bundle.get("profile") or {}).get("cv_project_slots") or []),
-                        job_description=job["description_text"],
-                        cv_text=profile["cv_text"],
-                        persisted=persisted,
-                        model_result=result,
-                        contract_validation=envelope.get("contract_validation"),
-                    ),
-                )
+                    "model_result": result,
+                    "classified_result": classified,
+                    "contract_validation": envelope.get("contract_validation"),
+                    "raw_model_result": envelope.get("raw_model_result"),
+                },
+                deterministic_checks=_application_checks(
+                    classified,
+                    len((bundle.get("profile") or {}).get("cv_project_slots") or []),
+                    job_description=job["description_text"],
+                    cv_text=profile["cv_text"],
+                    persisted=persisted,
+                    model_result=result,
+                    contract_validation=envelope.get("contract_validation"),
+                ),
+            )
+            cases.append(retrieval_case)
+            cases.append(application_case)
+            checkpoint_path = _write_job_checkpoint(
+                job=job,
+                fingerprints=fingerprints,
+                envelope=envelope,
+                persisted=persisted,
+                retrieval_case=retrieval_case,
+                application_case=application_case,
+            )
+            print(
+                f"Phases 2–3: durable job checkpoint written: {checkpoint_path}",
+                flush=True,
+            )
+            job_artifacts.append(
+                {
+                    "case_name": job["case_name"],
+                    "source": "live",
+                    "checkpoint_path": str(checkpoint_path),
+                    "classified_result": classified,
+                    "contract_validation": envelope.get("contract_validation"),
+                }
             )
 
         persist(
@@ -1038,6 +1320,16 @@ def run() -> tuple[Path, Path]:
                 (run_id,),
             ).fetchall()
         expected_ready = len(jobs)
+        persistence_state = {
+            "run_status": None if run_row is None else run_row["status"],
+            "jobs_ready_count": (
+                None if run_row is None else int(run_row["jobs_ready_count"])
+            ),
+            "package_counts": {
+                row["status"]: int(row["n"]) for row in package_counts
+            },
+            "expected_ready": expected_ready,
+        }
         if (
             run_row is None
             or run_row["status"] != "completed"
@@ -1045,6 +1337,15 @@ def run() -> tuple[Path, Path]:
             or sum(int(row["n"]) for row in package_counts) != len(jobs)
         ):
             raise RuntimeError("Evaluation persistence/finalization contract failed.")
+
+        four_job_path = _write_four_job_checkpoint(
+            jobs=jobs,
+            fingerprints=fingerprints,
+            job_artifacts=job_artifacts,
+            run_id=run_id,
+            persistence_state=persistence_state,
+        )
+        print(f"Four-job checkpoint written: {four_job_path}", flush=True)
 
         print(
             f"Deterministic evaluation: running {len(cases)} cases",
@@ -1073,6 +1374,8 @@ def run() -> tuple[Path, Path]:
             "trace_id": _trace_id(evaluation_span),
             "started_at_utc": started_at.isoformat(),
             "applications_completed_at_utc": datetime.now(timezone.utc).isoformat(),
+            "four_job_checkpoint": str(four_job_path),
+            "fingerprints": fingerprints,
         }
         checkpoint_path = _write_prejudge_checkpoint(cases, run_metadata)
         print(f"Pre-judge checkpoint written: {checkpoint_path}", flush=True)
