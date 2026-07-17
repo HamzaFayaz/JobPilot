@@ -41,6 +41,8 @@ details and application instructions are not requirements.
 The CURRENT CV and PORTFOLIO SOURCES are separate evidence domains. Every
 matched or partial requirement must reference one or more supplied cv_span_id
 values. A display quote may be short, but the cv_span_id is authoritative.
+Never put a date_fact_id in cv_span_id; date facts are referenced only through
+the requirement's date_fact_ids list.
 Portfolio-only details must not increase current_cv_score. Portfolio evidence
 may support swap recommendations and suggested_cv_score. Swap evidence may
 reference only packed portfolio source_id values owned by the replacement
@@ -98,7 +100,9 @@ and make suggested score equal current score. For every target requirement,
 return one swap_coverage item with direct packed-source references owned by the
 replacement project. Do not perform tenure/date arithmetic. Use only supplied
 date_fact_ids and their deterministic completed-month values, and return those
-IDs on each tenure requirement.
+IDs on each tenure requirement. Every source_id in every swap_coverage item
+must have project_id exactly equal to that decision's swap_in_project_id; never
+borrow evidence from another project.
 
 ======================================================================
 6. SUMMARY AND USER SAFETY

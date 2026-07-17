@@ -294,7 +294,7 @@ def analyze_job(
                 validation_details = exc.validation_details or exc.message
                 if attempt >= settings.application_repair_retries:
                     exc.message = (
-                        "Application analysis failed schema validation after "
+                        "Application analysis failed response-contract validation after "
                         f"{settings.application_repair_retries} repair retry."
                     )
                     raise

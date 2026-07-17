@@ -399,7 +399,11 @@ def test_contract_rejects_unknown_cv_span_without_mutating_model_result():
             "date_facts": [],
         },
     )
-    assert any(item["code"] == "invalid_current_cv_source" for item in errors)
+    invalid_source = next(
+        item for item in errors if item["code"] == "invalid_current_cv_source"
+    )
+    assert invalid_source["cv_span_id"] == "cv:test"
+    assert "Date fact IDs" in invalid_source["instruction"]
     assert payload == original
 
 

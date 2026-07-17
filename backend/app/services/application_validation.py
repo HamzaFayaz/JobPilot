@@ -123,7 +123,16 @@ def validate_application_contract(
             span_id = reference.get("cv_span_id")
             if reference.get("source_type") != "cv" or span_id not in cv_sources:
                 errors.append(
-                    {"code": "invalid_current_cv_source", "requirement_id": requirement_id}
+                    {
+                        "code": "invalid_current_cv_source",
+                        "requirement_id": requirement_id,
+                        "cv_span_id": span_id,
+                        "instruction": (
+                            "Remove this reference or replace it with a supplied "
+                            "cv_evidence_spans source_id. Date fact IDs belong only "
+                            "in date_fact_ids."
+                        ),
+                    }
                 )
             else:
                 valid_cv_count += 1
@@ -201,6 +210,15 @@ def validate_application_contract(
                         {
                             "code": "swap_evidence_not_owned_by_replacement",
                             "slot_index": decision.get("slot_index"),
+                            "source_id": reference.get("source_id"),
+                            "source_project_id": (
+                                source.get("project_id") if source else None
+                            ),
+                            "replacement_project_id": replacement_id,
+                            "instruction": (
+                                "Use only supplied packed source IDs whose project_id "
+                                "equals the replacement_project_id."
+                            ),
                         }
                     )
 
