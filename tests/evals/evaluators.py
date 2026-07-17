@@ -16,7 +16,7 @@ class DeterministicContracts(Evaluator):
         return case.deterministic_checks
 
     def get_evaluator_version(self) -> str:
-        return "phase_3_v1"
+        return "phase_3_v2"
 
 
 @dataclass
@@ -28,7 +28,7 @@ class JudgeContract(Evaluator):
         results: dict[str, bool | int] = {
             "judge_pass": output["overall_verdict"] == "pass",
             "no_hard_failures": not output["hard_failures"],
-            "human_review_not_required": not output["human_review_required"],
+            "human_review_required": output["human_review_required"],
         }
         for name, criterion in output["criteria"].items():
             results[f"criterion_{name}"] = int(criterion["score"])

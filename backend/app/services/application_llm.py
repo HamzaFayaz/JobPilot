@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import json
+import hashlib
+import re
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any
 
 from openai import OpenAI
@@ -73,19 +76,60 @@ def _validation_context(bundle: dict[str, Any]) -> dict[str, Any]:
             source_id = item.get("source_id")
             if not source_id:
                 continue
+            resolved_type = source_type or item.get("source") or "readme_chunk"
+            if resolved_type == "portfolio_overview":
+                content = item.get("portfolio_overview") or ""
+            elif resolved_type == "evidence_card":
+                content = json.dumps(
+                    item.get("evidence_card") or {},
+                    ensure_ascii=False,
+                    sort_keys=True,
+                )
+            else:
+                content = item.get("content") or ""
             sources[source_id] = {
-                "source_type": source_type or item.get("source") or "readme_chunk",
+                "source_type": resolved_type,
                 "project_id": item.get("project_id"),
+                "project_name": item.get("project_name") or item.get("name"),
+                "content": content,
+                "content_hash": item.get("content_hash")
+                or hashlib.sha256(content.encode("utf-8")).hexdigest(),
+                "heading_path": item.get("heading_path"),
+                "source_start": item.get("source_start"),
+                "source_end": item.get("source_end"),
+                "requirement_ids": item.get("requirement_ids") or [],
             }
+    cv_text = bundle["profile"].get("cv_text") or ""
+    slots = bundle["profile"].get("cv_project_slots") or []
+    retrieval_debug = bundle.get("retrieval_debug") or {}
     return {
-        "cv_project_slots": bundle["profile"].get("cv_project_slots") or [],
+        "cv_text": cv_text,
+        "normalized_cv_text": re.sub(r"\s+", " ", cv_text).strip(),
+        "cv_section_spans": [
+            {
+                "slot_index": slot.get("slot_index"),
+                "source_start": slot.get("source_start"),
+                "source_end": slot.get("source_end"),
+            }
+            for slot in slots
+        ],
+        "job_description": bundle.get("job", {}).get("description_text") or "",
+        "cv_project_slots": slots,
+        "cv_project_ids": [
+            slot.get("matched_portfolio_project_id")
+            for slot in slots
+            if slot.get("matched_portfolio_project_id")
+        ],
         "portfolio_project_ids": [
             item.get("project_id")
             for item in bundle.get("layer1_portfolio_overviews") or []
             if item.get("project_id")
         ],
         "evidence_sources": sources,
-        "supplied_requirement_source": "job",
+        "requirement_queries": retrieval_debug.get("requirement_queries") or [],
+        "requirement_coverage": retrieval_debug.get("requirement_coverage") or {},
+        "packed_chunk_ids": retrieval_debug.get("packed_chunk_ids") or [],
+        "run_date": datetime.now(timezone.utc).date().isoformat(),
     }
 
 

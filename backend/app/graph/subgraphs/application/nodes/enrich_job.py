@@ -7,12 +7,13 @@ from backend.app.services.application_llm import ApplicationAnalysisError, analy
 def enrich_job(state: ApplicationState) -> dict:
     """Retrieve project evidence and call the structured application model."""
     try:
-        result, context, _eval_payload = analyze_job(
+        result, context, eval_payload = analyze_job(
             state["user_id"], state["job"], state["profile"]
         )
         return {
             "enrich_result": result,
             "validation_context": context,
+            "eval_payload": eval_payload,
             "stage_status": "enriched",
         }
     except ApplicationAnalysisError as exc:

@@ -32,16 +32,24 @@ class StrictModel(BaseModel):
 
 class EvidenceReference(StrictModel):
     source_type: EvidenceSourceType
-    quote: str
+    quote: str = Field(min_length=1)
     cv_section: str | None
     project_id: str | None
     project_name: str | None
     heading_path: str | None
     source_id: str | None
 
+    @model_validator(mode="after")
+    def validate_source_identity(self) -> "EvidenceReference":
+        if self.source_type != "cv" and not self.source_id:
+            raise ValueError("non-CV evidence requires an exact source_id")
+        return self
+
 
 class RequirementAssessment(StrictModel):
     requirement_id: str
+    retrieval_requirement_id: str | None
+    job_quote: str = Field(min_length=1)
     text: str
     importance: RequirementImportance
     category: RequirementCategory
@@ -63,6 +71,12 @@ class InferredRequirement(StrictModel):
     basis: str
 
 
+class SwapCoverageItem(StrictModel):
+    requirement_id: str
+    proposed_status: Literal["partial", "matched"]
+    evidence_refs: list[EvidenceReference] = Field(min_length=1)
+
+
 class ProjectDecision(StrictModel):
     slot_index: int
     action: ProjectAction
@@ -71,6 +85,7 @@ class ProjectDecision(StrictModel):
     swap_in_project_name: str | None
     target_requirement_ids: list[str]
     evidence_refs: list[EvidenceReference]
+    swap_coverage: list[SwapCoverageItem]
     rationale: str
     impact: SwapImpact | None
 
@@ -82,6 +97,7 @@ class ProjectDecision(StrictModel):
                 or self.swap_in_project_name is not None
                 or self.impact is not None
                 or self.target_requirement_ids
+                or self.swap_coverage
                 or any(
                     reference.source_type != "cv"
                     for reference in self.evidence_refs
@@ -93,6 +109,12 @@ class ProjectDecision(StrictModel):
             raise ValueError("swap decisions require replacement identity and impact")
         if not self.target_requirement_ids:
             raise ValueError("swap decisions require target requirements")
+        if not self.swap_coverage:
+            raise ValueError("swap decisions require target coverage items")
+        if {item.requirement_id for item in self.swap_coverage} != set(
+            self.target_requirement_ids
+        ):
+            raise ValueError("swap coverage must match target requirement IDs")
         if not any(ref.source_type != "cv" for ref in self.evidence_refs):
             raise ValueError("swap decisions require portfolio evidence")
         return self

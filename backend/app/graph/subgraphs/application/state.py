@@ -11,6 +11,7 @@ class ApplicationState(TypedDict, total=False):
     job: Required[JobListing]
     profile: Required[ProfileState]
     validation_context: NotRequired[dict]
+    eval_payload: NotRequired[dict]
     enrich_result: NotRequired[dict]
     classified_result: NotRequired[dict]
     package_id: NotRequired[int]

@@ -48,11 +48,14 @@ def index_project_evidence(user_id: int, project: dict[str, Any]) -> dict[str, A
         stack_tags=stack_tags,
         embed_fn=embed_fn,
     )
+    claim_deduplication: list[dict[str, Any]] = []
     claim_chunks = readme_chunker.evidence_claim_chunks(
         _claims_from_project(project),
         project_name=project_name,
         stack_tags=stack_tags,
         start_index=len(chunk_result.chunks),
+        source_chunks=chunk_result.chunks,
+        diagnostics=claim_deduplication,
     )
     all_chunks = chunk_result.chunks + claim_chunks
 
@@ -77,6 +80,7 @@ def index_project_evidence(user_id: int, project: dict[str, Any]) -> dict[str, A
         "chunk_count": len(chunk_ids),
         "chunk_ids": chunk_ids,
         "index_meta": meta,
+        "claim_deduplication": claim_deduplication,
     }
 
 

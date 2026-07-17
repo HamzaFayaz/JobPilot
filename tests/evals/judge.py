@@ -123,7 +123,28 @@ def judge_case(
             response.choices[0].message.content if response.choices else ""
         ) or ""
         try:
-            return JudgeResult.model_validate(json.loads(invalid_response))
-        except (json.JSONDecodeError, ValidationError) as exc:
+            result = JudgeResult.model_validate(json.loads(invalid_response))
+            expected = set(RUBRICS[case.phase])
+            if set(result.criteria) != expected:
+                raise ValueError(
+                    "criteria keys must exactly match rubric; "
+                    f"expected={sorted(expected)}, actual={sorted(result.criteria)}"
+                )
+            scores = [criterion.score for criterion in result.criteria.values()]
+            expected_verdict = (
+                "fail"
+                if result.hard_failures or any(score <= 1 for score in scores)
+                else "warning"
+                if any(score == 2 for score in scores)
+                else "pass"
+            )
+            if result.overall_verdict != expected_verdict:
+                raise ValueError(
+                    f"overall verdict must be {expected_verdict} for supplied scores"
+                )
+            if not result.human_review_required:
+                raise ValueError("human_review_required must be true")
+            return result
+        except (json.JSONDecodeError, ValidationError, ValueError) as exc:
             last_error = str(exc)
     raise ValueError(f"Judge response failed validation after one retry: {last_error}")

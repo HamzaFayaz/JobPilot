@@ -1,6 +1,7 @@
 """Parent fan-in node for search-run finalization."""
 
 from backend.app.graph.state import RunState
+from backend.app.observability import span
 from backend.app.services.search_store import (
     finalize_search_run,
     get_search_run,
@@ -23,5 +24,6 @@ def persist(state: RunState) -> dict:
             )
         return {"status": "failed"}
 
-    finalize_search_run(run_id)
+    with span("parent_finalization", search_run_id=run_id):
+        finalize_search_run(run_id)
     return {"status": "completed"}

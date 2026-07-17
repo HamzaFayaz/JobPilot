@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import argparse
+import csv
+import hashlib
+import io
 import json
 import os
+import re
 from datetime import datetime
 from pathlib import Path
 
@@ -12,13 +16,42 @@ from dotenv import load_dotenv
 from logfire.experimental.query_client import LogfireQueryClient
 
 
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _resolve_trace_id(target: str) -> tuple[str, str | None]:
+    path = Path(target)
+    if path.is_file():
+        report = json.loads(path.read_text(encoding="utf-8"))
+        trace_id = report.get("trace_id") or (
+            report.get("reproducibility") or {}
+        ).get("trace_id")
+        if not trace_id:
+            trace_ids = {
+                case.get("trace_id")
+                for section in ("deterministic", "semantic")
+                for case in report.get(section) or []
+                if case.get("trace_id")
+            }
+            if len(trace_ids) == 1:
+                trace_id = trace_ids.pop()
+        if not trace_id:
+            raise RuntimeError("Report does not identify one exact Logfire trace.")
+        return str(trace_id), report.get("evaluation_run_id")
+    if not re.fullmatch(r"[0-9a-fA-F]{16,64}", target):
+        raise RuntimeError("Target must be a report path or hexadecimal trace ID.")
+    return target, None
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("trace_id")
+    parser.add_argument("target", help="Trace ID or canonical report path")
     parser.add_argument("--min-timestamp", required=True)
     parser.add_argument("--max-timestamp", required=True)
     parser.add_argument("--output-dir", default="logfire-logs")
     args = parser.parse_args()
+    trace_id, run_id = _resolve_trace_id(args.target)
 
     load_dotenv(".env.local")
     token = os.environ.get("LOGFIRE_READ_TOKEN")
@@ -27,47 +60,84 @@ def main() -> None:
 
     start = datetime.fromisoformat(args.min_timestamp)
     end = datetime.fromisoformat(args.max_timestamp)
-    sql = (
-        "SELECT * FROM records "
-        f"WHERE trace_id = '{args.trace_id}' "
-        "ORDER BY start_timestamp ASC, span_id ASC"
-    )
     client = LogfireQueryClient(token)
-    result = client.query_json_rows(
-        sql,
-        min_timestamp=start,
-        max_timestamp=end,
-        limit=10_000,
-    )
-    csv_data = client.query_csv(
-        sql,
-        min_timestamp=start,
-        max_timestamp=end,
-        limit=10_000,
-    )
+    page_size = 1000
+    rows: list[dict] = []
+    offset = 0
+    while True:
+        sql = (
+            "SELECT * FROM records "
+            f"WHERE trace_id = '{trace_id}' "
+            "ORDER BY start_timestamp ASC, span_id ASC "
+            f"LIMIT {page_size} OFFSET {offset}"
+        )
+        page = client.query_json_rows(
+            sql,
+            min_timestamp=start,
+            max_timestamp=end,
+            limit=page_size,
+        ).get("rows") or []
+        rows.extend(page)
+        if len(page) < page_size:
+            break
+        offset += page_size
+
+    csv_buffer = io.StringIO()
+    if rows:
+        fieldnames = sorted({key for row in rows for key in row})
+        writer = csv.DictWriter(csv_buffer, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(
+                {
+                    key: json.dumps(value, ensure_ascii=False)
+                    if isinstance(value, (dict, list))
+                    else value
+                    for key, value in row.items()
+                }
+            )
+    csv_data = csv_buffer.getvalue()
 
     output = Path(args.output_dir)
     output.mkdir(parents=True, exist_ok=True)
-    stem = f"evaluation-trace-{args.trace_id}"
-    (output / f"{stem}.json").write_text(
-        json.dumps(result, ensure_ascii=False, indent=2, default=str),
+    stem = f"evaluation-trace-{trace_id}"
+    json_path = output / f"{stem}.json"
+    csv_path = output / f"{stem}.csv"
+    json_path.write_text(
+        json.dumps({"rows": rows}, ensure_ascii=False, indent=2, default=str),
         encoding="utf-8",
     )
-    (output / f"{stem}.csv").write_text(csv_data, encoding="utf-8")
-    (output / "manifest.json").write_text(
+    csv_path.write_text(csv_data, encoding="utf-8")
+    names = {
+        str(row.get("span_name") or row.get("message") or "")
+        for row in rows
+    }
+    required = {
+        "complete_pipeline_evaluation": any("complete_pipeline_evaluation" in name for name in names),
+        "application_model": any("application_model" in name for name in names),
+        "package_result": any("package_result" in name for name in names),
+    }
+    manifest_path = output / "manifest.json"
+    manifest_path.write_text(
         json.dumps(
             {
-                "trace_id": args.trace_id,
+                "trace_id": trace_id,
+                "run_id": run_id,
                 "min_timestamp": start.isoformat(),
                 "max_timestamp": end.isoformat(),
-                "record_count": len(result["rows"]),
+                "record_count": len(rows),
                 "formats": ["json", "csv"],
+                "required_spans_present": required,
+                "file_hashes": {
+                    json_path.name: _sha256(json_path),
+                    csv_path.name: _sha256(csv_path),
+                },
             },
             indent=2,
         ),
         encoding="utf-8",
     )
-    print(f"Exported {len(result['rows'])} records to {output.resolve()}")
+    print(f"Exported {len(rows)} records to {output.resolve()}")
 
 
 if __name__ == "__main__":

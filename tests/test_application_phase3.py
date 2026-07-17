@@ -2,6 +2,7 @@
 
 import json
 import importlib
+from datetime import date
 from types import SimpleNamespace
 
 import pytest
@@ -16,6 +17,7 @@ from backend.app.services.application_llm import (
     _parse_result,
     analyze_job,
 )
+from backend.app.services.date_tenure import completed_months
 
 
 def _cv_ref() -> dict:
@@ -39,6 +41,7 @@ def _keep(slot_index: int = 0) -> dict:
         "swap_in_project_name": None,
         "target_requirement_ids": [],
         "evidence_refs": [],
+        "swap_coverage": [],
         "rationale": "The current project remains relevant.",
         "impact": None,
     }
@@ -50,6 +53,8 @@ def _valid_result(*, slots: int = 1) -> dict:
         "explicit_requirements": [
             {
                 "requirement_id": "req_1",
+                "retrieval_requirement_id": None,
+                "job_quote": "experience with LangGraph",
                 "text": "Experience with LangGraph",
                 "importance": "required",
                 "category": "skill",
@@ -201,7 +206,11 @@ def test_classify_fit_preserves_model_result_and_corrects_slots():
     result = classify_fit(
         {
             "enrich_result": original,
+            "job": _job(),
+            "profile": _profile(),
             "validation_context": {
+                "job_description": _job()["description_text"],
+                "cv_text": _profile()["cv_text"] + "Built LangGraph workflows",
                 "cv_project_slots": [
                     {
                         "slot_index": 0,
@@ -220,6 +229,36 @@ def test_classify_fit_preserves_model_result_and_corrects_slots():
     assert classified["suggested_cv_score"] == 100
     assert classified["project_decisions"][0]["action"] == "keep"
     assert classified["fit_tier"] == "strong"
+
+
+def test_invalid_cv_quote_cannot_increase_current_score():
+    payload = _valid_result()
+    payload["explicit_requirements"][0]["evidence_refs"][0]["quote"] = (
+        "Portfolio-only LangGraph implementation"
+    )
+    classified = classify_fit(
+        {
+            "enrich_result": payload,
+            "job": _job(),
+            "profile": _profile(),
+            "validation_context": {
+                "job_description": _job()["description_text"],
+                "cv_text": _profile()["cv_text"],
+                "cv_project_slots": [],
+                "cv_project_ids": [],
+                "portfolio_project_ids": ["current"],
+                "evidence_sources": {},
+            },
+        }
+    )["classified_result"]
+    assert classified["explicit_requirements"][0]["status"] == "not_evidenced"
+    assert classified["current_cv_score"] == 0
+    assert classified["suggested_cv_score"] == 0
+
+
+def test_overlapping_date_ranges_are_not_double_counted():
+    cv = "Jan 2024 to Dec 2024\nJun 2024 to Jun 2025"
+    assert completed_months(cv, date(2025, 6, 30)) == 18
 
 
 def test_package_out_upserts_structured_analysis(test_db):

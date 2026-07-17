@@ -49,8 +49,8 @@ def insert_chunks(
                     id, user_id, project_id, project_name, repo_full_name,
                     chunk_type, parent_heading, heading_path, content, embed_text,
                     token_count, stack_tags, source_start, source_end, chunk_index,
-                    created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    short_chunk_reason, oversize_reason, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     chunk.id,
@@ -68,6 +68,8 @@ def insert_chunks(
                     chunk.source_start,
                     chunk.source_end,
                     chunk.chunk_index,
+                    chunk.short_chunk_reason,
+                    chunk.oversize_reason,
                     now,
                     now,
                 ),

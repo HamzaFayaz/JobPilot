@@ -7,6 +7,7 @@ from backend.app.config import settings
 from backend.app.graph.subgraphs.application.state import ApplicationState
 from backend.app.observability import span
 from backend.app.services.search_store import upsert_job_package
+from backend.app.services.application_scoring import SCORING_POLICY_VERSION
 
 
 def _package_key(job: dict) -> str:
@@ -34,10 +35,22 @@ def package_out(state: ApplicationState) -> dict:
     profile_hash = _profile_hash(state["profile"])
     classified = state.get("classified_result")
     error = state.get("error")
+    eval_payload = state.get("eval_payload") or {}
+    retrieval_debug = (eval_payload.get("bundle") or {}).get("retrieval_debug") or {}
     envelope = {
-        "schema_version": "job_package_analysis_v1",
+        "schema_version": "job_package_analysis_v2",
+        "raw_model_result": eval_payload.get("raw_response"),
         "enrich_result": state.get("enrich_result"),
         "classified_result": classified,
+        "scoring_policy_version": SCORING_POLICY_VERSION,
+        "corrections": (classified or {}).get("corrections") or [],
+        "retrieval": {
+            "packed_chunk_ids": retrieval_debug.get("packed_chunk_ids") or [],
+            "packed_project_ids": retrieval_debug.get("packed_project_ids") or [],
+            "requirement_coverage": retrieval_debug.get("requirement_coverage") or {},
+            "fallback_reasons": retrieval_debug.get("fallback_reasons") or [],
+        },
+        "retrieval_bundle": eval_payload.get("bundle"),
         "error": error,
         "metadata": {
             "model_name": settings.application_model,

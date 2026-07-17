@@ -294,6 +294,8 @@ def _ensure_evidence_schema(conn: sqlite3.Connection) -> None:
             stack_tags        TEXT NOT NULL DEFAULT '[]',
             source_start      INTEGER,
             source_end        INTEGER,
+            short_chunk_reason TEXT,
+            oversize_reason    TEXT,
             chunk_index       INTEGER NOT NULL DEFAULT 0,
             created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -320,6 +322,14 @@ def _ensure_evidence_schema(conn: sqlite3.Connection) -> None:
             updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         """
+    )
+    _ensure_columns(
+        conn,
+        "project_readme_chunks",
+        {
+            "short_chunk_reason": "short_chunk_reason TEXT",
+            "oversize_reason": "oversize_reason TEXT",
+        },
     )
 
     fts_exists = conn.execute(
