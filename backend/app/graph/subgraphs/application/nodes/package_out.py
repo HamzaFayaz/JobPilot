@@ -7,7 +7,6 @@ from backend.app.config import settings
 from backend.app.graph.subgraphs.application.state import ApplicationState
 from backend.app.observability import span
 from backend.app.services.search_store import upsert_job_package
-from backend.app.services.application_scoring import SCORING_POLICY_VERSION
 
 
 def _package_key(job: dict) -> str:
@@ -38,18 +37,27 @@ def package_out(state: ApplicationState) -> dict:
     eval_payload = state.get("eval_payload") or {}
     retrieval_debug = (eval_payload.get("bundle") or {}).get("retrieval_debug") or {}
     envelope = {
-        "schema_version": "job_package_analysis_v2",
+        "schema_version": "job_package_analysis_v3",
         "raw_model_result": eval_payload.get("raw_response"),
+        "raw_model_attempts": eval_payload.get("raw_attempts") or [],
+        "parsed_model_result": eval_payload.get("parsed_model_result"),
+        "accepted_model_result": state.get("enrich_result"),
         "enrich_result": state.get("enrich_result"),
+        "accepted_user_facing_result": classified,
         "classified_result": classified,
-        "scoring_policy_version": SCORING_POLICY_VERSION,
-        "corrections": (classified or {}).get("corrections") or [],
+        "contract_validation": eval_payload.get("contract_validation"),
+        "heuristic_score_not_user_facing": eval_payload.get(
+            "heuristic_score_not_user_facing"
+        ),
         "retrieval": {
             "packed_chunk_ids": retrieval_debug.get("packed_chunk_ids") or [],
             "packed_project_ids": retrieval_debug.get("packed_project_ids") or [],
-            "requirement_coverage": retrieval_debug.get("requirement_coverage") or {},
+            "retrieval_supply": retrieval_debug.get("retrieval_supply") or {},
             "fallback_reasons": retrieval_debug.get("fallback_reasons") or [],
         },
+        "requirement_extraction": (
+            (eval_payload.get("bundle") or {}).get("requirement_extraction")
+        ),
         "retrieval_bundle": eval_payload.get("bundle"),
         "error": error,
         "metadata": {

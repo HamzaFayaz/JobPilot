@@ -17,6 +17,8 @@ from backend.app.services.application_llm import (
     _parse_result,
     analyze_job,
 )
+from backend.app.services.application_validation import validate_application_contract
+from backend.app.services.cv_evidence_spans import build_cv_evidence_spans
 from backend.app.services.date_tenure import completed_months
 
 
@@ -29,6 +31,7 @@ def _cv_ref() -> dict:
         "project_name": None,
         "heading_path": None,
         "source_id": None,
+        "cv_span_id": "cv:test",
     }
 
 
@@ -55,11 +58,14 @@ def _valid_result(*, slots: int = 1) -> dict:
                 "requirement_id": "req_1",
                 "retrieval_requirement_id": None,
                 "job_quote": "experience with LangGraph",
+                "job_source_start": 10,
+                "job_source_end": 35,
                 "text": "Experience with LangGraph",
                 "importance": "required",
                 "category": "skill",
                 "status": "matched",
                 "evidence_refs": [_cv_ref()],
+                "date_fact_ids": [],
                 "rationale": "The current CV explicitly names LangGraph.",
             }
         ],
@@ -77,7 +83,7 @@ def _valid_result(*, slots: int = 1) -> dict:
 
 def _profile() -> dict:
     return {
-        "cv_text": "Projects\n- Current 0\n",
+        "cv_text": "Projects\n- Current 0 — Built LangGraph workflows\n",
         "skills": ["Python", "LangGraph", "FastAPI"],
         "target_roles": ["AI Engineer"],
         "projects": [
@@ -103,6 +109,52 @@ def _job(index: int = 1) -> dict:
         "url": f"https://example.com/jobs/{index}",
         "platform": "linkedin",
         "description_text": "Required: experience with LangGraph.",
+    }
+
+
+def _analysis_bundle() -> dict:
+    return {
+        "job": _job(),
+        "profile": {
+            "cv_text": _profile()["cv_text"],
+            "skills": _profile()["skills"],
+            "target_roles": _profile()["target_roles"],
+            "cv_project_slots": [
+                {
+                    "slot_index": 0,
+                    "cv_project_name": "Current 0",
+                    "source_start": 9,
+                    "source_end": len(_profile()["cv_text"]),
+                    "chars_budget": 100,
+                    "matched_portfolio_project_id": "current",
+                }
+            ],
+            "cv_evidence_spans": [
+                {
+                    "source_id": "cv:test",
+                    "content": "Built LangGraph workflows",
+                    "source_start": 23,
+                    "source_end": 48,
+                    "section": "Projects",
+                    "project_slot_id": "cv_slot_0",
+                    "content_hash": "test",
+                }
+            ],
+            "date_facts": [],
+            "date_facts_as_of": "2026-07-17",
+        },
+        "layer1_portfolio_overviews": [
+            {
+                "source_id": "project:current:overview",
+                "project_id": "current",
+                "name": "Current 0",
+            }
+        ],
+        "layer2a_evidence_cards": [],
+        "layer2b_readme_chunks": [],
+        "extracted_job_requirements": [],
+        "requirement_extraction": {},
+        "retrieval_debug": {},
     }
 
 
@@ -160,6 +212,19 @@ def test_application_call_uses_one_repair_retry(monkeypatch):
                     "matched_portfolio_project_id": "current",
                 }
             ],
+            "cv_evidence_spans": [
+                {
+                    "source_id": "cv:test",
+                    "content": "Built LangGraph workflows",
+                    "source_start": 23,
+                    "source_end": 48,
+                    "section": "Projects",
+                    "project_slot_id": "cv_slot_0",
+                    "content_hash": "test",
+                }
+            ],
+            "date_facts": [],
+            "date_facts_as_of": "2026-07-17",
         },
         "layer1_portfolio_overviews": [
             {
@@ -199,10 +264,38 @@ def test_application_call_uses_one_repair_retry(monkeypatch):
     assert payload["validated_response"] == result
 
 
-def test_classify_fit_preserves_model_result_and_corrects_slots():
-    original = _valid_result(slots=0)
-    original["current_cv_score"] = 110
-    original["suggested_cv_score"] = 20
+def test_application_call_repairs_contract_failure_once(monkeypatch):
+    monkeypatch.setattr(
+        "backend.app.services.application_llm.retrieve_project_evidence",
+        lambda user_id, job, profile: _analysis_bundle(),
+    )
+    monkeypatch.setattr(
+        "backend.app.services.application_llm.settings.application_repair_retries_override",
+        1,
+    )
+    invalid = _valid_result()
+    invalid["explicit_requirements"][0]["evidence_refs"][0]["cv_span_id"] = "cv:unknown"
+    responses = iter([json.dumps(invalid), json.dumps(_valid_result())])
+
+    class Completions:
+        def create(self, **kwargs):
+            return SimpleNamespace(
+                choices=[
+                    SimpleNamespace(
+                        message=SimpleNamespace(content=next(responses))
+                    )
+                ]
+            )
+
+    client = SimpleNamespace(chat=SimpleNamespace(completions=Completions()))
+    result, _, payload = analyze_job(1, _job(), _profile(), client=client)
+    assert result == _valid_result()
+    assert payload["contract_validation"]["repair_count"] == 1
+    assert len(payload["raw_attempts"]) == 2
+
+
+def test_classify_fit_preserves_model_scores_and_narrative():
+    original = _valid_result(slots=1)
     result = classify_fit(
         {
             "enrich_result": original,
@@ -224,41 +317,46 @@ def test_classify_fit_preserves_model_result_and_corrects_slots():
         }
     )
     classified = result["classified_result"]
-    assert original["current_cv_score"] == 110
-    assert classified["current_cv_score"] == 100
-    assert classified["suggested_cv_score"] == 100
+    assert classified["current_cv_score"] == 70
+    assert classified["suggested_cv_score"] == 70
+    assert classified["summary"] == original["summary"]
+    assert classified["current_score_rationale"] == original["current_score_rationale"]
     assert classified["project_decisions"][0]["action"] == "keep"
-    assert classified["fit_tier"] == "strong"
+    assert classified["fit_tier"] == "moderate"
+    assert classified["corrections"] == []
 
 
-def test_invalid_cv_quote_cannot_increase_current_score():
+def test_contract_rejects_unknown_cv_span_without_mutating_model_result():
     payload = _valid_result()
-    payload["explicit_requirements"][0]["evidence_refs"][0]["quote"] = (
-        "Portfolio-only LangGraph implementation"
-    )
-    classified = classify_fit(
+    original = json.loads(json.dumps(payload))
+    errors = validate_application_contract(
+        payload,
         {
-            "enrich_result": payload,
-            "job": _job(),
-            "profile": _profile(),
-            "validation_context": {
-                "job_description": _job()["description_text"],
-                "cv_text": _profile()["cv_text"],
-                "cv_project_slots": [],
-                "cv_project_ids": [],
-                "portfolio_project_ids": ["current"],
-                "evidence_sources": {},
-            },
-        }
-    )["classified_result"]
-    assert classified["explicit_requirements"][0]["status"] == "not_evidenced"
-    assert classified["current_cv_score"] == 0
-    assert classified["suggested_cv_score"] == 0
+            "job_description": _job()["description_text"],
+            "cv_evidence_sources": {},
+            "cv_project_slots": [{"slot_index": 0}],
+            "cv_project_ids": [],
+            "portfolio_project_ids": ["current"],
+            "evidence_sources": {},
+            "date_facts": [],
+        },
+    )
+    assert any(item["code"] == "invalid_current_cv_source" for item in errors)
+    assert payload == original
 
 
 def test_overlapping_date_ranges_are_not_double_counted():
     cv = "Jan 2024 to Dec 2024\nJun 2024 to Jun 2025"
     assert completed_months(cv, date(2025, 6, 30)) == 18
+
+
+def test_cv_evidence_spans_preserve_crlf_nbsp_and_unicode_bullets():
+    cv = "PROJECTS\r\n• JobPilot\u00a0— Built LangGraph workflows\r\nSKILLS\r\nPython"
+    spans = build_cv_evidence_spans(cv)
+    assert spans
+    assert all(cv[item["source_start"] : item["source_end"]] == item["content"] for item in spans)
+    assert len({item["source_id"] for item in spans}) == len(spans)
+    assert any("JobPilot\u00a0—" in item["content"] for item in spans)
 
 
 def test_package_out_upserts_structured_analysis(test_db):

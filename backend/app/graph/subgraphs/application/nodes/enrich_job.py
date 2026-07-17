@@ -17,7 +17,17 @@ def enrich_job(state: ApplicationState) -> dict:
             "stage_status": "enriched",
         }
     except ApplicationAnalysisError as exc:
-        return {"error": exc.safe_dict(), "stage_status": "failed"}
+        return {
+            "error": exc.safe_dict(),
+            "eval_payload": {
+                "raw_response": exc.raw_response,
+                "contract_validation": {
+                    "valid": False,
+                    "errors": exc.validation_details or exc.message,
+                },
+            },
+            "stage_status": "failed",
+        }
     except Exception:
         return {
             "error": {

@@ -16,6 +16,7 @@ from backend.app.config import settings
 from backend.app.models.application import EnrichJobResult
 from backend.app.observability import span
 from backend.app.services.application_prompt import ENRICH_JOB_SYSTEM_PROMPT_V1
+from backend.app.services.application_validation import validate_application_contract
 from backend.app.services.retrieve_project_evidence import retrieve_project_evidence
 
 
@@ -47,7 +48,11 @@ def _compact_schema() -> str:
 
 def build_messages(bundle: dict[str, Any]) -> tuple[list[dict[str, str]], str]:
     """Build deterministic messages without sending retrieval diagnostics."""
-    model_bundle = {key: value for key, value in bundle.items() if key != "retrieval_debug"}
+    model_bundle = {
+        key: value
+        for key, value in bundle.items()
+        if key not in {"retrieval_debug", "requirement_extraction"}
+    }
     user_message = json.dumps(
         model_bundle, ensure_ascii=False, sort_keys=True, separators=(",", ":")
     )
@@ -67,11 +72,7 @@ def build_messages(bundle: dict[str, Any]) -> tuple[list[dict[str, str]], str]:
 
 def _validation_context(bundle: dict[str, Any]) -> dict[str, Any]:
     sources: dict[str, dict[str, Any]] = {}
-    for key, source_type in (
-        ("layer1_portfolio_overviews", "portfolio_overview"),
-        ("layer2a_evidence_cards", "evidence_card"),
-        ("layer2b_readme_chunks", None),
-    ):
+    for key, source_type in (("layer2b_readme_chunks", None),):
         for item in bundle.get(key) or []:
             source_id = item.get("source_id")
             if not source_id:
@@ -101,6 +102,7 @@ def _validation_context(bundle: dict[str, Any]) -> dict[str, Any]:
             }
     cv_text = bundle["profile"].get("cv_text") or ""
     slots = bundle["profile"].get("cv_project_slots") or []
+    cv_spans = bundle["profile"].get("cv_evidence_spans") or []
     retrieval_debug = bundle.get("retrieval_debug") or {}
     return {
         "cv_text": cv_text,
@@ -113,6 +115,10 @@ def _validation_context(bundle: dict[str, Any]) -> dict[str, Any]:
             }
             for slot in slots
         ],
+        "cv_evidence_sources": {
+            item["source_id"]: item for item in cv_spans if item.get("source_id")
+        },
+        "date_facts": bundle["profile"].get("date_facts") or [],
         "job_description": bundle.get("job", {}).get("description_text") or "",
         "cv_project_slots": slots,
         "cv_project_ids": [
@@ -127,9 +133,10 @@ def _validation_context(bundle: dict[str, Any]) -> dict[str, Any]:
         ],
         "evidence_sources": sources,
         "requirement_queries": retrieval_debug.get("requirement_queries") or [],
-        "requirement_coverage": retrieval_debug.get("requirement_coverage") or {},
+        "retrieval_supply": retrieval_debug.get("retrieval_supply") or {},
         "packed_chunk_ids": retrieval_debug.get("packed_chunk_ids") or [],
-        "run_date": datetime.now(timezone.utc).date().isoformat(),
+        "run_date": bundle["profile"].get("date_facts_as_of")
+        or datetime.now(timezone.utc).date().isoformat(),
     }
 
 
@@ -186,6 +193,7 @@ def analyze_job(
     )
     invalid_raw: str | None = None
     validation_details: str | None = None
+    raw_attempts: list[str | None] = []
 
     with span(
         "application_model",
@@ -225,17 +233,47 @@ def analyze_job(
                 ) from exc
 
             raw = response.choices[0].message.content if response.choices else None
+            raw_attempts.append(raw)
             try:
                 result = _parse_result(raw)
                 dumped = result.model_dump(mode="json")
+                validation_context = _validation_context(bundle)
+                with span(
+                    "application_contract_validation",
+                    user_id=user_id,
+                    job_title=job.get("title", ""),
+                    attempt=attempt,
+                ):
+                    contract_errors = validate_application_contract(
+                        dumped, validation_context
+                    )
+                if contract_errors:
+                    raise ApplicationAnalysisError(
+                        "invalid_application_contract",
+                        "Application analysis failed source or structural validation.",
+                        raw_response=raw,
+                        validation_details=json.dumps(
+                            contract_errors,
+                            ensure_ascii=False,
+                            separators=(",", ":"),
+                        ),
+                    )
                 return (
                     dumped,
-                    _validation_context(bundle),
+                    validation_context,
                     {
                         "bundle": bundle,
                         "messages": request_messages,
                         "raw_response": raw,
+                        "raw_attempts": raw_attempts,
+                        "parsed_model_result": dumped,
                         "validated_response": dumped,
+                        "accepted_response": dumped,
+                        "contract_validation": {
+                            "valid": True,
+                            "errors": [],
+                            "repair_count": attempt,
+                        },
                     },
                 )
             except ApplicationAnalysisError as exc:
