@@ -9,6 +9,7 @@ from difflib import SequenceMatcher
 from typing import Any
 
 from backend.app.config import settings
+from backend.app.observability import span
 from backend.app.services import embedding_client, evidence_index_store, faiss_index
 
 logger = logging.getLogger(__name__)
@@ -114,6 +115,7 @@ def _layer1_projects(projects: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for project in projects:
         layer.append(
             {
+                "source_id": f"project:{project.get('id')}:overview",
                 "project_id": project.get("id"),
                 "name": project.get("name"),
                 "repo_full_name": project.get("repo_full_name"),
@@ -130,6 +132,7 @@ def _layer2a_projects(projects: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for project in projects:
         layer.append(
             {
+                "source_id": f"project:{project.get('id')}:evidence_card",
                 "project_id": project.get("id"),
                 "name": project.get("name"),
                 "evidence_card": project.get("evidence_card") or project.get("evidenceCard") or {},
@@ -190,6 +193,7 @@ def _pack_layer2b(
             continue
         packed.append(
             {
+                "source_id": chunk.get("id"),
                 "project_id": pid,
                 "project_name": chunk.get("project_name"),
                 "heading_path": chunk.get("heading_path"),
@@ -207,11 +211,11 @@ def _pack_layer2b(
 
 
 def retrieve_project_evidence(
+    user_id: int,
     job: dict[str, Any],
     profile: dict[str, Any],
 ) -> dict[str, Any]:
     """Build EnrichJobInputBundle via hybrid search — no LLM."""
-    user_id = profile["user_id"]
     cfg = _retrieval_cfg()
     projects = profile.get("projects") or []
     cv_text = profile.get("cv_text") or ""
@@ -223,23 +227,33 @@ def retrieve_project_evidence(
     cv_slots = parse_cv_project_slots(cv_text, projects)
 
     fts_query = _sanitize_fts_query(query_text)
-    bm25_hits = (
-        evidence_index_store.bm25_search(user_id, fts_query, cfg["bm25_top_k"])
-        if fts_query
-        else []
-    )
+    with span("bm25_search", user_id=user_id):
+        bm25_hits = (
+            evidence_index_store.bm25_search(user_id, fts_query, cfg["bm25_top_k"])
+            if fts_query
+            else []
+        )
 
     vector_hits: list[tuple[str, float]] = []
     if query_text and settings.dashscope_api_key:
         try:
-            query_vec, _ = embedding_client.embed_query(query_text)
-            vector_hits = faiss_index.vector_search(user_id, query_vec, cfg["vector_top_k"])
+            with span(
+                "embed_query",
+                user_id=user_id,
+                model=settings.embedding_model,
+            ):
+                query_vec, _ = embedding_client.embed_query(query_text)
+            with span("faiss_search", user_id=user_id):
+                vector_hits = faiss_index.vector_search(
+                    user_id, query_vec, cfg["vector_top_k"]
+                )
         except Exception as exc:
             logger.warning("Vector search failed for user %s: %s", user_id, exc)
     elif query_text:
         vector_hits = faiss_index.vector_search(user_id, _pseudo_query_vector(query_text), cfg["vector_top_k"])
 
-    fused = _rrf_fuse([bm25_hits, vector_hits], rrf_k=cfg["rrf_k"])
+    with span("rrf_fusion", user_id=user_id):
+        fused = _rrf_fuse([bm25_hits, vector_hits], rrf_k=cfg["rrf_k"])
     candidate_ids = [cid for cid, _ in fused[: settings.rerank_candidate_pool]]
     candidates = evidence_index_store.get_chunks_by_ids(user_id, candidate_ids)
     candidate_by_id = {c["id"]: c for c in candidates}
@@ -249,11 +263,17 @@ def retrieve_project_evidence(
     if candidate_chunks and query_text:
         docs = [c["content"] for c in candidate_chunks]
         try:
-            reranked = embedding_client.rerank_documents(
-                query_text,
-                docs,
-                top_n=settings.rerank_top_n,
-            )
+            with span(
+                "rerank_candidates",
+                user_id=user_id,
+                model=settings.rerank_model,
+                candidate_count=len(docs),
+            ):
+                reranked = embedding_client.rerank_documents(
+                    query_text,
+                    docs,
+                    top_n=settings.rerank_top_n,
+                )
             for doc_idx, score in reranked:
                 if doc_idx >= len(candidate_chunks):
                     continue

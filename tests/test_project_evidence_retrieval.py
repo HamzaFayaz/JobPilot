@@ -105,6 +105,7 @@ def test_index_and_retrieve_project_evidence(test_db, client):
     assert meta["chunk_count"] > 0
 
     bundle = retrieve_project_evidence(
+        user_id,
         {
             "title": "Backend Engineer",
             "company": "Acme",

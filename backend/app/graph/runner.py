@@ -5,6 +5,7 @@ import threading
 
 from backend.app.graph.orchestrator import compiled_graph
 from backend.app.graph.state import RunState
+from backend.app.observability import span
 from backend.app.services.search_store import update_search_run
 
 logger = logging.getLogger(__name__)
@@ -40,7 +41,12 @@ def _execute_graph(run_id: int, user_id: int) -> None:
     """Run LangGraph in a worker thread so ECS can keep serving heartbeats."""
     logger.info("Starting parent graph for run_id=%s user_id=%s", run_id, user_id)
     try:
-        compiled_graph.invoke(_initial_run_state(run_id, user_id))
+        with span(
+            "background_graph_run",
+            search_run_id=run_id,
+            user_id=user_id,
+        ):
+            compiled_graph.invoke(_initial_run_state(run_id, user_id))
     except Exception as exc:
         logger.exception("Parent graph failed for run_id=%s", run_id)
         update_search_run(run_id, status="failed", error=str(exc), finished=True)

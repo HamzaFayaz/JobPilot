@@ -6,6 +6,7 @@ import logging
 from typing import Any
 
 from backend.app.config import settings
+from backend.app.observability import instrument
 from backend.app.services import embedding_client, evidence_index_store, faiss_index, readme_chunker
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,7 @@ def _claims_from_project(project: dict[str, Any]) -> list[dict]:
     return list(card.get("evidence") or [])
 
 
+@instrument("index_project")
 def index_project_evidence(user_id: int, project: dict[str, Any]) -> dict[str, Any]:
     """Chunk README + evidence claims and rebuild user FAISS index."""
     project_id = project["id"]

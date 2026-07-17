@@ -8,6 +8,7 @@ from pydantic import ValidationError
 
 from backend.app.config import settings
 from backend.app.models.project_evidence import ProjectEvidenceResult
+from backend.app.observability import instrument
 
 EVIDENCE_SYSTEM_PROMPT = """You are extracting factual, source-grounded project evidence for a job-search profile.
 
@@ -39,6 +40,7 @@ def _client() -> OpenAI:
     return OpenAI(
         api_key=settings.dashscope_api_key,
         base_url=settings.qwen_base_url,
+        timeout=120.0,
     )
 
 
@@ -105,6 +107,7 @@ def _validate_project_evidence(data: dict) -> ProjectEvidenceResult:
         raise ProjectEvidenceError(f"Invalid project evidence shape: {exc}") from exc
 
 
+@instrument("extract_skills")
 def extract_skills(cv_text: str) -> list[str]:
     if not settings.dashscope_api_key:
         raise RuntimeError("DASHSCOPE_API_KEY is not configured")
@@ -129,6 +132,7 @@ def extract_skills(cv_text: str) -> list[str]:
     return _parse_json_array(reply)
 
 
+@instrument("build_project_evidence")
 def build_project_evidence(readme: str, repo_full_name: str, cv_summary: str) -> dict:
     """One structured Qwen call: description, skills, portfolio overview, evidence card."""
     if not settings.dashscope_api_key:

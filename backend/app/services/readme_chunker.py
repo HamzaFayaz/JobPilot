@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from typing import Callable
 
 from backend.app.config import settings
+from backend.app.observability import instrument
 
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$", re.MULTILINE)
 FENCE_RE = re.compile(r"^```[\w-]*\s*$", re.MULTILINE)
@@ -400,6 +401,7 @@ def _split_parent_into_children(
     return units, _semantic_split_units(units, embed_fn, cfg)
 
 
+@instrument("chunk_readme")
 def chunk_readme(
     readme_md: str,
     *,
