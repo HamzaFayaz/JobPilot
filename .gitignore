@@ -34,6 +34,9 @@ logs/
 logges.md
 data/uploads/
 data/jobpilot.db
+tests/complete-pipeline-test/cv/*.docx
+tests/complete-pipeline-test/results/
+logfire-logs/
 worker/debug_snapshots/
 worker/.worker.lock
 ssh_key/
