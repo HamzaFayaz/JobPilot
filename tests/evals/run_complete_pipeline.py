@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import hashlib
 import importlib.metadata
+import os
 import shutil
 import subprocess
 import tempfile
@@ -729,6 +730,82 @@ def _write_failed_package(case_name: str, envelope: dict) -> Path:
     return path
 
 
+def _prejudge_checkpoint_path() -> Path:
+    return _results_dir() / "run3-prejudge-checkpoint.json"
+
+
+def _trace_id(evaluation_span) -> str | None:
+    if evaluation_span is None:
+        return None
+    try:
+        return format(evaluation_span.get_span_context().trace_id, "032x")
+    except (AttributeError, TypeError, ValueError):
+        return None
+
+
+def _write_prejudge_checkpoint(
+    cases: list[EvaluationCaseInput],
+    metadata: dict,
+) -> Path:
+    path = _prejudge_checkpoint_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": "jobpilot_prejudge_checkpoint_v1",
+                "cases": [case.model_dump(mode="json") for case in cases],
+                "run_metadata": metadata,
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
+def _resume_prejudge_checkpoint() -> tuple[Path, Path]:
+    path = _prejudge_checkpoint_path()
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if payload.get("schema_version") != "jobpilot_prejudge_checkpoint_v1":
+        raise RuntimeError("Unsupported pre-judge checkpoint schema.")
+    cases = [
+        EvaluationCaseInput.model_validate(item) for item in payload.get("cases") or []
+    ]
+    if not cases:
+        raise RuntimeError("Pre-judge checkpoint contains no evaluation cases.")
+    deterministic_report = deterministic_dataset(cases).evaluate_sync(
+        lambda raw: raw,
+        max_concurrency=1,
+        progress=True,
+    )
+    if any(
+        not assertion.value
+        for case in deterministic_report.cases
+        for assertion in case.assertions.values()
+    ):
+        raise RuntimeError("Pre-judge checkpoint deterministic contracts no longer pass.")
+    print(
+        f"Semantic evaluation: resuming {len(cases)} cases sequentially",
+        flush=True,
+    )
+    semantic_report = semantic_dataset(cases).evaluate_sync(
+        lambda raw: judge_case(
+            EvaluationCaseInput.model_validate(raw)
+        ).model_dump(mode="json"),
+        max_concurrency=settings.eval_max_concurrency,
+        progress=True,
+    )
+    metadata = {
+        **(payload.get("run_metadata") or {}),
+        "ended_at_utc": datetime.now(timezone.utc).isoformat(),
+        "resumed_semantic_judging": True,
+    }
+    reports = _write_reports(cases, deterministic_report, semantic_report, metadata)
+    print("Evaluation complete: resumed reports written", flush=True)
+    return reports
+
+
 def _prepare_phase1() -> tuple[int, dict, list[EvaluationCaseInput]]:
     restored = _restore_phase1_checkpoint()
     if restored is not None:
@@ -841,6 +918,8 @@ def run() -> tuple[Path, Path]:
         )
     if not settings.dashscope_api_key:
         raise RuntimeError("DASHSCOPE_API_KEY is required for the real evaluation.")
+    if os.getenv("JOBPILOT_EVAL_RESUME_PREJUDGE") == "1":
+        return _resume_prejudge_checkpoint()
     if settings.logfire_enabled:
         setup_observability(FastAPI())
 
@@ -989,6 +1068,16 @@ def run() -> tuple[Path, Path]:
                 "Deterministic evaluation failed before semantic judging: "
                 + ", ".join(failed_checks)
             )
+        run_metadata = {
+            "evaluation_run_id": run_id,
+            "trace_id": _trace_id(evaluation_span),
+            "started_at_utc": started_at.isoformat(),
+            "applications_completed_at_utc": datetime.now(timezone.utc).isoformat(),
+        }
+        checkpoint_path = _write_prejudge_checkpoint(cases, run_metadata)
+        print(f"Pre-judge checkpoint written: {checkpoint_path}", flush=True)
+        if os.getenv("JOBPILOT_EVAL_STOP_AFTER_PREJUDGE") == "1":
+            return checkpoint_path, checkpoint_path
         print(
             f"Semantic evaluation: judging {len(cases)} cases sequentially",
             flush=True,
@@ -1000,23 +1089,12 @@ def run() -> tuple[Path, Path]:
             max_concurrency=settings.eval_max_concurrency,
             progress=True,
         )
-        trace_id = None
-        if evaluation_span is not None:
-            try:
-                trace_id = format(
-                    evaluation_span.get_span_context().trace_id,
-                    "032x",
-                )
-            except (AttributeError, TypeError, ValueError):
-                trace_id = None
         reports = _write_reports(
             cases,
             deterministic_report,
             semantic_report,
             {
-                "evaluation_run_id": run_id,
-                "trace_id": trace_id,
-                "started_at_utc": started_at.isoformat(),
+                **run_metadata,
                 "ended_at_utc": datetime.now(timezone.utc).isoformat(),
             },
         )

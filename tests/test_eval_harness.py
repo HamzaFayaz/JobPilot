@@ -11,6 +11,8 @@ from tests.evals.run_complete_pipeline import (
     _checkpoint_embedding_model_matches,
     _restore_phase1_checkpoint,
     _save_phase1_checkpoint,
+    _prejudge_checkpoint_path,
+    _write_prejudge_checkpoint,
     _write_reports,
 )
 
@@ -121,3 +123,16 @@ def test_checkpoint_rejects_fallback_embedding_model(tmp_path):
         encoding="utf-8",
     )
     assert _checkpoint_embedding_model_matches(tmp_path, 1) is False
+
+
+def test_prejudge_checkpoint_preserves_cases_and_run_metadata(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "eval_results_dir", tmp_path)
+    path = _write_prejudge_checkpoint(
+        [_case("phase_3_application")],
+        {"evaluation_run_id": 7, "trace_id": "abc"},
+    )
+    assert path == _prejudge_checkpoint_path()
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert payload["schema_version"] == "jobpilot_prejudge_checkpoint_v1"
+    assert payload["cases"][0]["phase"] == "phase_3_application"
+    assert payload["run_metadata"]["evaluation_run_id"] == 7
