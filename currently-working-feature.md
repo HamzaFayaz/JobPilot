@@ -1,7 +1,8 @@
 # Currently Working On
 
-**Status:** Search subgraph, Search Helper, **prefilter**, and **Phase 1 project evidence** are done.  
-**Now:** **Phase 2 — README retrieval** (chunking, embeddings, `retrieve_project_evidence()`).
+**Status:** **Phase 2 retrieval done.** **Now:** **Phase 3 — application subagent** (`enrich_job` → `classify_fit` → `package_out`) + graph wiring.
+
+**After full E2E flow works:** validate chunking/retrieval quality before tuning `child_max_tokens` — see [`progress.md` § Post-flow validation](progress.md#post-flow-validation-chunking--retrieval).
 
 **After retrieval:** Application subagent (`enrich_job` → `classify_fit` → `package_out`) — see [`application-subagent-ats-compatibility-discussion.md`](docs/discussion/application-subagent-ats-compatibility-discussion.md).
 
@@ -25,22 +26,18 @@
 | Tests | ✅ [`tests/test_project_evidence.py`](tests/test_project_evidence.py) |
 | README fixture snapshot | ✅ [`docs/fixtures/evidence-card-mini-overview/`](docs/fixtures/evidence-card-mini-overview/) |
 
-### Phase 2 — README retrieval pipeline (current)
+### Phase 2 — README retrieval pipeline `[x]`
 
-**Plan:** [`.agent/plans/jobpilot_project_evidence_phase2_plan.md`](.agent/plans/jobpilot_project_evidence_phase2_plan.md)
+**Plan:** [`.agent/plans/jobpilot_project_evidence_phase2_plan.md`](.agent/plans/jobpilot_project_evidence_phase2_plan.md) · Results: [`.agent/results/jobpilot_project_evidence_phase2_build_results.md`](.agent/results/jobpilot_project_evidence_phase2_build_results.md)
 
-| Step | Area | Task |
-|------|------|------|
-| **1. Chunking** | `readme_chunker.py` | Hierarchical semantic chunks at import |
-| **2. Storage** | SQLite + FAISS + FTS5 | Per [`phase-2-retrieval-storage-design.md`](docs/discussion/phase-2-retrieval-storage-design.md) |
-| **3. Retrieval** | `retrieve_project_evidence()` | Hybrid BM25 + vector + rerank → bundle (no LLM) |
-| **4. Tests** | `tests/rag/` | `test_chunking_pipeline.py` + `pipeline/` corpus & results |
+| Step | Area | Status |
+|------|------|--------|
+| Chunking | `readme_chunker.py` | ✅ |
+| Storage | SQLite + FAISS + FTS5 | ✅ |
+| Retrieval | `retrieve_project_evidence()` | ✅ |
+| Tests | `tests/rag/` + chunking eval | ✅ |
 
-**Design docs:** [`phase-2-retrieval-storage-design.md`](docs/discussion/phase-2-retrieval-storage-design.md) · [`application-subagent-input-spec.md`](docs/discussion/application-subagent-input-spec.md)
-
-**Worker contract:** unchanged — [`worker/models.py`](worker/models.py) `RawJobListing` is sufficient.
-
-### Then: application subagent (blocked until Phase 2 retrieval works)
+### Phase 3 — Application subagent (current)
 
 Prefilter produces `matched_jobs`. Fan-out is wired — each job gets `application_subgraph`.
 
@@ -73,7 +70,7 @@ Search Helper (worker)
        ↓
 search_subgraph → prefilter → matched_jobs
        ↓
-retrieve_project_evidence(job, profile)   ← BUILD NOW (per job, no LLM)
+retrieve_project_evidence(job, profile)   ← DONE (wire into application subgraph in Phase 3)
        ↓
 fan_out_applications → application_subgraph
   enrich_job (one LLM) → classify_fit → package_out
@@ -100,8 +97,8 @@ GitHub import → readme_md + evidence_card + portfolio_overview
 | Prefilter | ✅ |
 | Fan-out routing | ✅ [`orchestrator.py`](backend/app/graph/orchestrator.py) |
 | Project evidence Phase 1 (import) | ✅ |
-| Project evidence Phase 2 (retrieval) | 🔨 **in progress** |
-| Application subagent | ⏳ after retrieval |
+| Project evidence Phase 2 (retrieval) | ✅ |
+| Application subagent | 🔨 **in progress** |
 | LinkedIn **Jobs** phase | ⏸ deferred — [`job-section-issue.md`](job-section-issue.md) |
 | **Indeed** | ⏸ deferred |
 

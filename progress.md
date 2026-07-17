@@ -7,7 +7,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 
 **Build plans:** [`.agent/plans/`](.agent/plans/) — naming: `jobpilot_<domain>_<scope>_plan.md`
 
-> **Current focus (hackathon — July 20):** **Prefilter done** · **Phase 1 project evidence done** (`build_project_evidence` at GitHub import). **Next:** **Phase 2 retrieval** (chunks, embeddings, `retrieve_project_evidence`) then application subagent (`enrich_job` → `classify_fit` → `package_out`). Start at **[`currently-working-feature.md`](currently-working-feature.md)**. Worker search logic stays **frozen**.
+> **Current focus (hackathon — July 20):** **Phase 2 retrieval done** (chunking, FAISS/FTS5, `retrieve_project_evidence`). **Next:** **Phase 3 application subagent** (`enrich_job` → `classify_fit` → `package_out`) + graph wiring. **After full flow works:** validate chunking/retrieval quality before tuning token limits — see [Post-flow validation](#post-flow-validation-chunking--retrieval). Start at **[`currently-working-feature.md`](currently-working-feature.md)**. Worker search logic stays **frozen**.
 
 ---
 
@@ -125,13 +125,25 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | Wire `POST /api/search` → background graph | `[x]` |
 | `prefilter` node (normalize, dedupe, drop applied → `matched_jobs`) | `[x]` — [`listing_prefilter.py`](backend/app/services/listing_prefilter.py) |
 | Project evidence Phase 1 (import: card + portfolio overview) | `[x]` — [`profile_llm.py`](backend/app/services/profile_llm.py), [`project_evidence.py`](backend/app/models/project_evidence.py) |
-| Project evidence Phase 2 (chunking + retrieval) | `[o]` **next** |
+| Project evidence Phase 2 (chunking + retrieval) | `[x]` — [`readme_chunker.py`](backend/app/services/readme_chunker.py), [`retrieve_project_evidence.py`](backend/app/services/retrieve_project_evidence.py) |
 | JobPilot Search Helper (Kimi WebBridge + Qwen) | `[x]` `.exe` built |
-| Per-job application sub-agent (`enrich_job`) | `[ ]` after Phase 2 retrieval — [`application/graph.py`](backend/app/graph/subgraphs/application/graph.py) |
+| Per-job application sub-agent (`enrich_job`) | `[o]` **next** — [`application/graph.py`](backend/app/graph/subgraphs/application/graph.py) |
 | Fan-out (`Send` × N application subgraph) | `[x]` wired in [`orchestrator.py`](backend/app/graph/orchestrator.py) |
 | Qwen / model integration | `[x]` profile LLM (CV skills, evidence card) · `[ ]` enrich_job |
 
 **Worker → graph path:** Worker `POST …/result` → `worker_tasks` → `wait_for_listings` → **prefilter** → `matched_jobs` → fan-out → application subgraph → `job_packages` + `search_runs`.
+
+### Post-flow validation (chunking & retrieval)
+
+**Do not tune chunking limits until the end-to-end job flow is complete** (import → search → prefilter → `retrieve_project_evidence` → `enrich_job` → `job_packages`).
+
+| Checkpoint | When | Action |
+|------------|------|--------|
+| **E2E retrieval quality** | After Phase 3 wiring | Run real job listings against imported portfolio; confirm layer 2b chunks hit the right `heading_path` sections (e.g. Engineering highlights, API surface). |
+| **Semantic child splits** | Same | Portfolio README eval had **no section > 500 tokens** — semantic merging was not exercised. Re-check only if `enrich_job` misses detail from dense sections. |
+| **Token limit tuning** | Only if retrieval weak | Try lowering `child_max_tokens` (e.g. 500 → 350) or re-run chunking eval **with** `DASHSCOPE_API_KEY` on a long section. Do not reduce limits preemptively. |
+
+Build results: [`.agent/results/jobpilot_project_evidence_phase2_build_results.md`](.agent/results/jobpilot_project_evidence_phase2_build_results.md) · Chunking eval: [`tests/rag/pipeline/`](tests/rag/pipeline/)
 
 ### Documentation
 
@@ -199,8 +211,8 @@ Long-term memory (DB-backed current state):
 | Design | 7 | 0 | 0 |
 | Frontend web app | 13 | 0 | 0 |
 | Backend & DB | 11 | 0 | 0 |
-| Agents | 10 | 1 | application enrich + persist refactor |
+| Agents | 11 | 1 | application enrich + persist refactor |
 | Integrations | 1 | 0 | search platforms |
 | Deploy | 5 | 0 | 0 |
 
-**Last updated:** 2026-07-16
+**Last updated:** 2026-07-17
