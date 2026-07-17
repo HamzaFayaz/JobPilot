@@ -215,6 +215,11 @@ def validate_application_contract(
                                 source.get("project_id") if source else None
                             ),
                             "replacement_project_id": replacement_id,
+                            "allowed_source_ids": [
+                                source_id
+                                for source_id, candidate in portfolio_sources.items()
+                                if candidate.get("project_id") == replacement_id
+                            ][:12],
                             "instruction": (
                                 "Use only supplied packed source IDs whose project_id "
                                 "equals the replacement_project_id."

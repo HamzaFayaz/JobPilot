@@ -242,11 +242,30 @@ def test_model_bundle_exposes_only_packed_portfolio_source_ids():
             "evidence_card": {"claim": "Generated claim"},
         }
     ]
+    bundle["layer2b_readme_chunks"] = [
+        {
+            "source_id": "chunk:other",
+            "project_id": "other",
+            "project_name": "Other",
+            "heading_path": "Evidence",
+            "content": "Direct packed project evidence",
+            "source": "readme_chunk",
+            "source_start": 0,
+            "source_end": 30,
+            "content_hash": "not-a-citable-id",
+            "retrieval_provenance": {"req": {"rerank_score": 1.0}},
+            "retrieved_requirement_ids": ["req_1"],
+        }
+    ]
     messages, _ = build_messages(bundle)
     user_payload = json.loads(messages[1]["content"])
     assert "layer2a_evidence_cards" not in user_payload
     assert "source_id" not in user_payload["layer1_portfolio_overviews"][0]
     assert "portfolio_overview" not in user_payload["layer1_portfolio_overviews"][0]
+    packed = user_payload["layer2b_readme_chunks"][0]
+    assert packed["source_id"] == "chunk:other"
+    assert "content_hash" not in packed
+    assert "retrieval_provenance" not in packed
 
 
 @pytest.mark.parametrize("raw", ["", "```json\n{}\n```", "prefix {}"])

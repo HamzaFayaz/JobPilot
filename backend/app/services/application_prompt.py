@@ -48,7 +48,8 @@ Portfolio-only details must not increase current_cv_score. Portfolio evidence
 may support swap recommendations and suggested_cv_score. Swap evidence may
 reference only packed portfolio source_id values owned by the replacement
 project. The project identity list contains no citable evidence. Never cite an
-evidence-card or overview ID. Put direct packed portfolio evidence in each
+evidence-card or overview ID. Never substitute a content hash, project ID, or
+other identifier for the supplied source_id. Put direct packed portfolio evidence in each
 swap_coverage item; the decision-level evidence_refs may describe the current
 slot with CV spans but is not swap proof. Retrieval availability is a
 candidate, not proof. Never invent or

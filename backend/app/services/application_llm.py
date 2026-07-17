@@ -66,6 +66,20 @@ def build_messages(bundle: dict[str, Any]) -> tuple[list[dict[str, str]], str]:
         }
         for item in bundle.get("layer1_portfolio_overviews") or []
     ]
+    model_bundle["layer2b_readme_chunks"] = [
+        {
+            "source_id": item.get("source_id"),
+            "project_id": item.get("project_id"),
+            "project_name": item.get("project_name"),
+            "heading_path": item.get("heading_path"),
+            "content": item.get("content"),
+            "source_type": item.get("source"),
+            "source_start": item.get("source_start"),
+            "source_end": item.get("source_end"),
+            "retrieved_requirement_ids": item.get("retrieved_requirement_ids") or [],
+        }
+        for item in bundle.get("layer2b_readme_chunks") or []
+    ]
     user_message = json.dumps(
         model_bundle, ensure_ascii=False, sort_keys=True, separators=(",", ":")
     )
