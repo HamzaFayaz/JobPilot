@@ -151,6 +151,20 @@ def _checkpoint_dir() -> Path:
     return _results_dir() / "phase1-checkpoint"
 
 
+def _checkpoint_embedding_model_matches(checkpoint: Path, user_id: int) -> bool:
+    meta_path = checkpoint / "faiss" / f"{user_id}.meta.json"
+    if not meta_path.exists():
+        return False
+    try:
+        metadata = json.loads(meta_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    return (
+        metadata.get("embedding_model") == settings.embedding_model
+        and int(metadata.get("embedding_dims") or 0) == settings.embedding_dimensions
+    )
+
+
 def _restore_phase1_checkpoint() -> tuple[int, dict, list[EvaluationCaseInput]] | None:
     checkpoint = _checkpoint_dir()
     manifest_path = checkpoint / "manifest.json"
@@ -186,6 +200,9 @@ def _restore_phase1_checkpoint() -> tuple[int, dict, list[EvaluationCaseInput]] 
     index_matches = (
         current_valid
         and manifest.get("index_fingerprint") == _index_fingerprint()
+        and _checkpoint_embedding_model_matches(
+            checkpoint, int(manifest.get("user_id") or 0)
+        )
     )
     if checkpoint_faiss.exists() and index_matches:
         shutil.copytree(checkpoint_faiss, settings.faiss_dir)

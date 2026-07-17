@@ -1,5 +1,6 @@
 """Fast tests for the explicit real-cost evaluation harness itself."""
 
+import json
 import shutil
 
 from backend.app.config import settings
@@ -7,6 +8,7 @@ from backend.app.db import get_connection
 from tests.evals.dataset import deterministic_dataset, semantic_dataset
 from tests.evals.models import EvaluationCaseInput
 from tests.evals.run_complete_pipeline import (
+    _checkpoint_embedding_model_matches,
     _restore_phase1_checkpoint,
     _save_phase1_checkpoint,
     _write_reports,
@@ -67,6 +69,15 @@ def test_phase1_checkpoint_restores_database_faiss_profile_and_cases(
     monkeypatch.setattr(settings, "eval_results_dir", results)
     settings.faiss_dir.mkdir(parents=True, exist_ok=True)
     (settings.faiss_dir / "1.index").write_bytes(b"index")
+    (settings.faiss_dir / "1.meta.json").write_text(
+        json.dumps(
+            {
+                "embedding_model": settings.embedding_model,
+                "embedding_dims": settings.embedding_dimensions,
+            }
+        ),
+        encoding="utf-8",
+    )
     with get_connection() as conn:
         conn.execute(
             "INSERT INTO users (email, password_hash) VALUES (?, ?)",
@@ -95,3 +106,18 @@ def test_phase1_checkpoint_restores_database_faiss_profile_and_cases(
     assert (settings.faiss_dir / "1.index").read_bytes() == b"index"
     with get_connection() as conn:
         assert conn.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 1
+
+
+def test_checkpoint_rejects_fallback_embedding_model(tmp_path):
+    faiss = tmp_path / "faiss"
+    faiss.mkdir()
+    (faiss / "1.meta.json").write_text(
+        json.dumps(
+            {
+                "embedding_model": settings.embedding_fallback_model,
+                "embedding_dims": settings.embedding_dimensions,
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert _checkpoint_embedding_model_matches(tmp_path, 1) is False
