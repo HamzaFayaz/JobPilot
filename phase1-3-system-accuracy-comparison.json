@@ -1,0 +1,273 @@
+{
+  "baseline": {
+    "git_commit": "c634ff23472d996c68eb9ea90563d769c28eacc8",
+    "deterministic_contract_pass_rate": 100.0,
+    "semantic_mean_scores": {
+      "phase_1_cv_skills": 3.25,
+      "phase_1_project_evidence": 3.98,
+      "phase_2_retrieval": 3.42,
+      "phase_3_application": 4.0
+    },
+    "cv_slot_counts": {
+      "job1_deerbiation": 1,
+      "job2_deerbiation": 1,
+      "job3_deerbiation": 1,
+      "job4_deerbiation": 1
+    },
+    "packed_chunk_count": 35,
+    "duplicate_packed_content_count": 0,
+    "uncovered_requirement_count": 0,
+    "jobs": {
+      "job1_deerbiation": {
+        "requirement_count": 7,
+        "current_score": 78,
+        "suggested_score": 85,
+        "valid_swaps": 1,
+        "correction_codes": [],
+        "packed_chunk_ids": [
+          "5ddd0d4f-0533-4e38-a4c4-61573e83e2e7",
+          "6663b181-9925-44d9-abe5-5c1597783803",
+          "6bea76e3-83b2-4ab7-bf42-697536660a41",
+          "afd1ad33-afce-4cfd-ab08-c277f2cc993f",
+          "d07434d0-c72b-44bc-92e1-6c9e261ef8de",
+          "e5d3b748-71f1-4099-b9f6-1b863a1d3544",
+          "ec47a1f9-67e3-47df-bbaf-3c3b037fc3d4",
+          "fa211172-a1b9-435d-99ea-1e7cf13e24c1"
+        ]
+      },
+      "job2_deerbiation": {
+        "requirement_count": 5,
+        "current_score": 82,
+        "suggested_score": 88,
+        "valid_swaps": 1,
+        "correction_codes": [],
+        "packed_chunk_ids": [
+          "61d47540-5f3e-42ad-9ae4-aae7ea2a5f2e",
+          "6bea76e3-83b2-4ab7-bf42-697536660a41",
+          "71eb2065-954d-4007-b8f3-b0cd1ac5324c",
+          "806c8738-411b-49cb-933f-ecd7e953f7ae",
+          "a0958e2b-2b63-449b-8b1c-71fc426166ef",
+          "a63edc66-9ecf-4bf6-8290-1d90e68c8b90",
+          "afd1ad33-afce-4cfd-ab08-c277f2cc993f",
+          "df3d876f-5a22-41eb-a755-f4b242168616",
+          "e4f49b49-1f7d-4fef-af0c-8b666a563e21",
+          "f25034a9-b297-4a2d-8169-f0e211035056",
+          "ff9b2de9-af34-4ce9-83b8-efb529311a1d"
+        ]
+      },
+      "job3_deerbiation": {
+        "requirement_count": 6,
+        "current_score": 78,
+        "suggested_score": 78,
+        "valid_swaps": 0,
+        "correction_codes": [
+          "invalid_swap_forced_keep"
+        ],
+        "packed_chunk_ids": [
+          "5ddd0d4f-0533-4e38-a4c4-61573e83e2e7",
+          "6bea76e3-83b2-4ab7-bf42-697536660a41",
+          "afd1ad33-afce-4cfd-ab08-c277f2cc993f",
+          "c6f3ade5-86be-4da6-830c-3648eaf8dc9d",
+          "d07434d0-c72b-44bc-92e1-6c9e261ef8de",
+          "df3d876f-5a22-41eb-a755-f4b242168616",
+          "e5d3b748-71f1-4099-b9f6-1b863a1d3544",
+          "ec47a1f9-67e3-47df-bbaf-3c3b037fc3d4",
+          "fa211172-a1b9-435d-99ea-1e7cf13e24c1"
+        ]
+      },
+      "job4_deerbiation": {
+        "requirement_count": 8,
+        "current_score": 82,
+        "suggested_score": 88,
+        "valid_swaps": 1,
+        "correction_codes": [],
+        "packed_chunk_ids": [
+          "11857516-c08c-45e6-a746-12418d9d3830",
+          "866ff1e0-9293-442e-8105-13cb0f125390",
+          "a0f63355-afd8-4246-ac71-0191e8225eb1",
+          "a327d3e0-8df0-4fec-a177-38ab7d0d1aaf",
+          "e5d3b748-71f1-4099-b9f6-1b863a1d3544",
+          "ec47a1f9-67e3-47df-bbaf-3c3b037fc3d4",
+          "fa211172-a1b9-435d-99ea-1e7cf13e24c1"
+        ]
+      }
+    },
+    "trace": {
+      "trace_id": "019f7041b8cc282363bcf648f25c8d19",
+      "record_count": 188,
+      "required_spans_present": null
+    }
+  },
+  "new": {
+    "git_commit": "3c948c1a3e3428cb515f3a48e662bf5fc7c067f1",
+    "deterministic_contract_pass_rate": 100.0,
+    "semantic_mean_scores": {
+      "phase_1_cv_skills": 3.25,
+      "phase_1_project_evidence": 3.96,
+      "phase_2_retrieval": 2.83,
+      "phase_3_application": 3.59
+    },
+    "cv_slot_counts": {
+      "job1_deerbiation": 4,
+      "job2_deerbiation": 4,
+      "job3_deerbiation": 4,
+      "job4_deerbiation": 4
+    },
+    "packed_chunk_count": 7,
+    "duplicate_packed_content_count": 0,
+    "uncovered_requirement_count": 0,
+    "jobs": {
+      "job1_deerbiation": {
+        "requirement_count": 7,
+        "current_score": 55,
+        "suggested_score": 55,
+        "valid_swaps": 0,
+        "correction_codes": [
+          "invalid_requirement_evidence_removed",
+          "invalid_requirement_evidence_removed",
+          "invalid_swap_forced_keep",
+          "invalid_swap_target_removed",
+          "invalid_swap_target_removed",
+          "requirement_missing_cv_evidence",
+          "scores_recomputed"
+        ],
+        "packed_chunk_ids": [
+          "80269129-7065-4b22-a6f5-f7fc8b3c5219",
+          "b72ac960-14bb-4048-981d-4c28b32ad57e"
+        ]
+      },
+      "job2_deerbiation": {
+        "requirement_count": 5,
+        "current_score": 64,
+        "suggested_score": 64,
+        "valid_swaps": 0,
+        "correction_codes": [
+          "invalid_requirement_evidence_removed",
+          "invalid_requirement_evidence_removed",
+          "invalid_requirement_evidence_removed",
+          "invalid_requirement_evidence_removed",
+          "invalid_swap_forced_keep",
+          "invalid_swap_target_removed",
+          "invalid_swap_target_removed",
+          "requirement_missing_cv_evidence",
+          "requirement_missing_cv_evidence",
+          "scores_recomputed"
+        ],
+        "packed_chunk_ids": [
+          "f84d1a0b-6000-40a4-8017-1c45e18750e4"
+        ]
+      },
+      "job3_deerbiation": {
+        "requirement_count": 4,
+        "current_score": 80,
+        "suggested_score": 80,
+        "valid_swaps": 0,
+        "correction_codes": [
+          "invalid_or_duplicate_requirement_removed",
+          "invalid_or_duplicate_requirement_removed",
+          "invalid_requirement_evidence_removed",
+          "invalid_requirement_evidence_removed",
+          "invalid_swap_forced_keep",
+          "invalid_swap_target_removed",
+          "invalid_swap_target_removed",
+          "scores_recomputed"
+        ],
+        "packed_chunk_ids": [
+          "dbe8c360-2e5e-427d-95ac-df051e42723e"
+        ]
+      },
+      "job4_deerbiation": {
+        "requirement_count": 8,
+        "current_score": 15,
+        "suggested_score": 15,
+        "valid_swaps": 0,
+        "correction_codes": [
+          "invalid_requirement_evidence_removed",
+          "invalid_requirement_evidence_removed",
+          "invalid_requirement_evidence_removed",
+          "invalid_requirement_evidence_removed",
+          "invalid_requirement_evidence_removed",
+          "invalid_requirement_evidence_removed",
+          "invalid_requirement_evidence_removed",
+          "invalid_requirement_evidence_removed",
+          "invalid_swap_forced_keep",
+          "invalid_swap_forced_keep",
+          "invalid_swap_target_removed",
+          "invalid_swap_target_removed",
+          "requirement_missing_cv_evidence",
+          "requirement_missing_cv_evidence",
+          "requirement_missing_cv_evidence",
+          "requirement_missing_cv_evidence",
+          "requirement_missing_cv_evidence",
+          "requirement_missing_cv_evidence",
+          "requirement_missing_cv_evidence",
+          "scores_recomputed"
+        ],
+        "packed_chunk_ids": [
+          "170672eb-091d-499a-91c9-fff712a9614c",
+          "413e2575-2c94-4499-9e04-2051d6532829",
+          "5cf823a6-601e-4205-abaf-b295d324bb90"
+        ]
+      }
+    },
+    "trace": {
+      "trace_id": "019f70ae6e9d4c5e246515bc4b7a05c1",
+      "record_count": 281,
+      "required_spans_present": {
+        "complete_pipeline_evaluation": true,
+        "application_model": true,
+        "package_result": true
+      }
+    }
+  },
+  "deltas": {
+    "deterministic_contract_pass_rate": 0.0,
+    "packed_chunk_count": -28,
+    "duplicate_packed_content_count": 0,
+    "uncovered_requirement_count": 0
+  },
+  "acceptance": {
+    "hard_contracts_pass": true,
+    "duplicates_zero": true,
+    "improvement_targets_pass": false,
+    "human_review_required": false,
+    "human_reviews_passed": 0,
+    "human_reviews_total": 4,
+    "decision": "rejected",
+    "reason": "All four human reviews failed; mean current-fit score is 53.5 and Job 4 is 15.",
+    "human_review": {
+      "job1_deerbiation": {
+        "verdict": "fail",
+        "findings": [
+          "Valid CV-visible agent integration evidence was discarded.",
+          "Current and portfolio evidence remain conflated in rationale text.",
+          "Azure gaps and the no-uplift swap outcome are correctly retained."
+        ]
+      },
+      "job2_deerbiation": {
+        "verdict": "fail",
+        "findings": [
+          "Web-development tenure and full HTML/CSS coverage are overstated.",
+          "Portfolio evidence remains in current-fit rationale text.",
+          "The invalid swap and its uplift were correctly removed."
+        ]
+      },
+      "job3_deerbiation": {
+        "verdict": "fail",
+        "findings": [
+          "Onsite/location and 1–2-year conditions were removed.",
+          "The final narrative incorrectly reports no disclosed gap.",
+          "The keep decision and unchanged score are preferable to the proposed swap."
+        ]
+      },
+      "job4_deerbiation": {
+        "verdict": "fail",
+        "findings": [
+          "Clear CV evidence for multiple required technologies was erased.",
+          "The resulting 15/100 score is materially disproportionate.",
+          "Forced keep decisions correctly avoid unsupported swap uplift."
+        ]
+      }
+    }
+  }
+}
