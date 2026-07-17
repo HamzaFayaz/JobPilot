@@ -83,6 +83,12 @@ class SwapCoverageItem(StrictModel):
     proposed_status: Literal["partial", "matched"]
     evidence_refs: list[EvidenceReference] = Field(min_length=1)
 
+    @model_validator(mode="after")
+    def validate_portfolio_evidence(self) -> "SwapCoverageItem":
+        if any(reference.source_type == "cv" for reference in self.evidence_refs):
+            raise ValueError("swap coverage requires portfolio evidence only")
+        return self
+
 
 class ProjectDecision(StrictModel):
     slot_index: int
@@ -122,8 +128,6 @@ class ProjectDecision(StrictModel):
             self.target_requirement_ids
         ):
             raise ValueError("swap coverage must match target requirement IDs")
-        if not any(ref.source_type != "cv" for ref in self.evidence_refs):
-            raise ValueError("swap decisions require portfolio evidence")
         return self
 
 

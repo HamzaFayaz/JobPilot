@@ -16,6 +16,7 @@ from backend.app.services.application_llm import (
     ApplicationAnalysisError,
     _parse_result,
     analyze_job,
+    build_messages,
 )
 from backend.app.services.application_validation import validate_application_contract
 from backend.app.services.cv_evidence_spans import build_cv_evidence_spans
@@ -47,6 +48,19 @@ def _keep(slot_index: int = 0) -> dict:
         "swap_coverage": [],
         "rationale": "The current project remains relevant.",
         "impact": None,
+    }
+
+
+def _portfolio_ref() -> dict:
+    return {
+        "source_type": "readme_chunk",
+        "quote": "Direct packed project evidence",
+        "cv_section": None,
+        "project_id": "other",
+        "project_name": "Other",
+        "heading_path": "Evidence",
+        "source_id": "chunk:other",
+        "cv_span_id": None,
     }
 
 
@@ -189,6 +203,50 @@ def test_schema_allows_current_cv_evidence_on_keep_decision():
     payload["project_decisions"][0]["swap_in_project_id"] = "other"
     with pytest.raises(ValidationError):
         EnrichJobResult.model_validate(payload)
+
+
+def test_swap_coverage_is_portfolio_authority_not_decision_evidence():
+    payload = _valid_result()
+    payload["suggested_cv_score"] = 75
+    payload["project_decisions"][0] = {
+        "slot_index": 0,
+        "action": "swap",
+        "current_project_name": "Current 0",
+        "swap_in_project_id": "other",
+        "swap_in_project_name": "Other",
+        "target_requirement_ids": ["req_1"],
+        "evidence_refs": [_cv_ref()],
+        "swap_coverage": [
+            {
+                "requirement_id": "req_1",
+                "proposed_status": "matched",
+                "evidence_refs": [_portfolio_ref()],
+            }
+        ],
+        "rationale": "The packed replacement evidence supports the target.",
+        "impact": "low",
+    }
+    assert EnrichJobResult.model_validate(payload).project_decisions[0].action == "swap"
+    payload["project_decisions"][0]["swap_coverage"][0]["evidence_refs"] = [_cv_ref()]
+    with pytest.raises(ValidationError):
+        EnrichJobResult.model_validate(payload)
+
+
+def test_model_bundle_exposes_only_packed_portfolio_source_ids():
+    bundle = _analysis_bundle()
+    bundle["layer1_portfolio_overviews"][0]["portfolio_overview"] = "Overview text"
+    bundle["layer2a_evidence_cards"] = [
+        {
+            "source_id": "project:current:evidence_card",
+            "project_id": "current",
+            "evidence_card": {"claim": "Generated claim"},
+        }
+    ]
+    messages, _ = build_messages(bundle)
+    user_payload = json.loads(messages[1]["content"])
+    assert "layer2a_evidence_cards" not in user_payload
+    assert "source_id" not in user_payload["layer1_portfolio_overviews"][0]
+    assert "portfolio_overview" not in user_payload["layer1_portfolio_overviews"][0]
 
 
 @pytest.mark.parametrize("raw", ["", "```json\n{}\n```", "prefix {}"])

@@ -44,7 +44,11 @@ values. A display quote may be short, but the cv_span_id is authoritative.
 Portfolio-only details must not increase current_cv_score. Portfolio evidence
 may support swap recommendations and suggested_cv_score. Swap evidence may
 reference only packed portfolio source_id values owned by the replacement
-project. Retrieval availability is a candidate, not proof. Never invent or
+project. The project identity list contains no citable evidence. Never cite an
+evidence-card or overview ID. Put direct packed portfolio evidence in each
+swap_coverage item; the decision-level evidence_refs may describe the current
+slot with CV spans but is not swap proof. Retrieval availability is a
+candidate, not proof. Never invent or
 exaggerate facts, technology,
 ownership, users, scale, metrics, production status, impact, or outcomes. Do
 not represent planned, incomplete, experimental, or not-implemented work as

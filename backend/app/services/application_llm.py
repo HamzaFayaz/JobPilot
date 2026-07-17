@@ -51,8 +51,21 @@ def build_messages(bundle: dict[str, Any]) -> tuple[list[dict[str, str]], str]:
     model_bundle = {
         key: value
         for key, value in bundle.items()
-        if key not in {"retrieval_debug", "requirement_extraction"}
+        if key
+        not in {
+            "retrieval_debug",
+            "requirement_extraction",
+            "layer2a_evidence_cards",
+        }
     }
+    model_bundle["layer1_portfolio_overviews"] = [
+        {
+            "project_id": item.get("project_id"),
+            "name": item.get("name"),
+            "repo_full_name": item.get("repo_full_name"),
+        }
+        for item in bundle.get("layer1_portfolio_overviews") or []
+    ]
     user_message = json.dumps(
         model_bundle, ensure_ascii=False, sort_keys=True, separators=(",", ":")
     )
