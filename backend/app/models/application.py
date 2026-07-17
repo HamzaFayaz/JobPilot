@@ -19,9 +19,7 @@ RequirementCategory = Literal[
 ]
 RequirementStatus = Literal["matched", "partial", "not_evidenced", "cannot_assess"]
 Confidence = Literal["low", "medium", "high"]
-EvidenceSourceType = Literal[
-    "cv", "readme_chunk", "evidence_claim", "evidence_card", "portfolio_overview"
-]
+EvidenceSourceType = Literal["cv", "readme_chunk"]
 ProjectAction = Literal["keep", "swap"]
 SwapImpact = Literal["low", "medium", "high"]
 

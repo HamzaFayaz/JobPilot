@@ -43,7 +43,10 @@ matched or partial requirement must reference one or more supplied cv_span_id
 values. A display quote may be short, but the cv_span_id is authoritative.
 Never put a date_fact_id in cv_span_id; date facts are referenced only through
 the requirement's date_fact_ids list. If the exact date quote is also needed
-as current-CV evidence, use that date fact's supplied cv_span_id.
+as current-CV evidence, copy that date fact's cv_span_id exactly from
+date_facts — do not rebuild offsets or mash line-span hashes with date spans.
+Prefer a containing line span from cv_evidence_spans for surrounding role
+context, and keep tenure arithmetic IDs only in date_fact_ids.
 Portfolio-only details must not increase current_cv_score. Portfolio evidence
 may support swap recommendations and suggested_cv_score. Swap evidence may
 reference only packed portfolio source_id values owned by the replacement
@@ -96,15 +99,18 @@ Return exactly one decision per supplied CV project slot in slot-index order.
 Default to keep. Swap only to a different real unused portfolio project when
 grounded evidence materially improves explicit requirement coverage and can
 plausibly fit the slot. Every swap must identify target requirement IDs,
-supporting evidence, rationale, and low/medium/high impact. Do not generate
-replacement CV text. If no slots or valid replacements exist, keep all slots
-and make suggested score equal current score. For every target requirement,
-return one swap_coverage item with direct packed-source references owned by the
-replacement project. Do not perform tenure/date arithmetic. Use only supplied
-date_fact_ids and their deterministic completed-month values, and return those
-IDs on each tenure requirement. Every source_id in every swap_coverage item
-must have project_id exactly equal to that decision's swap_in_project_id; never
-borrow evidence from another project.
+supporting evidence, rationale, and low/medium/high impact. For keep
+decisions: set swap_in_project_id and swap_in_project_name to null, impact to
+null, target_requirement_ids to [], and swap_coverage to []. Put keep support
+reasons only in rationale and optional current-CV evidence_refs. Do not
+generate replacement CV text. If no slots or valid replacements exist, keep all
+slots and make suggested score equal current score. For every target
+requirement, return one swap_coverage item with direct packed-source references
+owned by the replacement project. Do not perform tenure/date arithmetic. Use
+only supplied date_fact_ids and their deterministic completed-month values, and
+return those IDs on each tenure requirement. Every source_id in every
+swap_coverage item must have project_id exactly equal to that decision's
+swap_in_project_id; never borrow evidence from another project.
 
 ======================================================================
 6. SUMMARY AND USER SAFETY
@@ -125,6 +131,112 @@ returning, silently verify requirement provenance, current-CV evidence,
 score invariants, one decision per slot in exact slot order, valid unique
 replacement projects, narrative agreement with the structured result, and that
 no fact or outcome is invented. Do not output hidden reasoning.
+
+ILLUSTRATIVE SHAPE ONLY (copy ID patterns; never invent IDs — use only IDs
+supplied in the user payload):
+{
+  "analysis_status": "completed",
+  "explicit_requirements": [
+    {
+      "requirement_id": "job_req_01_example",
+      "retrieval_requirement_id": "job_req_01_example",
+      "job_quote": "1+ year of experience",
+      "job_source_start": 10,
+      "job_source_end": 30,
+      "text": "At least one year of experience.",
+      "importance": "required",
+      "category": "experience",
+      "status": "partial",
+      "evidence_refs": [
+        {
+          "source_type": "cv",
+          "quote": "Apr  2025 to Present",
+          "cv_section": "EXPERIENCE",
+          "project_id": null,
+          "project_name": null,
+          "heading_path": "EXPERIENCE",
+          "source_id": null,
+          "cv_span_id": "cv:730:750:fb5a4b1885dc"
+        }
+      ],
+      "date_fact_ids": ["cv_date_01"],
+      "rationale": "Tenure uses date_fact_ids; the date quote cites the date fact cv_span_id."
+    }
+  ],
+  "inferred_requirements": [],
+  "confidence": "high",
+  "current_cv_score": 70,
+  "suggested_cv_score": 78,
+  "current_score_rationale": "Current CV partially covers the requirement.",
+  "suggested_score_rationale": "A grounded swap improves coverage.",
+  "project_decisions": [
+    {
+      "slot_index": 0,
+      "action": "keep",
+      "current_project_name": "Current Project A",
+      "swap_in_project_id": null,
+      "swap_in_project_name": null,
+      "target_requirement_ids": [],
+      "evidence_refs": [
+        {
+          "source_type": "cv",
+          "quote": "Built LangGraph workflows",
+          "cv_section": "PROJECTS",
+          "project_id": "cv_slot_0",
+          "project_name": "Current Project A",
+          "heading_path": "PROJECTS > Current Project A",
+          "source_id": null,
+          "cv_span_id": "cv:1847:2014:62066c24639f"
+        }
+      ],
+      "swap_coverage": [],
+      "rationale": "Keep: leave swap fields null/empty; explain support only here.",
+      "impact": null
+    },
+    {
+      "slot_index": 1,
+      "action": "swap",
+      "current_project_name": "Current Project B",
+      "swap_in_project_id": "jobpilot",
+      "swap_in_project_name": "JobPilot",
+      "target_requirement_ids": ["job_req_01_example"],
+      "evidence_refs": [
+        {
+          "source_type": "cv",
+          "quote": "Less relevant current slot text",
+          "cv_section": "PROJECTS",
+          "project_id": "cv_slot_1",
+          "project_name": "Current Project B",
+          "heading_path": "PROJECTS > Current Project B",
+          "source_id": null,
+          "cv_span_id": "cv:2129:2202:f0e0fbe81d3d"
+        }
+      ],
+      "swap_coverage": [
+        {
+          "requirement_id": "job_req_01_example",
+          "proposed_status": "matched",
+          "evidence_refs": [
+            {
+              "source_type": "readme_chunk",
+              "quote": "React | FastAPI | LangGraph",
+              "cv_section": null,
+              "project_id": "jobpilot",
+              "project_name": "JobPilot",
+              "heading_path": "JobPilot",
+              "source_id": "ec498967-883e-4818-8d57-f2323d16f289",
+              "cv_span_id": null
+            }
+          ]
+        }
+      ],
+      "rationale": "Swap uses only packed source_id values owned by jobpilot.",
+      "impact": "medium"
+    }
+  ],
+  "limitations": ["Example limitation only."],
+  "summary": "Example summary only."
+}
 """.strip()
 
 # Backward-compatible symbols for callers; configuration identifies v3.

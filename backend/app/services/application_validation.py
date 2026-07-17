@@ -127,10 +127,16 @@ def validate_application_contract(
                         "code": "invalid_current_cv_source",
                         "requirement_id": requirement_id,
                         "cv_span_id": span_id,
+                        "allowed_cv_span_ids": list(cv_sources.keys())[:24],
+                        "allowed_date_fact_ids": sorted(
+                            item for item in date_fact_ids if item
+                        ),
                         "instruction": (
                             "Remove this reference or replace it with a supplied "
-                            "cv_evidence_spans source_id. Date fact IDs belong only "
-                            "in date_fact_ids."
+                            "cv_evidence_spans source_id or an exact date_facts "
+                            "cv_span_id. Never put date_fact_id values in "
+                            "cv_span_id; never rebuild or mash span IDs. Date fact "
+                            "IDs belong only in date_fact_ids."
                         ),
                     }
                 )

@@ -126,7 +126,7 @@ class Settings(BaseSettings):
     def application_model(self) -> str:
         return self.application_model_override or self.llm_config.get(
             "application", {}
-        ).get("model", "qwen3.7-plus-2026-05-26")
+        ).get("model", "qwen3.7-max-2026-06-08")
 
     @property
     def application_temperature(self) -> float:

@@ -205,6 +205,169 @@ def test_schema_allows_current_cv_evidence_on_keep_decision():
         EnrichJobResult.model_validate(payload)
 
 
+def test_parse_normalizes_keep_replacement_field_pollution():
+    from backend.app.services.application_llm import _parse_result
+
+    payload = _valid_result()
+    payload["project_decisions"][0].update(
+        {
+            "target_requirement_ids": ["req_1"],
+            "impact": "high",
+            "swap_coverage": [],
+            "evidence_refs": [_cv_ref()],
+        }
+    )
+    parsed = _parse_result(json.dumps(payload))
+    decision = parsed.project_decisions[0]
+    assert decision.action == "keep"
+    assert decision.target_requirement_ids == []
+    assert decision.impact is None
+    assert decision.swap_coverage == []
+
+
+def test_model_bundle_strips_cv_content_hash():
+    messages, _ = build_messages(_analysis_bundle())
+    user_payload = json.loads(messages[1]["content"])
+    span = user_payload["profile"]["cv_evidence_spans"][0]
+    assert span["source_id"] == "cv:test"
+    assert "content_hash" not in span
+    assert "ILLUSTRATIVE SHAPE ONLY" in messages[0]["content"]
+    assert '"action": "keep"' in messages[0]["content"]
+    assert '"date_fact_ids": ["cv_date_01"]' in messages[0]["content"]
+
+
+def test_validator_rejects_invalid_ids_and_accepts_valid_date_cv_portfolio_ids():
+    context = {
+        "job_description": "Required: 1+ year of experience in web development.",
+        "cv_text": "Apr  2025 to Present Remote",
+        "cv_evidence_sources": {
+            "cv:730:750:fb5a4b1885dc": {
+                "source_id": "cv:730:750:fb5a4b1885dc",
+                "content": "Apr  2025 to Present",
+            },
+            "cv:751:791:83f51d87259a": {
+                "source_id": "cv:751:791:83f51d87259a",
+                "content": "Remote",
+            },
+        },
+        "date_facts": [
+            {
+                "date_fact_id": "cv_date_01",
+                "cv_span_id": "cv:730:750:fb5a4b1885dc",
+                "quote": "Apr  2025 to Present",
+            }
+        ],
+        "cv_project_slots": [
+            {
+                "slot_index": 0,
+                "cv_project_name": "Current 0",
+                "matched_portfolio_project_id": "current",
+            }
+        ],
+        "cv_project_ids": ["current"],
+        "portfolio_project_ids": ["jobpilot", "current"],
+        "evidence_sources": {
+            "ec498967-883e-4818-8d57-f2323d16f289": {
+                "source_type": "readme_chunk",
+                "project_id": "jobpilot",
+                "content": "React FastAPI LangGraph",
+            }
+        },
+    }
+    invalid = _valid_result()
+    invalid["explicit_requirements"][0]["job_quote"] = (
+        "1+ year of experience in web development"
+    )
+    invalid["explicit_requirements"][0]["job_source_start"] = 10
+    invalid["explicit_requirements"][0]["job_source_end"] = 50
+    invalid["explicit_requirements"][0]["evidence_refs"] = [
+        {
+            **_cv_ref(),
+            "cv_span_id": "cv_date_01",
+            "quote": "Apr  2025 to Present",
+        }
+    ]
+    invalid["explicit_requirements"][0]["date_fact_ids"] = ["cv_date_01"]
+    invalid["suggested_cv_score"] = 80
+    invalid["project_decisions"][0] = {
+        "slot_index": 0,
+        "action": "swap",
+        "current_project_name": "Current 0",
+        "swap_in_project_id": "jobpilot",
+        "swap_in_project_name": "JobPilot",
+        "target_requirement_ids": ["req_1"],
+        "evidence_refs": [_cv_ref()],
+        "swap_coverage": [
+            {
+                "requirement_id": "req_1",
+                "proposed_status": "matched",
+                "evidence_refs": [
+                    {
+                        **_portfolio_ref(),
+                        "source_id": "b908b39b144d7db7c81e8ea67c0a354c9cd607cfa7a9a5847e48a67f353c2e4f",
+                        "quote": "React FastAPI LangGraph",
+                        "project_id": "jobpilot",
+                    }
+                ],
+            }
+        ],
+        "rationale": "Swap for stronger web evidence.",
+        "impact": "high",
+    }
+    errors = validate_application_contract(invalid, context)
+    codes = {error["code"] for error in errors}
+    assert "invalid_current_cv_source" in codes
+    assert "swap_evidence_not_owned_by_replacement" in codes
+
+    valid = _valid_result()
+    valid["explicit_requirements"][0]["job_quote"] = (
+        "1+ year of experience in web development"
+    )
+    valid["explicit_requirements"][0]["job_source_start"] = 10
+    valid["explicit_requirements"][0]["job_source_end"] = 50
+    valid["explicit_requirements"][0]["evidence_refs"] = [
+        {
+            **_cv_ref(),
+            "cv_span_id": "cv:730:750:fb5a4b1885dc",
+            "quote": "Apr  2025 to Present",
+        }
+    ]
+    valid["explicit_requirements"][0]["date_fact_ids"] = ["cv_date_01"]
+    valid["suggested_cv_score"] = 80
+    valid["project_decisions"][0] = {
+        "slot_index": 0,
+        "action": "swap",
+        "current_project_name": "Current 0",
+        "swap_in_project_id": "jobpilot",
+        "swap_in_project_name": "JobPilot",
+        "target_requirement_ids": ["req_1"],
+        "evidence_refs": [
+            {
+                **_cv_ref(),
+                "cv_span_id": "cv:730:750:fb5a4b1885dc",
+                "quote": "Apr  2025 to Present",
+            }
+        ],
+        "swap_coverage": [
+            {
+                "requirement_id": "req_1",
+                "proposed_status": "matched",
+                "evidence_refs": [
+                    {
+                        **_portfolio_ref(),
+                        "source_id": "ec498967-883e-4818-8d57-f2323d16f289",
+                        "quote": "React FastAPI LangGraph",
+                        "project_id": "jobpilot",
+                    }
+                ],
+            }
+        ],
+        "rationale": "Swap for stronger web evidence.",
+        "impact": "high",
+    }
+    assert validate_application_contract(valid, context) == []
+
+
 def test_swap_coverage_is_portfolio_authority_not_decision_evidence():
     payload = _valid_result()
     payload["suggested_cv_score"] = 75

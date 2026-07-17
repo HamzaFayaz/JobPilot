@@ -15,17 +15,17 @@ evidence:
   max_tokens: 4096
 
 application:
-  model: qwen3.7-plus-2026-05-26
+  model: qwen3.7-max-2026-06-08
   temperature: 0.1
   enable_thinking: false
   response_format: json_object
-  prompt_version: enrich_job_v3
+  prompt_version: enrich_job_v4
   schema_version: enrich_job_result_v3
   repair_retries: 1
   fit_threshold: 60
 
 requirement_extraction:
-  model: qwen3.7-plus-2026-05-26
+  model: qwen3.7-max-2026-06-08
   temperature: 0
   prompt_version: job_requirements_v1
   schema_version: job_requirements_result_v1

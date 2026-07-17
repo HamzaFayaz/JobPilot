@@ -27,6 +27,8 @@ class ApplicationAnalysisError(Exception):
     retryable: bool = False
     raw_response: str | None = None
     validation_details: str | None = None
+    bundle: dict[str, Any] | None = None
+    raw_attempts: list[str | None] | None = None
 
     def safe_dict(self) -> dict[str, Any]:
         return {
@@ -46,6 +48,22 @@ def _compact_schema() -> str:
     )
 
 
+def _model_facing_profile(profile: dict[str, Any] | None) -> dict[str, Any]:
+    """Strip non-citable identifiers from the profile payload sent to the model."""
+    payload = dict(profile or {})
+    spans = []
+    for item in payload.get("cv_evidence_spans") or []:
+        spans.append(
+            {
+                key: value
+                for key, value in item.items()
+                if key != "content_hash"
+            }
+        )
+    payload["cv_evidence_spans"] = spans
+    return payload
+
+
 def build_messages(bundle: dict[str, Any]) -> tuple[list[dict[str, str]], str]:
     """Build deterministic messages without sending retrieval diagnostics."""
     model_bundle = {
@@ -58,6 +76,7 @@ def build_messages(bundle: dict[str, Any]) -> tuple[list[dict[str, str]], str]:
             "layer2a_evidence_cards",
         }
     }
+    model_bundle["profile"] = _model_facing_profile(bundle.get("profile"))
     model_bundle["layer1_portfolio_overviews"] = [
         {
             "project_id": item.get("project_id"),
@@ -183,6 +202,28 @@ def _validation_context(bundle: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _normalize_model_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    """Clear keep-shape pollution without changing swap authority or scores."""
+    normalized = dict(payload)
+    decisions = []
+    for decision in normalized.get("project_decisions") or []:
+        item = dict(decision)
+        if item.get("action") == "keep":
+            item["swap_in_project_id"] = None
+            item["swap_in_project_name"] = None
+            item["target_requirement_ids"] = []
+            item["swap_coverage"] = []
+            item["impact"] = None
+            item["evidence_refs"] = [
+                reference
+                for reference in item.get("evidence_refs") or []
+                if reference.get("source_type") == "cv"
+            ]
+        decisions.append(item)
+    normalized["project_decisions"] = decisions
+    return normalized
+
+
 def _parse_result(raw: str | None) -> EnrichJobResult:
     if raw is None or not raw.strip():
         raise ApplicationAnalysisError(
@@ -197,8 +238,15 @@ def _parse_result(raw: str | None) -> EnrichJobResult:
             raw_response=raw,
             validation_details=str(exc),
         ) from exc
+    if not isinstance(payload, dict):
+        raise ApplicationAnalysisError(
+            "invalid_model_response",
+            "Application analysis failed schema validation.",
+            raw_response=raw,
+            validation_details="Response root must be a JSON object.",
+        )
     try:
-        return EnrichJobResult.model_validate(payload)
+        return EnrichJobResult.model_validate(_normalize_model_payload(payload))
     except ValidationError as exc:
         raise ApplicationAnalysisError(
             "invalid_model_response",
@@ -273,6 +321,8 @@ def analyze_job(
                     "model_unavailable",
                     "Application analysis model is unavailable.",
                     retryable=True,
+                    bundle=bundle,
+                    raw_attempts=raw_attempts,
                 ) from exc
 
             raw = response.choices[0].message.content if response.choices else None
@@ -300,6 +350,8 @@ def analyze_job(
                             ensure_ascii=False,
                             separators=(",", ":"),
                         ),
+                        bundle=bundle,
+                        raw_attempts=raw_attempts,
                     )
                 return (
                     dumped,
@@ -327,9 +379,14 @@ def analyze_job(
                         "Application analysis failed response-contract validation after "
                         f"{settings.application_repair_retries} repair retry."
                     )
+                    exc.bundle = bundle
+                    exc.raw_attempts = raw_attempts
                     raise
 
     raise ApplicationAnalysisError(
-        "unexpected_enrich_error", "Application analysis failed unexpectedly."
+        "unexpected_enrich_error",
+        "Application analysis failed unexpectedly.",
+        bundle=bundle,
+        raw_attempts=raw_attempts,
     )
 

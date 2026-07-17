@@ -21,6 +21,8 @@ def enrich_job(state: ApplicationState) -> dict:
             "error": exc.safe_dict(),
             "eval_payload": {
                 "raw_response": exc.raw_response,
+                "raw_attempts": exc.raw_attempts or [],
+                "bundle": exc.bundle,
                 "contract_validation": {
                     "valid": False,
                     "errors": exc.validation_details or exc.message,
