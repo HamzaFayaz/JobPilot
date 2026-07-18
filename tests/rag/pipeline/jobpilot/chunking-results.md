@@ -2,7 +2,7 @@
 
 ## Summary
 - Parents: 23
-- Boundary units: 59
+- Boundary units: 55
 - Child chunks: 23
 - README chars: 13603
 
@@ -71,11 +71,11 @@ JobPilot uses a **deterministic LangGraph pipeline** — code routes between sub
 ### JobPilot > Quick start > 1. Clone and configure (chunk 12, 33 tokens, readme_section)
 ```bash git clone <repo-url> cd JobPilot cp .env.example .env # Set DASHSCOPE_API_KEY, JWT_SECRET, DATA_ENCRYPTION_KEY, GITHUB_* ```
 
-### JobPilot > Quick start > 2. Setup (chunk 13, 40 tokens, readme_section)
-**Windows:**  ```bat setup.cmd ```  **Manual:**  ```bash python -m venv .venv .venv\Scripts\activate pip install -r requirements.txt cd frontend && npm install ```
+### JobPilot > Quick start > 2. Setup (chunk 13, 37 tokens, readme_section)
+```bat setup.cmd ```  **Manual:** ```bash python -m venv .venv .venv\Scripts\activate pip install -r requirements.txt cd frontend && npm install ```
 
-### JobPilot > Quick start > 3. Run locally (chunk 14, 141 tokens, readme_section)
-**Windows:**  ```bat dev.cmd ```  **Manual:**  ```bash # Terminal 1 — API uvicorn backend.app.main:app --reload --port 8000  # Terminal 2 — UI cd frontend && npm run dev  # Terminal 3 — Search Helper (after pairing in UI) cd worker && python main.py ```  | Service | URL | |---------|-----| | Frontend | http://localhost:5173 | | API | http://localhost:8000 | | Health | http://localhost:8000/health ...
+### JobPilot > Quick start > 3. Run locally (chunk 14, 138 tokens, readme_section)
+```bat dev.cmd ```  **Manual:** ```bash # Terminal 1 — API uvicorn backend.app.main:app --reload --port 8000  # Terminal 2 — UI cd frontend && npm run dev  # Terminal 3 — Search Helper (after pairing in UI) cd worker && python main.py ```  | Service | URL | |---------|-----| | Frontend | http://localhost:5173 | | API | http://localhost:8000 | | Health | http://localhost:8000/health |  Search Helpe...
 
 ### JobPilot > Project structure (chunk 15, 197 tokens, readme_section)
 ```text JobPilot/ ├── backend/app/ │   ├── graph/              # LangGraph orchestrator + subgraphs │   ├── routes/             # FastAPI routers (auth, search, worker, jobs) │   ├── services/           # worker_store, search_store, listing_prefilter, profile_llm │   └── models/             # Pydantic contracts (browser, search, worker) ├── frontend/src/           # React SPA (Welcome, Profile, Se...

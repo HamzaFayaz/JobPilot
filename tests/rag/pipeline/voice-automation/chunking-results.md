@@ -42,7 +42,7 @@ This project is open source under the [MIT License](LICENSE).
 ### Voice Automation > Why This Exists (chunk 2, 215 tokens, readme_section)
 Modern technical work involves constant context switching: coding in Cursor, writing prompts, using terminals, searching documentation, messaging, and testing ideas in browsers. Voice input can remove a lot of small typing overhead, but most dictation tools are either app-specific, always listening, or awkward to use inside developer workflows.  Voice Automation is designed as a lightweight system...
 
-### Voice Automation > Features (chunk 3, 189 tokens, readme_section)
+### Voice Automation > Features (chunk 3, 188 tokens, readme_section)
 - Global push-to-talk hotkey. - Records only while the hotkey is held. - Works across normal Windows text fields. - Supports Deepgram cloud transcription. - Supports Moonshine local transcription. - Tray-first Windows desktop app with Home and Settings screens. - Secure Deepgram API key storage with the Windows credential store. - Moonshine model selection, download, and verification from the desk...
 
 ### Voice Automation > Engineering Highlights (chunk 4, 266 tokens, readme_section)
