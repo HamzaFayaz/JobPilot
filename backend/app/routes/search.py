@@ -6,8 +6,8 @@ from backend.app.db import get_connection
 from backend.app.deps.auth import get_current_user
 from backend.app.graph.runner import run_parent_graph
 from backend.app.models.search import SearchStartResponse
-from backend.app.services.profile_store import get_search_preferences
-from backend.app.services.search_store import user_has_active_search_run
+from backend.app.services.profile_store import get_profile, get_search_preferences
+from backend.app.services.search_store import user_has_active_search_run, user_run_number
 from backend.app.services.worker_store import has_active_worker_device
 
 router = APIRouter(prefix="/api/search", tags=["search"])
@@ -28,6 +28,13 @@ def start_search(
         raise HTTPException(
             status_code=409,
             detail="A search is already in progress. Open Applications to follow job analysis.",
+        )
+
+    profile = get_profile(current_user["id"])
+    if profile.projects_indexing_status == "pending":
+        raise HTTPException(
+            status_code=409,
+            detail="Your projects are still being prepared. Please wait a few minutes.",
         )
 
     prefs = get_search_preferences(current_user["id"])
@@ -66,4 +73,8 @@ def start_search(
     run_id = int(cursor.lastrowid)
     background_tasks.add_task(run_parent_graph, run_id, current_user["id"])
 
-    return SearchStartResponse(runId=run_id, status="pending")
+    return SearchStartResponse(
+        runId=run_id,
+        runNumber=user_run_number(current_user["id"], run_id),
+        status="pending",
+    )

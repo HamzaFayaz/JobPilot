@@ -23,6 +23,7 @@ class SearchStartResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True, serialize_by_alias=True)
 
     run_id: int = Field(alias="runId")
+    run_number: int = Field(alias="runNumber")
     status: RunStatus
 
 
@@ -30,6 +31,7 @@ class SearchRunStatusResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True, serialize_by_alias=True)
 
     run_id: int = Field(alias="runId")
+    run_number: int = Field(alias="runNumber")
     status: RunStatus
     jobs_ready_count: int = Field(0, alias="jobsReadyCount")
     progress: float | None = None

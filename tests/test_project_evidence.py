@@ -161,15 +161,20 @@ def test_github_import_stores_evidence_server_side(mock_readme, mock_evidence, c
     response = client.post("/api/github/import", json={"repos": ["alice/jobpilot"]})
     assert response.status_code == 200, response.text
     body = response.json()
+    # Import returns immediately; projects appear after the background job.
+    assert body["projectsIndexingStatus"] == "pending"
+    assert body["projects"] == []
 
-    assert len(body["projects"]) == 1
-    project = body["projects"][0]
+    mock_evidence.assert_called_once()
+
+    ready = client.get("/api/profile").json()
+    assert ready["projectsIndexingStatus"] == "ready"
+    assert len(ready["projects"]) == 1
+    project = ready["projects"][0]
     assert project["name"] == "JobPilot"
     assert "portfolioOverview" not in project
     assert "evidenceCard" not in project
     assert "readmeMd" not in project
-
-    mock_evidence.assert_called_once()
 
     stored = get_stored_projects(user["id"])[0]
     assert stored.readme_md == SAMPLE_README

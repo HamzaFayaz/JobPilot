@@ -122,6 +122,7 @@ def _row_to_profile(row: dict, oauth: dict[str, dict | None]) -> ProfileResponse
         cv_file_meta=cv_file_meta,
         skills=_parse_json_list(row.get("skills")),
         skills_extraction_status=row.get("skills_extraction_status") or "idle",
+        projects_indexing_status=row.get("projects_indexing_status") or "idle",
         target_roles=target_roles,
         search_role=search_role,
         search_platform=row.get("search_platform") or "linkedin",
@@ -289,6 +290,15 @@ def set_skills_extraction_status(user_id: int, status: str) -> None:
     with get_connection() as conn:
         conn.execute(
             "UPDATE profiles SET skills_extraction_status = ?, updated_at = ? WHERE user_id = ?",
+            (status, _now_iso(), user_id),
+        )
+        conn.commit()
+
+
+def set_projects_indexing_status(user_id: int, status: str) -> None:
+    with get_connection() as conn:
+        conn.execute(
+            "UPDATE profiles SET projects_indexing_status = ?, updated_at = ? WHERE user_id = ?",
             (status, _now_iso(), user_id),
         )
         conn.commit()
