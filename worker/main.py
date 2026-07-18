@@ -13,7 +13,9 @@ if __name__ == "__main__":
 
 from worker.api_client import JobPilotWorkerClient, RETRYABLE_API_ERRORS
 from worker.browser_client import check_browser_health, run_search_task
+from worker.cloud_executor import run_cloud_tool_executor
 from worker.config import WorkerSettings, get_settings
+from worker.models import WorkerTask
 from worker.runtime_paths import worker_data_dir
 
 logging.basicConfig(
@@ -64,10 +66,21 @@ def _validate_settings(settings: WorkerSettings) -> None:
         raise SystemExit(
             "WORKER_TOKEN is missing. Pair this computer in JobPilot, then set WORKER_TOKEN in worker/.env"
         )
-    if not settings.dashscope_api_key.strip():
+    mode = (settings.agent_mode or "cloud").strip().lower()
+    if mode == "local" and not settings.dashscope_api_key.strip():
         raise SystemExit(
-            "DASHSCOPE_API_KEY is missing. Add your Dashscope key to worker/.env for browser search."
+            "DASHSCOPE_API_KEY is missing. Local agent mode needs a Dashscope key in worker/.env "
+            "(or set AGENT_MODE=cloud to use the server agent)."
         )
+
+
+def resolve_agent_mode(task: WorkerTask, settings: WorkerSettings) -> str:
+    """Worker AGENT_MODE=local forces the legacy on-PC ReAct path during migration."""
+    worker_mode = (settings.agent_mode or "cloud").strip().lower()
+    if worker_mode == "local":
+        return "local"
+    task_mode = (task.agent_mode or "cloud").strip().lower()
+    return "local" if task_mode == "local" else "cloud"
 
 
 async def _run_task(client: JobPilotWorkerClient, settings: WorkerSettings, task) -> None:
@@ -78,11 +91,22 @@ async def _run_task(client: JobPilotWorkerClient, settings: WorkerSettings, task
         task.role,
         task.platform,
     )
+    mode = resolve_agent_mode(task, settings)
     try:
         client.send_heartbeat(browser_health="busy")
-        listings, warnings = await run_search_task(task, settings)
-        client.post_result(task.task_id, listings, warnings=warnings)
-        logger.info("Posted %s listings for task %s", len(listings), task.task_id)
+        if mode == "cloud":
+            logger.info("Running task %s in cloud agent mode (WebBridge executor)", task.task_id)
+            await run_cloud_tool_executor(task, settings, client)
+            logger.info("Cloud executor finished task %s", task.task_id)
+        else:
+            if not settings.dashscope_api_key.strip():
+                raise RuntimeError(
+                    "Local agent mode requires DASHSCOPE_API_KEY on this Search Helper."
+                )
+            logger.info("Running task %s in local agent mode (on-PC ReAct)", task.task_id)
+            listings, warnings = await run_search_task(task, settings)
+            client.post_result(task.task_id, listings, warnings=warnings)
+            logger.info("Posted %s listings for task %s", len(listings), task.task_id)
     except Exception as exc:
         logger.exception("Task %s failed", task.task_id)
         try:
@@ -92,6 +116,7 @@ async def _run_task(client: JobPilotWorkerClient, settings: WorkerSettings, task
                 code="browser_task_failed",
             )
         except Exception:
+            # Cloud agent may already have failed/completed the task.
             logger.exception("Failed to report task failure to JobPilot API")
     finally:
         try:
@@ -103,7 +128,12 @@ async def _run_task(client: JobPilotWorkerClient, settings: WorkerSettings, task
 async def run_forever(settings: WorkerSettings) -> None:
     client = JobPilotWorkerClient(settings)
     logger.info("Connected to JobPilot at %s", settings.jobpilot_api_base)
-    logger.info("Browser provider: %s | Qwen model: %s", settings.browser_provider, settings.qwen_model)
+    logger.info(
+        "Browser provider: %s | agent_mode: %s | Qwen model: %s",
+        settings.browser_provider,
+        settings.agent_mode,
+        settings.qwen_model,
+    )
 
     last_health: str | None = None
     idle_polls = 0

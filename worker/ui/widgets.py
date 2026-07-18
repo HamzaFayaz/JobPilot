@@ -208,11 +208,8 @@ class ConnectionSummaryCard(QFrame):
   def update_from_config(self, cfg: dict[str, str]) -> None:
     api_base = (cfg.get("jobpilot_api_base", "") or "").strip() or "Not set"
     has_token = bool(cfg.get("worker_token", "").strip())
-    has_key = bool(cfg.get("dashscope_api_key", "").strip())
     self._api_base_row.setText(f"API URL · {api_base}")
     self._pairing_row.setText(
       "Pairing code · Configured" if has_token else "Pairing code · Not set"
     )
-    self._api_row.setText(
-      "API key · Configured" if has_key else "API key · Not set"
-    )
+    self._api_row.setText("Search agent · Cloud (no local API key)")

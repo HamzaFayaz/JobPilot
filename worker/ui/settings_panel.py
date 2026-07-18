@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from worker.local_config import DEFAULT_API_BASE, DEFAULT_MODEL, env_path, normalize_api_base
+from worker.local_config import DEFAULT_API_BASE, env_path, normalize_api_base
 from worker.ui.widgets import LabeledField, SecretField
 
 
@@ -33,8 +33,6 @@ class SettingsPanel(QWidget):
         super().__init__(parent)
         self._disk_api_base = DEFAULT_API_BASE
         self._disk_token = ""
-        self._disk_api_key = ""
-        self._disk_model = DEFAULT_MODEL
         self._editing = False
 
         layout = QVBoxLayout(self)
@@ -79,14 +77,11 @@ class SettingsPanel(QWidget):
         self._summary_api_base.setWordWrap(True)
         self._summary_pairing = QLabel()
         self._summary_pairing.setObjectName("SetupStep")
-        self._summary_api = QLabel()
-        self._summary_api.setObjectName("SetupStep")
-        self._summary_model = QLabel()
-        self._summary_model.setObjectName("SetupStep")
+        self._summary_agent = QLabel()
+        self._summary_agent.setObjectName("SetupStep")
         card_layout.addWidget(self._summary_api_base)
         card_layout.addWidget(self._summary_pairing)
-        card_layout.addWidget(self._summary_api)
-        card_layout.addWidget(self._summary_model)
+        card_layout.addWidget(self._summary_agent)
 
         layout.addWidget(card)
 
@@ -123,25 +118,7 @@ class SettingsPanel(QWidget):
             LabeledField(
                 "Pairing code",
                 self._token_field,
-                hint="Must come from the same JobPilot site as the API URL.",
-            )
-        )
-
-        self._api_key_field = SecretField("Paste your Dashscope API key")
-        card_layout.addWidget(
-            LabeledField(
-                "Dashscope API key",
-                self._api_key_field,
-                hint="Used only on this PC for the browser agent.",
-            )
-        )
-
-        self._model_field = _plain_line_edit(DEFAULT_MODEL)
-        card_layout.addWidget(
-            LabeledField(
-                "Qwen model",
-                self._model_field,
-                hint=f"Browser agent model. If you clear this field, {DEFAULT_MODEL} is used.",
+                hint="From JobPilot → Settings → Search Helper. Model API key stays on the server.",
             )
         )
 
@@ -168,15 +145,14 @@ class SettingsPanel(QWidget):
         return self._editing or not self._is_configured()
 
     def _is_configured(self) -> bool:
-        return bool(self._disk_token and self._disk_api_key and self._disk_api_base)
+        return bool(self._disk_token and self._disk_api_base)
 
     def _enter_edit_mode(self) -> None:
         self._editing = True
         self._prepare_form_fields()
         self._stack.setCurrentWidget(self._form_page)
         self._intro.setText(
-            "Edit connection details below. Leave pairing code or API key blank to keep "
-            "the value already saved."
+            "Edit API URL and pairing code. Leave pairing code blank to keep the saved value."
         )
 
     def _cancel_edit(self) -> None:
@@ -194,25 +170,13 @@ class SettingsPanel(QWidget):
             if self._disk_token
             else "Paste pairing code from JobPilot Settings"
         )
-        self._api_key_field.clear()
-        self._api_key_field.set_placeholder(
-            "Leave blank to keep current API key"
-            if self._disk_api_key
-            else "Paste your Dashscope API key"
-        )
-        # Show the saved model; placeholder is only the fallback if emptied.
-        self._model_field.setText(self._disk_model or DEFAULT_MODEL)
-        self._model_field.setPlaceholderText(DEFAULT_MODEL)
 
     def _show_summary(self) -> None:
         self._summary_api_base.setText(f"API URL · {self._disk_api_base or 'Not set'}")
         self._summary_pairing.setText(
             "Pairing code · Configured" if self._disk_token else "Pairing code · Not set"
         )
-        self._summary_api.setText(
-            "API key · Configured" if self._disk_api_key else "API key · Not set"
-        )
-        self._summary_model.setText(f"Qwen model · {self._disk_model or DEFAULT_MODEL}")
+        self._summary_agent.setText("Search agent · Cloud (server model key)")
         self._stack.setCurrentWidget(self._summary_page)
         self._intro.setText("Connection saved on this PC. Click Edit settings to change it.")
 
@@ -222,8 +186,6 @@ class SettingsPanel(QWidget):
             or DEFAULT_API_BASE
         )
         self._disk_token = cfg.get("worker_token", "")
-        self._disk_api_key = cfg.get("dashscope_api_key", "")
-        self._disk_model = cfg.get("qwen_model", "") or DEFAULT_MODEL
         self._path_hint.setText(f"Saved to: {env_path()}")
 
         self._editing = False
@@ -234,7 +196,7 @@ class SettingsPanel(QWidget):
             self._prepare_form_fields()
             self._stack.setCurrentWidget(self._form_page)
             self._intro.setText(
-                "Add API URL, pairing code, and Dashscope API key, then Save settings."
+                "Add API URL and pairing code from JobPilot Settings, then Save."
             )
 
     def collect(self) -> dict[str, str]:
@@ -244,11 +206,7 @@ class SettingsPanel(QWidget):
             or DEFAULT_API_BASE
         )
         token = self._token_field.text().strip() or self._disk_token
-        api_key = self._api_key_field.text().strip() or self._disk_api_key
-        model = self._model_field.text().strip() or self._disk_model or DEFAULT_MODEL
         return {
             "jobpilot_api_base": api_base,
             "worker_token": token,
-            "dashscope_api_key": api_key,
-            "qwen_model": model,
         }

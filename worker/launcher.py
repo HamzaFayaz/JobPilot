@@ -299,19 +299,17 @@ class SearchHelperWindow(QMainWindow):
             form = self._settings_panel.collect()
             api_base = form["jobpilot_api_base"]
             token = form["worker_token"]
-            api_key = form["dashscope_api_key"]
-            model = form["qwen_model"]
         else:
             api_base = disk.get("jobpilot_api_base", "") or DEFAULT_API_BASE
             token = disk.get("worker_token", "")
-            api_key = disk.get("dashscope_api_key", "")
-            model = disk.get("qwen_model", "") or DEFAULT_MODEL
 
         return {
             "jobpilot_api_base": normalize_api_base(api_base) or DEFAULT_API_BASE,
             "worker_token": token.strip(),
-            "dashscope_api_key": api_key.strip(),
-            "qwen_model": model.strip() or DEFAULT_MODEL,
+            # Model key lives on the JobPilot server — not configured in this app.
+            "dashscope_api_key": "",
+            "qwen_model": disk.get("qwen_model", "") or DEFAULT_MODEL,
+            "agent_mode": "cloud",
         }
 
     def _credentials_complete(self, cfg: dict[str, str] | None = None) -> bool:
@@ -319,7 +317,6 @@ class SearchHelperWindow(QMainWindow):
         return bool(
             data.get("jobpilot_api_base")
             and data.get("worker_token")
-            and data.get("dashscope_api_key")
             and api_base_looks_valid(data.get("jobpilot_api_base", ""))
         )
 
@@ -362,8 +359,6 @@ class SearchHelperWindow(QMainWindow):
             )
         if not cfg["worker_token"]:
             return "Pairing code is required. Add it in Settings."
-        if not cfg["dashscope_api_key"]:
-            return "Dashscope API key is required. Add it in Settings."
         return None
 
     def _show_notice(self, text: str) -> None:
@@ -450,6 +445,11 @@ class SearchHelperWindow(QMainWindow):
     def _auto_stop_after_success(self) -> None:
         if self._worker_running and self._process is not None:
             self._stop_worker()
+
+    def _clear_logs(self) -> None:
+        self._log_lines = []
+        if self._log_window is not None:
+            self._log_window.clear()
 
     def _update_status_from_log(self, line: str) -> None:
         lower = line.lower()
@@ -542,6 +542,9 @@ class SearchHelperWindow(QMainWindow):
         self._tray.setToolTip(f"JobPilot Search Helper — {text}")
 
     def _append_log(self, line: str) -> None:
+        # Fresh log pane for each search so the next run is easy to read.
+        if "received task" in line.lower():
+            self._clear_logs()
         self._log_lines.append(line)
         if len(self._log_lines) > 5000:
             self._log_lines = self._log_lines[-5000:]

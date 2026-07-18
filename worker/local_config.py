@@ -20,6 +20,7 @@ _KEYS = (
     ("qwen_base_url", "QWEN_BASE_URL"),
     ("browser_provider", "BROWSER_PROVIDER"),
     ("webbridge_url", "WEBBRIDGE_URL"),
+    ("agent_mode", "AGENT_MODE"),
 )
 
 
@@ -47,6 +48,7 @@ def load_config() -> dict[str, str]:
         "qwen_base_url": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
         "browser_provider": "webbridge",
         "webbridge_url": "http://127.0.0.1:10086",
+        "agent_mode": "cloud",
     }
     if not _ENV_PATH.is_file():
         return values
@@ -71,13 +73,17 @@ def save_config(
     *,
     jobpilot_api_base: str,
     worker_token: str,
-    dashscope_api_key: str,
-    qwen_model: str,
+    dashscope_api_key: str = "",
+    qwen_model: str = DEFAULT_MODEL,
     qwen_base_url: str = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
     browser_provider: str = "webbridge",
     webbridge_url: str = "http://127.0.0.1:10086",
+    agent_mode: str = "cloud",
 ) -> None:
     api_base = normalize_api_base(jobpilot_api_base) or DEFAULT_API_BASE
+    mode = (agent_mode or "cloud").strip().lower()
+    if mode not in ("local", "cloud"):
+        mode = "cloud"
     lines = [
         f"JOBPILOT_API_BASE={api_base}",
         f"WORKER_TOKEN={worker_token.strip()}",
@@ -86,6 +92,7 @@ def save_config(
         f"QWEN_MODEL={qwen_model.strip() or DEFAULT_MODEL}",
         f"BROWSER_PROVIDER={browser_provider.strip()}",
         f"WEBBRIDGE_URL={webbridge_url.strip()}",
+        f"AGENT_MODE={mode}",
         "POLL_INTERVAL_SECONDS=3",
         "AGENT_MAX_STEPS=40",
     ]
