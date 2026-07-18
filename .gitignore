@@ -32,8 +32,8 @@ Thumbs.db
 *.log
 logs/
 logges.md
-data/uploads/
-data/jobpilot.db
+data/
+taking.txt
 tests/complete-pipeline-test/cv/*.docx
 tests/complete-pipeline-test/results/
 tests/complete-pipeline-test/labels/
