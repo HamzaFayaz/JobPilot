@@ -1,8 +1,7 @@
 # `enrich_job` → `package_out` → CV Tailoring Handoff
 
-**Status:** Agreed direction (2026-07-17); Phase 3 implements analysis and
-persistence only, while CV document generation remains a later user-triggered
-workflow.
+**Status:** Design agreed. Analysis + Applications path is **shipped**.  
+**Next implementation (last major product step before send):** user-triggered `tailor_cv` — see [`currently-working-feature.md`](../../currently-working-feature.md).
 
 **Related plan:** [`jobpilot_phase3_application_observability_evals_plan.md`](../../.agent/plans/jobpilot_phase3_application_observability_evals_plan.md)
 
@@ -10,9 +9,9 @@ workflow.
 
 Record the boundary between:
 
-1. search-time job analysis,
-2. persisted project-swap recommendations, and
-3. later user-approved CV generation.
+1. search-time job analysis (**done**),
+2. persisted project-swap recommendations (**done**), and
+3. later user-approved CV generation (**next**).
 
 This prevents `enrich_job` from performing expensive layout-constrained CV
 writing for every matched job while preserving everything the later
@@ -308,17 +307,20 @@ Logfire records exact model, prompt version, tokens, latency, and output.
 ## Implementation order
 
 ```text
-Current Phase 3:
+Shipped:
 1. enrich_job
 2. classify_fit
 3. package_out and structured handoff persistence
-4. real Phase 1–3 evaluation
+4. real Phase 1–3 evaluation + Applications UI
 
-Later CV-tailoring phase:
+Next (last product step before send) — implement now:
 5. exact CV layout parser/contract
 6. user approval API/UI
 7. tailor_cv model call
 8. deterministic and rendered layout validation
 9. draft storage, preview, and download
+
+Later:
+10. attach tailored CV + send (separate HITL)
 ```
 

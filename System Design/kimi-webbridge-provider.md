@@ -18,6 +18,8 @@
 
 **What does not change:** `POST /api/search`, worker task queue, `RawJobListing` JSON, search subgraph on ECS, Settings pairing UI.
 
+**Cloud agent mode (default):** Qwen ReAct runs on ECS (`backend/app/services/browser_agent/`). The Search Helper is a thin WebBridge tool executor — judges need pairing + WebBridge only (no Dashscope on the PC). See [`cloud-browser-agent.md`](./cloud-browser-agent.md). Set Helper `AGENT_MODE=local` to keep the legacy on-PC ReAct path during migration.
+
 ---
 
 ## 2. Architecture
