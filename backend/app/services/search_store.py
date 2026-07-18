@@ -113,6 +113,20 @@ def get_search_run(run_id: int) -> dict[str, Any] | None:
     return dict(row) if row else None
 
 
+def user_run_number(user_id: int, run_id: int) -> int:
+    """1-based sequence of this run among the user's own searches (for UI only)."""
+    with get_connection() as conn:
+        row = conn.execute(
+            """
+            SELECT COUNT(*) AS n
+            FROM search_runs
+            WHERE user_id = ? AND id <= ?
+            """,
+            (user_id, run_id),
+        ).fetchone()
+    return int(row["n"] or 0)
+
+
 def get_latest_search_run(user_id: int) -> dict[str, Any] | None:
     """Most recent run for the user; in-progress runs take priority over finished ones."""
     with get_connection() as conn:
@@ -176,9 +190,9 @@ def save_raw_listings_as_packages(
                 """
                 INSERT INTO job_packages (
                     user_id, run_id, title, company, url, platform,
-                    description_text, summary, status
+                    description_text, display_description_text, summary, status
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     user_id,
@@ -188,6 +202,7 @@ def save_raw_listings_as_packages(
                     listing.url,
                     listing.source_platform,
                     listing.description_text,
+                    listing.display_description_text or "",
                     "",
                     "ready",
                 ),
@@ -230,11 +245,11 @@ def upsert_job_package(
             """
             INSERT INTO job_packages (
                 user_id, run_id, title, company, url, platform, description_text,
-                summary, match_score, current_cv_score, suggested_cv_score,
-                status, error, analysis_json, model_name, prompt_version,
-                profile_snapshot_hash, package_key, updated_at
+                display_description_text, summary, match_score, current_cv_score,
+                suggested_cv_score, status, error, analysis_json, model_name,
+                prompt_version, profile_snapshot_hash, package_key, updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(run_id, package_key)
             WHERE run_id IS NOT NULL AND package_key IS NOT NULL
             DO UPDATE SET
@@ -243,6 +258,11 @@ def upsert_job_package(
                 url = excluded.url,
                 platform = excluded.platform,
                 description_text = excluded.description_text,
+                display_description_text = CASE
+                    WHEN excluded.display_description_text != ''
+                        THEN excluded.display_description_text
+                    ELSE job_packages.display_description_text
+                END,
                 summary = CASE
                     WHEN excluded.summary != '' THEN excluded.summary
                     ELSE job_packages.summary
@@ -284,6 +304,7 @@ def upsert_job_package(
                 job.get("url"),
                 job.get("source_platform") or job.get("platform"),
                 job.get("description_text") or "",
+                job.get("display_description_text") or "",
                 summary,
                 current_cv_score,
                 current_cv_score,

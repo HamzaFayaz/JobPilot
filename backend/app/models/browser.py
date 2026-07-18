@@ -32,6 +32,8 @@ class RawJobListing(BaseModel):
     company: str
     url: str
     description_text: str = Field(default="", alias="descriptionText")
+    # UI-only formatted body (+ apply header). Analysis always uses description_text.
+    display_description_text: str = Field(default="", alias="displayDescriptionText")
     source_platform: Platform = Field(alias="sourcePlatform")
 
 

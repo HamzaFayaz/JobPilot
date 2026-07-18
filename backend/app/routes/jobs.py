@@ -25,6 +25,14 @@ def _row_to_package(row) -> JobPackageResponse:
         except (json.JSONDecodeError, TypeError):
             error_text = str(error_raw)
 
+    raw_description = row["description_text"] or ""
+    try:
+        display = row["display_description_text"] or ""
+    except (KeyError, IndexError):
+        display = ""
+    # Frontend shows formatted display text when present; analysis used raw in DB.
+    ui_description = display.strip() or raw_description
+
     return JobPackageResponse(
         id=int(row["id"]),
         runId=row["run_id"],
@@ -32,7 +40,7 @@ def _row_to_package(row) -> JobPackageResponse:
         company=row["company"] or "",
         url=row["url"] or "",
         platform=row["platform"] or "linkedin",
-        descriptionText=row["description_text"] or "",
+        descriptionText=ui_description,
         summary=row["summary"] or "",
         matchScore=row["match_score"],
         currentCvScore=row["current_cv_score"],
@@ -62,6 +70,7 @@ def list_jobs(
                 """
                 SELECT
                     id, run_id, title, company, url, platform, description_text,
+                    display_description_text,
                     summary, match_score, current_cv_score, suggested_cv_score,
                     cv_decision, swap_out_project, swap_in_text, draft_email,
                     analysis_json, model_name, prompt_version, status, error,
@@ -77,6 +86,7 @@ def list_jobs(
                 """
                 SELECT
                     id, run_id, title, company, url, platform, description_text,
+                    display_description_text,
                     summary, match_score, current_cv_score, suggested_cv_score,
                     cv_decision, swap_out_project, swap_in_text, draft_email,
                     analysis_json, model_name, prompt_version, status, error,
@@ -125,6 +135,7 @@ def decide_job(
             """
             SELECT
                 id, run_id, title, company, url, platform, description_text,
+                display_description_text,
                 summary, match_score, current_cv_score, suggested_cv_score,
                 cv_decision, swap_out_project, swap_in_text, draft_email,
                 analysis_json, model_name, prompt_version, status, error,

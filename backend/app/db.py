@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS profiles (
     cv_text TEXT,
     skills TEXT NOT NULL DEFAULT '[]',
     skills_extraction_status TEXT NOT NULL DEFAULT 'idle',
+    projects_indexing_status TEXT NOT NULL DEFAULT 'idle',
     target_roles TEXT NOT NULL DEFAULT '[]',
     search_role TEXT,
     search_platform TEXT NOT NULL DEFAULT 'linkedin',
@@ -72,6 +73,7 @@ CREATE TABLE IF NOT EXISTS job_packages (
     url TEXT,
     platform TEXT,
     description_text TEXT NOT NULL DEFAULT '',
+    display_description_text TEXT NOT NULL DEFAULT '',
     summary TEXT NOT NULL DEFAULT '',
     match_score INTEGER,
     current_cv_score INTEGER,
@@ -169,6 +171,7 @@ def _ensure_search_schema(conn: sqlite3.Connection) -> None:
             "search_work_mode": "search_work_mode TEXT NOT NULL DEFAULT 'both'",
             "search_max_listings": "search_max_listings INTEGER NOT NULL DEFAULT 8",
             "search_job_age": "search_job_age TEXT NOT NULL DEFAULT 'week'",
+            "projects_indexing_status": "projects_indexing_status TEXT NOT NULL DEFAULT 'idle'",
         },
     )
     _ensure_columns(
@@ -194,6 +197,7 @@ def _ensure_search_schema(conn: sqlite3.Connection) -> None:
             "url": "url TEXT",
             "platform": "platform TEXT",
             "description_text": "description_text TEXT NOT NULL DEFAULT ''",
+            "display_description_text": "display_description_text TEXT NOT NULL DEFAULT ''",
             "summary": "summary TEXT NOT NULL DEFAULT ''",
             "match_score": "match_score INTEGER",
             "current_cv_score": "current_cv_score INTEGER",
