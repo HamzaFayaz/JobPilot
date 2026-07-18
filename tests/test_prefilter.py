@@ -156,9 +156,21 @@ def test_prefilter_node_returns_matched_jobs(test_db):
             VALUES (1, 'node@example.com', 'hash')
             """
         )
+        conn.execute(
+            """
+            INSERT INTO search_runs (id, user_id, status)
+            VALUES (1, 1, 'running')
+            """
+        )
         conn.commit()
 
     result = prefilter(state)
     assert len(result["listings"]) == 1
     assert len(result["matched_jobs"]) == 1
     assert is_synthetic_post_url(result["matched_jobs"][0]["url"])
+    with get_connection() as conn:
+        packages = conn.execute(
+            "SELECT status FROM job_packages WHERE run_id = 1"
+        ).fetchall()
+    assert len(packages) == 1
+    assert packages[0]["status"] == "analyzing"

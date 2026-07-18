@@ -8,8 +8,15 @@ from pydantic import BaseModel, ConfigDict, Field
 from backend.app.models.browser import Platform
 
 RunStatus = Literal["pending", "running", "completed", "failed"]
-JobPackageStatus = Literal["ready", "applied", "failed"]
+JobPackageStatus = Literal["analyzing", "ready", "applied", "skipped", "failed"]
 CvDecision = Literal["keep", "swap"]
+JobDecisionAction = Literal["applied", "skipped"]
+
+
+class JobDecisionRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    decision: JobDecisionAction
 
 
 class SearchStartResponse(BaseModel):

@@ -14,6 +14,7 @@ from backend.app.models.worker import (
     WorkerTaskResponse,
     WorkerTaskResultRequest,
 )
+from backend.app.services.listing_rewrite import rewrite_listings
 from backend.app.services.worker_store import (
     claim_next_worker_task,
     complete_worker_task,
@@ -84,7 +85,8 @@ def post_worker_task_result(
     if not task or task["user_id"] != device["user_id"]:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
 
-    listings = [listing.model_dump(by_alias=True) for listing in body.listings]
+    listings_models = rewrite_listings(list(body.listings))
+    listings = [listing.model_dump(by_alias=True) for listing in listings_models]
     if not complete_worker_task(
         task_id,
         user_id=device["user_id"],

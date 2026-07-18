@@ -79,6 +79,21 @@ def test_start_search_enqueues_graph(mock_run_graph, test_db, client):
     mock_run_graph.assert_called_once_with(body["runId"], user["id"])
 
 
+@patch("backend.app.routes.search.run_parent_graph")
+def test_start_search_blocks_when_run_active(mock_run_graph, test_db, client):
+    signup(client, "busy@example.com")
+    login(client, "busy@example.com")
+    _seed_profile_for_search(client)
+    _pair_and_heartbeat(client)
+
+    first = client.post("/api/search")
+    assert first.status_code == 200
+    second = client.post("/api/search")
+    assert second.status_code == 409
+    assert "already in progress" in second.json()["detail"]
+    assert mock_run_graph.call_count == 1
+
+
 def test_get_latest_run_returns_most_recent(test_db, client):
     signup(client, "latest@example.com")
     login(client, "latest@example.com")

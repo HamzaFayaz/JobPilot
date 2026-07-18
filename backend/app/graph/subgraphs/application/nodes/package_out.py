@@ -6,19 +6,7 @@ import json
 from backend.app.config import settings
 from backend.app.graph.subgraphs.application.state import ApplicationState
 from backend.app.observability import span
-from backend.app.services.search_store import upsert_job_package
-
-
-def _package_key(job: dict) -> str:
-    identity = (
-        f"{job.get('platform', '')}|{job.get('url', '')}".lower().strip()
-        if job.get("url")
-        else "|".join(
-            str(job.get(key, "")).lower().strip()
-            for key in ("title", "company", "description_text")
-        )
-    )
-    return hashlib.sha256(identity.encode("utf-8")).hexdigest()
+from backend.app.services.search_store import package_key_for_job, upsert_job_package
 
 
 def _profile_hash(profile: dict) -> str:
@@ -78,7 +66,7 @@ def package_out(state: ApplicationState) -> dict:
             run_id=state["run_id"],
             user_id=state["user_id"],
             job=job,
-            package_key=_package_key(job),
+            package_key=package_key_for_job(job),
             analysis=envelope,
             status=status,
             summary=(classified or {}).get("summary", ""),

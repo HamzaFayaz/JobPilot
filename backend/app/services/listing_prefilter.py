@@ -124,8 +124,12 @@ def load_applied_signatures(user_id: int) -> AppliedSignatures:
             SELECT url, platform, title, company
             FROM job_applications
             WHERE user_id = ?
+            UNION ALL
+            SELECT url, platform, title, company
+            FROM job_packages
+            WHERE user_id = ? AND status = 'applied'
             """,
-            (user_id,),
+            (user_id, user_id),
         ).fetchall()
 
     for row in rows:
