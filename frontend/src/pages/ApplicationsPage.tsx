@@ -504,7 +504,7 @@ export function ApplicationsPage() {
           </div>
           {runStatus ? (
             <p className="text-xs text-text-secondary">
-              Run #{runStatus.runId} · {runStatus.status}
+              Run #{runStatus.runNumber} · {runStatus.status}
             </p>
           ) : null}
         </div>

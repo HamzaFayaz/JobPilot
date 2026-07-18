@@ -132,6 +132,24 @@ export function SearchPage() {
     )
   }
 
+  if (profile.projectsIndexingStatus === 'pending') {
+    return (
+      <div className="mx-auto max-w-lg space-y-4 rounded-xl border border-border bg-surface px-6 py-8 text-center shadow-sm">
+        <h1 className="text-xl font-bold text-text-primary">Preparing your profile</h1>
+        <p className="text-sm text-text-secondary">
+          The system is building project overviews and evidence. This can take a few minutes.
+          You can connect Search Helper in Settings while you wait.
+        </p>
+        <Link
+          to="/settings"
+          className="inline-flex min-h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover"
+        >
+          Open Settings
+        </Link>
+      </div>
+    )
+  }
+
   if (!gate.isComplete) {
     return (
       <div className="mx-auto max-w-lg space-y-4 rounded-xl border border-border bg-surface px-6 py-8 text-center shadow-sm">
@@ -161,6 +179,9 @@ export function SearchPage() {
     jobs.some((job) => job.status === 'analyzing')
 
   const searchBlockers: string[] = []
+  if (profile.projectsIndexingStatus === 'pending') {
+    searchBlockers.push('Projects are still being prepared. Please wait a few minutes.')
+  }
   if (!profile.targetRoles.length) {
     searchBlockers.push('Add at least one target role on your profile.')
   }
@@ -211,7 +232,7 @@ export function SearchPage() {
                 const started = await startSearch()
                 setActiveRunId(started.runId)
                 await refreshRun(started.runId)
-                showToast(`Search run #${started.runId} started.`)
+                showToast(`Search run #${started.runNumber} started.`)
                 navigate('/applications')
               } catch (error: unknown) {
                 const message =
@@ -352,7 +373,9 @@ export function SearchPage() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="text-base font-semibold text-text-primary">Current run</h2>
-              <p className="mt-1 text-sm text-text-secondary">Run #{activeRunId}</p>
+              <p className="mt-1 text-sm text-text-secondary">
+                Run #{runStatus?.runNumber ?? activeRunId}
+              </p>
             </div>
             <Button type="button" variant="ghost" onClick={() => void refreshRun(activeRunId)}>
               Refresh

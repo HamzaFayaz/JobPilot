@@ -60,12 +60,19 @@ export function GitHubImport() {
       await refreshProfile()
       setModalOpen(false)
       setSelected(new Set())
-    } catch {
-      setError('Import failed. Please try again.')
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : 'Import failed. Please try again.'
+      setError(message)
     } finally {
       setImporting(false)
     }
   }
+
+  const indexingPending = profile.projectsIndexingStatus === 'pending'
+  const indexingFailed = profile.projectsIndexingStatus === 'failed'
 
   return (
     <>
@@ -83,12 +90,27 @@ export function GitHubImport() {
                   Connected as {profile.githubUsername}
                 </p>
               ) : null}
+              {indexingPending ? (
+                <p className="mt-1 text-sm font-medium text-warning">
+                  Preparing projects in the background — this can take a few minutes.
+                </p>
+              ) : null}
+              {indexingFailed ? (
+                <p className="mt-1 text-sm font-medium text-error">
+                  Last import failed. Try importing again.
+                </p>
+              ) : null}
             </div>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             {profile.githubConnected ? (
               <>
-                <Button variant="secondary" className="w-full sm:w-auto" onClick={() => void openModal()}>
+                <Button
+                  variant="secondary"
+                  className="w-full sm:w-auto"
+                  onClick={() => void openModal()}
+                  disabled={indexingPending}
+                >
                   Import repos
                 </Button>
                 <Button variant="ghost" className="w-full sm:w-auto" onClick={() => void handleDisconnect()}>
@@ -161,7 +183,7 @@ export function GitHubImport() {
                 disabled={selected.size === 0 || importing}
                 onClick={() => void handleImport()}
               >
-                {importing ? 'Importing…' : `Import (${selected.size})`}
+                {importing ? 'Starting…' : `Import (${selected.size})`}
               </Button>
             </div>
             {error ? <p className="px-4 pb-4 text-sm text-error">{error}</p> : null}

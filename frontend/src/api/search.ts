@@ -9,11 +9,13 @@ export type JobDecision = 'applied' | 'skipped'
 
 export interface SearchStartResponse {
   runId: number
+  runNumber: number
   status: RunStatus
 }
 
 export interface SearchRunStatusResponse {
   runId: number
+  runNumber: number
   status: RunStatus
   jobsReadyCount: number
   progress?: number | null

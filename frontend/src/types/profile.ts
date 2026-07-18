@@ -6,6 +6,7 @@ export interface Project {
 }
 
 export type SkillsExtractionStatus = 'idle' | 'pending' | 'ready' | 'failed'
+export type ProjectsIndexingStatus = 'idle' | 'pending' | 'ready' | 'failed'
 export type SearchPlatform = 'linkedin' | 'indeed'
 export type SearchWorkMode = 'remote' | 'onsite' | 'both'
 export type SearchJobAge = '24h' | 'week' | 'month'
@@ -15,6 +16,7 @@ export interface Profile {
   cvFileMeta: { size: number } | null
   skills: string[]
   skillsExtractionStatus: SkillsExtractionStatus
+  projectsIndexingStatus: ProjectsIndexingStatus
   targetRoles: string[]
   searchRole: string | null
   searchPlatform: SearchPlatform
@@ -34,6 +36,7 @@ export const EMPTY_PROFILE: Profile = {
   cvFileMeta: null,
   skills: [],
   skillsExtractionStatus: 'idle',
+  projectsIndexingStatus: 'idle',
   targetRoles: [],
   searchRole: null,
   searchPlatform: 'linkedin',

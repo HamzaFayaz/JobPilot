@@ -151,7 +151,9 @@ export function SearchHelperSettings() {
             <div>
               <h2 className="text-base font-semibold text-text-primary">Search Helper</h2>
               <p className="mt-1 text-sm text-text-secondary">
-                Runs on this PC — Kimi WebBridge + Qwen search your real Chrome session.
+                Desktop app on this PC — paste the pairing token below, install WebBridge,
+                and Start. The search agent (model + Dashscope key) runs on the JobPilot
+                server, not in this app.
               </p>
             </div>
             <Button type="button" variant="ghost" onClick={() => void refresh()} aria-label="Refresh status">
@@ -176,7 +178,7 @@ export function SearchHelperSettings() {
                 {healthLabel ? ` · ${healthLabel}` : ''}
               </span>
             ) : (
-              <span>Worker not connected — pair below and run main.py</span>
+              <span>Helper not connected — pair below, then open the Search Helper app</span>
             )}
           </div>
 
@@ -209,15 +211,23 @@ export function SearchHelperSettings() {
                 Do not auto-upgrade until Posts search is re-tested.
               </li>
               <li>Log into LinkedIn in your normal Chrome</li>
-              <li>Pair this computer below and paste the token into worker/.env</li>
+              <li>Pair this computer below and paste the token into the Search Helper app</li>
+              <li>Start the Helper — only pairing + WebBridge (no model API key on the PC)</li>
               <li>
-                Run:{' '}
-                <code className="rounded bg-surface px-1.5 py-0.5 text-xs">
-                  .\.venv\Scripts\python.exe main.py
-                </code>
+                Use WebBridge daemon {WEBBRIDGE_LOCKED_DAEMON} + extension{' '}
+                {WEBBRIDGE_LOCKED_EXTENSION}
               </li>
             </ol>
           </details>
+
+          <div className="mt-4 rounded-lg border border-border bg-background/50 px-4 py-3 text-sm">
+            <p className="font-medium text-text-primary">Search agent (server)</p>
+            <p className="mt-1 text-text-secondary">
+              Qwen model and Dashscope API key are configured on the JobPilot backend
+              (server <code className="rounded bg-surface px-1 text-xs">.env</code>
+              ). You do not enter them in the Helper or in this browser.
+            </p>
+          </div>
 
           <div className="mt-4 flex flex-wrap gap-3">
             <Button type="button" onClick={() => void handlePair()} disabled={pairing}>
@@ -234,7 +244,8 @@ export function SearchHelperSettings() {
             <div className="mt-4 rounded-lg border border-primary/20 bg-chip-bg/30 p-4">
               <p className="text-sm font-semibold text-text-primary">Worker token</p>
               <p className="mt-1 text-xs text-text-secondary">
-                Paste into <code>worker/.env</code> as <code>WORKER_TOKEN</code>, then restart the helper.
+                Paste into the Search Helper desktop app (Settings → pairing code), then
+                Start.
               </p>
               <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <code className="block flex-1 break-all rounded-lg bg-surface px-3 py-2 text-xs text-text-primary">

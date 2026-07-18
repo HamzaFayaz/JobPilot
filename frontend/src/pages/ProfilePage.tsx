@@ -53,7 +53,14 @@ export function ProfilePage() {
               {gate.hasMinSkills ? '✓' : '○'} Skills extracted (min. 3)
             </li>
             <li className={gate.hasProject ? 'text-success' : ''}>
-              {gate.hasProject ? '✓' : '○'} At least one project
+              {gate.hasProject
+                ? '✓'
+                : profile.projectsIndexingStatus === 'pending'
+                  ? '…'
+                  : '○'}{' '}
+              {profile.projectsIndexingStatus === 'pending'
+                ? 'Preparing projects (few minutes)…'
+                : 'At least one project'}
             </li>
           </ul>
         )}

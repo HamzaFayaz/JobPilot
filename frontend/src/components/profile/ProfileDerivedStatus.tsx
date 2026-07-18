@@ -31,10 +31,25 @@ export function ProfileDerivedStatus() {
   const { profile } = useProfile()
   const skills = skillsStatusLabel(profile.skillsExtractionStatus, profile.skills.length)
   const projectCount = profile.projects.length
-  const projectsText =
-    projectCount > 0
-      ? `${projectCount} project${projectCount !== 1 ? 's' : ''} saved`
-      : 'Import from GitHub or add manually in Settings'
+  const projectsIndexing = profile.projectsIndexingStatus
+  const projectsLabel = (() => {
+    if (projectsIndexing === 'pending') {
+      return { text: 'Preparing projects — this can take a few minutes…', tone: 'pending' as const }
+    }
+    if (projectsIndexing === 'failed') {
+      return { text: 'Project import failed. Try importing again', tone: 'error' as const }
+    }
+    if (projectCount > 0) {
+      return {
+        text: `${projectCount} project${projectCount !== 1 ? 's' : ''} saved`,
+        tone: 'ready' as const,
+      }
+    }
+    return {
+      text: 'Import from GitHub or add manually in Settings',
+      tone: 'muted' as const,
+    }
+  })()
 
   return (
     <section className="rounded-lg border border-border bg-surface p-6 shadow-sm">
@@ -50,9 +65,7 @@ export function ProfileDerivedStatus() {
         </li>
         <li className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-text-secondary">Projects</span>
-          <span className={projectCount > 0 ? 'text-success' : 'text-text-secondary'}>
-            {projectsText}
-          </span>
+          <span className={toneClass[projectsLabel.tone]}>{projectsLabel.text}</span>
         </li>
       </ul>
       <Link
