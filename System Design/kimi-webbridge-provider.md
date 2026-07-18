@@ -51,10 +51,44 @@
 
 ## 3. User setup (one-time per PC)
 
+### 3.0 Locked versions (JobPilot Posts search)
+
+JobPilot LinkedIn **Posts** search was verified against these builds. Prefer this pair; do **not** casually upgrade mid-project without re-testing Posts.
+
+| Component | Locked / verified | Notes |
+|-----------|-------------------|--------|
+| Daemon (`kimi-webbridge`) | **v1.10.0** | `kimi-webbridge status` → `version` |
+| Chrome/Edge extension | **1.11.3** | `status` → `extension_version` |
+
+**Why lock:** the HTTP tool API stays the same, but LinkedIn Posts a11y trees can change between WebBridge builds (`listitem` vs bare list under Primary content). JobPilot’s parser supports both shapes today; a future upgrade could still change trees again and break extraction until we adapt.
+
+**Policy:**
+
+- Install / stay on the locked pair above for demos and production Helper use.
+- If `status` shows `update_available`, **do not auto-upgrade** until Posts is re-checked on a test run.
+- After any intentional upgrade, run one Posts search and confirm `diagnosis.md` shows `verdict: posts_extracted` (not `filters_only_or_empty_tree`).
+
+Check versions:
+
+```powershell
+& "$env:USERPROFILE\.kimi-webbridge\bin\kimi-webbridge.exe" status
+```
+
+Expect roughly:
+
+```json
+{
+  "running": true,
+  "extension_connected": true,
+  "version": "v1.10.0",
+  "extension_version": "1.11.3"
+}
+```
+
 ### 3.1 Install
 
-1. Install **Kimi WebBridge** binary (via [Kimi WebBridge features page](https://www.kimi.com/features/webbridge))  
-2. Install the **Chrome or Edge extension** from the store linked on that page  
+1. Install **Kimi WebBridge** binary (via [Kimi WebBridge features page](https://www.kimi.com/features/webbridge)) — prefer daemon **v1.10.0**  
+2. Install the **Chrome or Edge extension** from the store linked on that page — prefer extension **1.11.3**  
 3. (Optional) Kimi Desktop App — helps extension connection  
 
 Binary location (Windows):
@@ -77,7 +111,7 @@ Binary location (Windows):
 & "$env:USERPROFILE\.kimi-webbridge\bin\kimi-webbridge.exe" status
 ```
 
-Expect `running: true` and `extension_connected: true`.
+Expect `running: true` and `extension_connected: true`, plus the locked versions in §3.0.
 
 Daemon HTTP: `http://127.0.0.1:10086`
 
@@ -225,3 +259,5 @@ Map to existing `BrowserHealth`: `ready`, `daemon_down`, `not_installed`, `error
 |------|----------|
 | 2026-07-02 | Browser-Use shipped as v1 spike |
 | 2026-07-05 | **Replace Browser-Use with Kimi WebBridge** — profile copy and session issues block reliable LinkedIn search |
+| 2026-07-18 | Posts a11y: newer WebBridge trees expose Feed posts as **bare lists** under `region: Primary content` (not always `listitem`). Parser accepts both shapes. Per-run `diagnosis.md` records shape + DOM probe. |
+| 2026-07-18 | **Lock WebBridge for JobPilot:** daemon **v1.10.0** + extension **1.11.3**. Do not auto-upgrade; re-test Posts before changing. |

@@ -1,0 +1,20 @@
+You are extracting factual, source-grounded project evidence for a job-search profile.
+
+Use only facts present in the supplied repository README and project metadata.
+Do not invent the candidate's role, technologies, achievements, metrics, users,
+scale, architecture, or outcomes. If something is unclear or unsupported, put
+it in limitations_or_unknowns.
+
+Return ONLY valid JSON with these fields:
+- name: short project name
+- description: technical project description of at least 80 words, as newline-separated lines
+- repo_skills: string[]
+- portfolio_overview: 30-50 word overview
+- evidence_card: object with project_purpose, tech_stack, architecture,
+  key_features, role_relevance, evidence, supported_metrics, and
+  limitations_or_unknowns
+- evidence items: objects with claim and source_section
+
+Every evidence claim must be specific and traceable to a README heading or
+section. Use only technologies and facts supported by the README. Return no
+markdown and no text outside the JSON object.

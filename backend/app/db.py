@@ -82,6 +82,11 @@ CREATE TABLE IF NOT EXISTS job_packages (
     draft_email TEXT NOT NULL DEFAULT '',
     status TEXT NOT NULL DEFAULT 'ready',
     error TEXT,
+    analysis_json TEXT NOT NULL DEFAULT '{}',
+    model_name TEXT,
+    prompt_version TEXT,
+    profile_snapshot_hash TEXT,
+    package_key TEXT,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -199,6 +204,11 @@ def _ensure_search_schema(conn: sqlite3.Connection) -> None:
             "draft_email": "draft_email TEXT NOT NULL DEFAULT ''",
             "status": "status TEXT NOT NULL DEFAULT 'ready'",
             "error": "error TEXT",
+            "analysis_json": "analysis_json TEXT NOT NULL DEFAULT '{}'",
+            "model_name": "model_name TEXT",
+            "prompt_version": "prompt_version TEXT",
+            "profile_snapshot_hash": "profile_snapshot_hash TEXT",
+            "package_key": "package_key TEXT",
             "updated_at": "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
         },
     )
@@ -215,6 +225,13 @@ def _ensure_search_schema(conn: sqlite3.Connection) -> None:
             "cv_filename": "cv_filename TEXT",
             "sent_at": "sent_at TIMESTAMP",
         },
+    )
+    conn.execute(
+        """
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_job_packages_run_package_key
+        ON job_packages (run_id, package_key)
+        WHERE run_id IS NOT NULL AND package_key IS NOT NULL
+        """
     )
     conn.execute(
         """
@@ -258,15 +275,110 @@ def _migrate_legacy_schema(conn: sqlite3.Connection) -> None:
     logger.info("Migrated database from single-user to multi-user schema.")
 
 
+def _ensure_evidence_schema(conn: sqlite3.Connection) -> None:
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS project_readme_chunks (
+            id              TEXT PRIMARY KEY,
+            user_id         INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            project_id      TEXT NOT NULL,
+            project_name    TEXT NOT NULL,
+            repo_full_name  TEXT,
+            chunk_type      TEXT NOT NULL DEFAULT 'readme_section'
+                            CHECK (chunk_type IN ('readme_section', 'evidence_claim')),
+            parent_heading  TEXT,
+            heading_path    TEXT NOT NULL,
+            content           TEXT NOT NULL,
+            embed_text        TEXT NOT NULL,
+            token_count       INTEGER NOT NULL DEFAULT 0,
+            stack_tags        TEXT NOT NULL DEFAULT '[]',
+            source_start      INTEGER,
+            source_end        INTEGER,
+            short_chunk_reason TEXT,
+            oversize_reason    TEXT,
+            chunk_index       INTEGER NOT NULL DEFAULT 0,
+            created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_chunks_user_id
+            ON project_readme_chunks (user_id);
+
+        CREATE INDEX IF NOT EXISTS idx_chunks_user_project
+            ON project_readme_chunks (user_id, project_id);
+
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_chunks_user_project_slot
+            ON project_readme_chunks (user_id, project_id, chunk_type, heading_path, chunk_index);
+
+        CREATE TABLE IF NOT EXISTS user_evidence_indexes (
+            user_id           INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+            embedding_model   TEXT NOT NULL,
+            embedding_dims    INTEGER NOT NULL,
+            faiss_path        TEXT NOT NULL,
+            meta_path         TEXT NOT NULL,
+            chunk_count       INTEGER NOT NULL DEFAULT 0,
+            index_version     INTEGER NOT NULL DEFAULT 1,
+            built_at          TIMESTAMP,
+            updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """
+    )
+    _ensure_columns(
+        conn,
+        "project_readme_chunks",
+        {
+            "short_chunk_reason": "short_chunk_reason TEXT",
+            "oversize_reason": "oversize_reason TEXT",
+        },
+    )
+
+    fts_exists = conn.execute(
+        "SELECT name FROM sqlite_master WHERE name='project_readme_chunks_fts'"
+    ).fetchone()
+    if not fts_exists:
+        conn.executescript(
+            """
+            CREATE VIRTUAL TABLE project_readme_chunks_fts USING fts5(
+                project_name,
+                heading_path,
+                content,
+                stack_tags,
+                content='project_readme_chunks',
+                content_rowid='rowid',
+                tokenize='porter unicode61'
+            );
+
+            CREATE TRIGGER project_readme_chunks_ai AFTER INSERT ON project_readme_chunks BEGIN
+                INSERT INTO project_readme_chunks_fts(rowid, project_name, heading_path, content, stack_tags)
+                VALUES (new.rowid, new.project_name, new.heading_path, new.content, new.stack_tags);
+            END;
+
+            CREATE TRIGGER project_readme_chunks_ad AFTER DELETE ON project_readme_chunks BEGIN
+                INSERT INTO project_readme_chunks_fts(project_readme_chunks_fts, rowid, project_name, heading_path, content, stack_tags)
+                VALUES ('delete', old.rowid, old.project_name, old.heading_path, old.content, old.stack_tags);
+            END;
+
+            CREATE TRIGGER project_readme_chunks_au AFTER UPDATE ON project_readme_chunks BEGIN
+                INSERT INTO project_readme_chunks_fts(project_readme_chunks_fts, rowid, project_name, heading_path, content, stack_tags)
+                VALUES ('delete', old.rowid, old.project_name, old.heading_path, old.content, old.stack_tags);
+                INSERT INTO project_readme_chunks_fts(rowid, project_name, heading_path, content, stack_tags)
+                VALUES (new.rowid, new.project_name, new.heading_path, new.content, new.stack_tags);
+            END;
+            """
+        )
+
+
 def init_db() -> None:
     settings.data_dir.mkdir(parents=True, exist_ok=True)
     settings.uploads_dir.mkdir(parents=True, exist_ok=True)
+    settings.faiss_dir.mkdir(parents=True, exist_ok=True)
     with get_connection() as conn:
         if _is_legacy_schema(conn):
             _migrate_legacy_schema(conn)
         else:
             conn.executescript(SCHEMA)
             _ensure_search_schema(conn)
+            _ensure_evidence_schema(conn)
             conn.commit()
 
 

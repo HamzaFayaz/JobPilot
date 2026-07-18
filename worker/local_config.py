@@ -27,6 +27,17 @@ def env_path() -> Path:
     return _ENV_PATH
 
 
+def normalize_api_base(url: str) -> str:
+    """Strip whitespace and trailing slash; keep scheme + host (+ optional port)."""
+    value = url.strip().rstrip("/")
+    return value
+
+
+def api_base_looks_valid(url: str) -> bool:
+    value = normalize_api_base(url).lower()
+    return value.startswith("http://") or value.startswith("https://")
+
+
 def load_config() -> dict[str, str]:
     values = {
         "jobpilot_api_base": DEFAULT_API_BASE,
@@ -49,6 +60,10 @@ def load_config() -> dict[str, str]:
         for field, env_name in _KEYS:
             if key == env_name.lower():
                 values[field] = val
+    values["jobpilot_api_base"] = (
+        normalize_api_base(values.get("jobpilot_api_base", "") or DEFAULT_API_BASE)
+        or DEFAULT_API_BASE
+    )
     return values
 
 
@@ -62,8 +77,9 @@ def save_config(
     browser_provider: str = "webbridge",
     webbridge_url: str = "http://127.0.0.1:10086",
 ) -> None:
+    api_base = normalize_api_base(jobpilot_api_base) or DEFAULT_API_BASE
     lines = [
-        f"JOBPILOT_API_BASE={jobpilot_api_base.strip()}",
+        f"JOBPILOT_API_BASE={api_base}",
         f"WORKER_TOKEN={worker_token.strip()}",
         f"DASHSCOPE_API_KEY={dashscope_api_key.strip()}",
         f"QWEN_BASE_URL={qwen_base_url.strip()}",
@@ -80,6 +96,8 @@ def save_config(
 def apply_config_to_environ(cfg: dict[str, str]) -> None:
     for field, env_name in _KEYS:
         value = cfg.get(field, "").strip()
+        if field == "jobpilot_api_base":
+            value = normalize_api_base(value)
         if value:
             os.environ[env_name] = value
     os.environ["JOBPILOT_WORKER_DATA_DIR"] = str(worker_data_dir())

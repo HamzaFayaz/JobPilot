@@ -19,6 +19,7 @@ def test_db(tmp_path, monkeypatch):
     monkeypatch.setattr("backend.app.config.settings.db_path", db_path)
     monkeypatch.setattr("backend.app.config.settings.uploads_dir", uploads)
     monkeypatch.setattr("backend.app.config.settings.data_dir", tmp_path)
+    monkeypatch.setattr("backend.app.config.settings.faiss_dir", tmp_path / "faiss")
 
     from backend.app.db import init_db
     from backend.app.services import crypto

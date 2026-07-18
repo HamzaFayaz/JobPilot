@@ -26,6 +26,12 @@ def _stored_project_to_state(project) -> ProjectState:
         source=project.source,
         repo_full_name=project.repo_full_name,
         readme_md=project.readme_md,
+        portfolio_overview=project.portfolio_overview,
+        evidence_card=(
+            project.evidence_card.model_dump(mode="json")
+            if project.evidence_card is not None
+            else None
+        ),
         chars_per_line=None,
     )
 

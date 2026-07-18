@@ -32,8 +32,12 @@ Thumbs.db
 *.log
 logs/
 logges.md
-data/uploads/
-data/jobpilot.db
+data/
+taking.txt
+tests/complete-pipeline-test/cv/*.docx
+tests/complete-pipeline-test/results/
+tests/complete-pipeline-test/labels/
+logfire-logs/
 worker/debug_snapshots/
 worker/.worker.lock
 ssh_key/
@@ -41,3 +45,4 @@ ssh_keys/
 
 # Local agent handoff plans (not part of the app)
 .agent/plans/
+New UI design/

@@ -8,3 +8,66 @@ agent:
   model: qwen3.7-plus
   temperature: 0.7
   max_tokens: 4096
+
+evidence:
+  model: qwen3.7-plus
+  temperature: 0.1
+  max_tokens: 4096
+
+application:
+  model: qwen3.7-max-2026-06-08
+  temperature: 0.1
+  enable_thinking: false
+  response_format: json_object
+  prompt_version: enrich_job_v4
+  schema_version: enrich_job_result_v3
+  repair_retries: 1
+  fit_threshold: 60
+
+requirement_extraction:
+  model: qwen3.7-max-2026-06-08
+  temperature: 0
+  prompt_version: job_requirements_v1
+  schema_version: job_requirements_result_v1
+  repair_retries: 1
+
+evaluation:
+  judge_model: qwen3.7-max-2026-06-08
+  temperature: 0
+  max_concurrency: 1
+  enable_thinking: false
+  response_format: json_object
+
+embedding:
+  model: text-embedding-v4
+  fallback_model: text-embedding-v3
+  dimensions: 1024
+  text_type_document: document
+  text_type_query: query
+  batch_size: 10
+
+rerank:
+  model: qwen3-rerank
+  top_n: 20
+  candidate_pool: 25
+  instruct: >-
+    Given a job posting, retrieve relevant project evidence passages
+    that demonstrate the candidate's fit for the role.
+
+chunking:
+  child_target_min: 150
+  child_max_tokens: 500
+  child_min_tokens: 120
+  overlap_tokens: 50
+  similarity_threshold: 0.55
+
+retrieval:
+  bm25_top_k: 30
+  vector_top_k: 30
+  rrf_k: 60
+  target_chunks_per_job: 14
+  max_chunks_per_job: 20
+  max_chunks_per_project: 3
+  max_requirement_queries: 12
+  candidates_per_requirement: 25
+  rerank_candidates_per_requirement: 15

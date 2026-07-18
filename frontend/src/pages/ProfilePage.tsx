@@ -91,8 +91,8 @@ export function ProfilePage() {
 
       <div className="flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:justify-end">
         {gate.isComplete ? (
-          <RouterLink to="/search" className="w-full sm:w-auto">
-            <Button className="w-full">Go to Search</Button>
+          <RouterLink to="/applications" className="w-full sm:w-auto">
+            <Button className="w-full">Open Applications</Button>
           </RouterLink>
         ) : (
           <Button disabled className="w-full sm:w-auto">

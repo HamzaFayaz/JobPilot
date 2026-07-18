@@ -4,7 +4,7 @@ import {
   ShieldCheckIcon,
 } from '@heroicons/react/24/outline'
 import { useCallback, useEffect, useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   getLatestRun,
   getRunStatus,
@@ -20,7 +20,8 @@ import { useProfile } from '../context/ProfileContext'
 import type { SearchPlatform } from '../types/profile'
 
 export function SearchPage() {
-  const { profile, gate, updateProfile } = useProfile()
+  const navigate = useNavigate()
+  const { profile, gate, loading: profileLoading, updateProfile } = useProfile()
   const [role, setRole] = useState(profile.searchRole ?? profile.targetRoles[0] ?? '')
   const [platform, setPlatform] = useState<SearchPlatform>(profile.searchPlatform)
   const [toast, setToast] = useState<string | null>(null)
@@ -31,6 +32,18 @@ export function SearchPage() {
   const [pollError, setPollError] = useState<string | null>(null)
   const [helperReady, setHelperReady] = useState(false)
   const [restoringRun, setRestoringRun] = useState(true)
+
+  const showToast = useCallback((message: string) => {
+    setToast(message)
+    window.setTimeout(() => setToast(null), 3000)
+  }, [])
+
+  const refreshRun = useCallback(async (runId: number) => {
+    const [status, nextJobs] = await Promise.all([getRunStatus(runId), listRunJobs(runId)])
+    setRunStatus(status)
+    setJobs(nextJobs)
+    setPollError(null)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -64,6 +77,7 @@ export function SearchPage() {
   }, [])
 
   useEffect(() => {
+    if (profileLoading || !gate.isComplete) return
     if (profile.targetRoles.length === 0) {
       setRole('')
       return
@@ -79,33 +93,72 @@ export function SearchPage() {
     if (profile.searchRole !== nextRole) {
       void updateProfile({ searchRole: nextRole })
     }
-  }, [profile.searchRole, profile.targetRoles, updateProfile])
+  }, [
+    gate.isComplete,
+    profile.searchRole,
+    profile.targetRoles,
+    profileLoading,
+    updateProfile,
+  ])
 
   useEffect(() => {
     setPlatform(profile.searchPlatform)
   }, [profile.searchPlatform])
 
-  if (!gate.isComplete) {
-    return <Navigate to="/profile" replace />
+  useEffect(() => {
+    if (!activeRunId || !runStatus) {
+      return
+    }
+    if (runStatus.status === 'completed' || runStatus.status === 'failed') {
+      if (!jobs.some((job) => job.status === 'analyzing')) {
+        return
+      }
+    }
+
+    const timer = window.setInterval(() => {
+      void refreshRun(activeRunId).catch((error: unknown) => {
+        setPollError(error instanceof Error ? error.message : 'Failed to refresh run status')
+      })
+    }, 3000)
+
+    return () => window.clearInterval(timer)
+  }, [activeRunId, jobs, refreshRun, runStatus])
+
+  if (profileLoading) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center text-sm text-text-secondary">
+        Loading…
+      </div>
+    )
   }
 
-  const showToast = useCallback((message: string) => {
-    setToast(message)
-    window.setTimeout(() => setToast(null), 3000)
-  }, [])
-
-  const refreshRun = useCallback(async (runId: number) => {
-    const [status, nextJobs] = await Promise.all([getRunStatus(runId), listRunJobs(runId)])
-    setRunStatus(status)
-    setJobs(nextJobs)
-    setPollError(null)
-  }, [])
+  if (!gate.isComplete) {
+    return (
+      <div className="mx-auto max-w-lg space-y-4 rounded-xl border border-border bg-surface px-6 py-8 text-center shadow-sm">
+        <h1 className="text-xl font-bold text-text-primary">Finish your profile first</h1>
+        <p className="text-sm text-text-secondary">
+          Search needs a complete profile. Stay on this page URL — finish setup, then return here.
+        </p>
+        <Link
+          to="/profile"
+          className="inline-flex min-h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover"
+        >
+          Go to Profile
+        </Link>
+      </div>
+    )
+  }
 
   const summaryParts = [
     profile.cvFilename ?? 'No CV',
     `${profile.skills.length} skills`,
     `${profile.projects.length} projects`,
   ]
+
+  const runActive =
+    runStatus?.status === 'pending' ||
+    runStatus?.status === 'running' ||
+    jobs.some((job) => job.status === 'analyzing')
 
   const searchBlockers: string[] = []
   if (!profile.targetRoles.length) {
@@ -117,25 +170,14 @@ export function SearchPage() {
   if (!helperReady) {
     searchBlockers.push('Connect Search Helper in Settings and open Chrome with WebBridge.')
   }
+  if (runActive) {
+    searchBlockers.push('A search or analysis is already running. Open Applications to follow it.')
+  }
 
   const canStartSearch = searchBlockers.length === 0 && !submitting
 
-  useEffect(() => {
-    if (!activeRunId || !runStatus) {
-      return
-    }
-    if (runStatus.status === 'completed' || runStatus.status === 'failed') {
-      return
-    }
-
-    const timer = window.setInterval(() => {
-      void refreshRun(activeRunId).catch((error: unknown) => {
-        setPollError(error instanceof Error ? error.message : 'Failed to refresh run status')
-      })
-    }, 3000)
-
-    return () => window.clearInterval(timer)
-  }, [activeRunId, refreshRun, runStatus])
+  const analyzingCount = jobs.filter((job) => job.status === 'analyzing').length
+  const readyCount = jobs.filter((job) => job.status === 'ready').length
 
   return (
     <div className="space-y-8">
@@ -143,7 +185,7 @@ export function SearchPage() {
         <p className="text-sm font-medium text-primary">Search</p>
         <h1 className="mt-1 text-2xl font-bold text-text-primary sm:text-3xl">New search</h1>
         <p className="mt-2 text-sm text-text-secondary">
-          Configure your agent to find and score jobs on LinkedIn or Indeed.
+          Start a LinkedIn Posts search. Job analysis opens in Applications as results arrive.
         </p>
       </header>
 
@@ -170,6 +212,7 @@ export function SearchPage() {
                 setActiveRunId(started.runId)
                 await refreshRun(started.runId)
                 showToast(`Search run #${started.runId} started.`)
+                navigate('/applications')
               } catch (error: unknown) {
                 const message =
                   error instanceof Error ? error.message : 'Failed to start search run'
@@ -197,7 +240,8 @@ export function SearchPage() {
                     setRole(nextRole)
                     void updateProfile({ searchRole: nextRole })
                   }}
-                  className="w-full cursor-pointer rounded-lg border border-border bg-surface px-3 py-3 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:text-sm"
+                  disabled={runActive}
+                  className="w-full cursor-pointer rounded-lg border border-border bg-surface px-3 py-3 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
                 >
                   {profile.targetRoles.map((targetRole) => (
                     <option key={targetRole} value={targetRole}>
@@ -208,20 +252,27 @@ export function SearchPage() {
               )}
             </div>
 
-            <fieldset>
+            <fieldset disabled={runActive}>
               <legend className="mb-2 text-sm font-semibold text-text-primary">Platform</legend>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {([
-                  { id: 'linkedin' as const, label: 'LinkedIn', badge: 'in', color: 'bg-[#0A66C2]' },
-                  { id: 'indeed' as const, label: 'Indeed', badge: 'i', color: 'bg-[#2164f3]' },
-                ]).map((item) => (
+                {(
+                  [
+                    {
+                      id: 'linkedin' as const,
+                      label: 'LinkedIn',
+                      badge: 'in',
+                      color: 'bg-[#0A66C2]',
+                    },
+                    { id: 'indeed' as const, label: 'Indeed', badge: 'i', color: 'bg-[#2164f3]' },
+                  ] as const
+                ).map((item) => (
                   <label
                     key={item.id}
                     className={`flex cursor-pointer items-center justify-between rounded-lg border p-4 transition-colors duration-200 ${
                       platform === item.id
                         ? 'border-primary bg-chip-bg/40'
                         : 'border-border hover:border-primary/40'
-                    }`}
+                    } ${runActive ? 'cursor-not-allowed opacity-60' : ''}`}
                   >
                     <span className="flex items-center gap-3">
                       <span
@@ -277,18 +328,16 @@ export function SearchPage() {
               </div>
             ) : null}
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={!canStartSearch}
-            >
+            <Button type="submit" className="w-full" disabled={!canStartSearch}>
               {submitting
                 ? 'Starting search...'
-                : !profile.searchCountry
-                  ? 'Select a country to search'
-                  : !helperReady
-                    ? 'Set up Search Helper in Settings'
-                    : 'Start search'}
+                : runActive
+                  ? 'Search in progress…'
+                  : !profile.searchCountry
+                    ? 'Select a country to search'
+                    : !helperReady
+                      ? 'Set up Search Helper in Settings'
+                      : 'Start search'}
             </Button>
           </form>
         </div>
@@ -313,81 +362,41 @@ export function SearchPage() {
           <div className="mt-4 space-y-2 text-sm text-text-secondary">
             <p>
               <span className="font-semibold text-text-primary">Status:</span>{' '}
-              {runStatus?.status === 'running' || runStatus?.status === 'pending' ? (
+              {runActive ? (
                 <span className="inline-flex items-center gap-2">
                   <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-primary" />
-                  {runStatus.status === 'pending' ? 'Starting…' : 'Searching on your PC…'}
+                  {runStatus?.status === 'pending'
+                    ? 'Starting…'
+                    : analyzingCount > 0
+                      ? `Analyzing ${analyzingCount} job${analyzingCount === 1 ? '' : 's'}…`
+                      : 'Searching on your PC…'}
                 </span>
               ) : (
-                runStatus?.status ?? 'pending'
+                (runStatus?.status ?? 'pending')
               )}
             </p>
             <p>
-              <span className="font-semibold text-text-primary">Jobs ready:</span>{' '}
-              {runStatus?.status === 'running' || runStatus?.status === 'pending'
-                ? '—'
-                : (runStatus?.jobsReadyCount ?? 0)}
+              <span className="font-semibold text-text-primary">Jobs found:</span> {jobs.length}
+            </p>
+            <p>
+              <span className="font-semibold text-text-primary">Ready to review:</span> {readyCount}
             </p>
             {runStatus?.error ? (
               <p className="text-red-600">
                 <span className="font-semibold">Run error:</span> {runStatus.error}
               </p>
             ) : null}
-            {pollError ? (
-              <p className="text-red-600">
-                <span className="font-semibold">Refresh error:</span> {pollError}
-              </p>
-            ) : null}
           </div>
 
-          <div className="mt-6 space-y-3">
-            {runStatus?.status === 'running' || runStatus?.status === 'pending' ? (
-              <div className="rounded-lg border border-dashed border-primary/40 bg-chip-bg/30 p-4 text-sm text-text-secondary">
-                <p className="font-medium text-text-primary">Search in progress</p>
-                <p className="mt-1">
-                  Your Search Helper is working on this run. Keep the worker running and Chrome open
-                  with the Kimi WebBridge extension connected.
-                </p>
-              </div>
-            ) : jobs.length === 0 ? (
-              <p className="text-sm text-text-secondary">
-                {runStatus?.status === 'failed'
-                  ? 'Search failed before any jobs were saved.'
-                  : 'No matching jobs were found for this run.'}
-              </p>
-            ) : (
-              jobs.map((job) => (
-                <article key={job.id ?? `${job.url}-${job.title}`} className="rounded-lg border border-border p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h3 className="text-sm font-semibold text-text-primary">{job.title}</h3>
-                      <p className="text-sm text-text-secondary">{job.company}</p>
-                    </div>
-                    <span className="rounded-full bg-chip-bg px-2 py-1 text-xs font-medium text-text-primary">
-                      {job.status}
-                    </span>
-                  </div>
-                  {job.matchScore !== null ? (
-                    <p className="mt-2 text-sm text-text-secondary">Match score: {job.matchScore}</p>
-                  ) : null}
-                  {job.summary ? <p className="mt-2 text-sm text-text-secondary">{job.summary}</p> : null}
-                  {job.descriptionText ? (
-                    <p className="mt-2 line-clamp-3 text-sm text-text-secondary">{job.descriptionText}</p>
-                  ) : null}
-                  {job.url ? (
-                    <a
-                      href={job.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-2 inline-block text-sm font-medium text-primary hover:underline"
-                    >
-                      View listing
-                    </a>
-                  ) : null}
-                  {job.error ? <p className="mt-2 text-sm text-red-600">{job.error}</p> : null}
-                </article>
-              ))
-            )}
+          <div className="mt-6">
+            <Link to="/applications">
+              <Button type="button" className="w-full">
+                Open Applications inbox
+              </Button>
+            </Link>
+            <p className="mt-2 text-center text-xs text-text-secondary">
+              Job details, scores, and apply decisions live in Applications.
+            </p>
           </div>
         </section>
       ) : null}
@@ -405,8 +414,7 @@ export function SearchPage() {
           <ShieldCheckIcon className="mb-2 h-6 w-6 text-primary" aria-hidden="true" />
           <h2 className="text-sm font-semibold">You stay in control</h2>
           <p className="mt-1 text-xs text-text-secondary">
-            Search results will feed into a human-approved application flow. Nothing sends
-            automatically.
+            Mark I applied or Not applying in Applications. Nothing sends automatically.
           </p>
         </article>
       </div>

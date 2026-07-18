@@ -15,6 +15,10 @@ import {
 import { Button } from '../ui/Button'
 
 const WEBBRIDGE_INSTALL_URL = 'https://www.kimi.com/features/webbridge'
+/** Locked pair for JobPilot LinkedIn Posts — do not casually upgrade. */
+const WEBBRIDGE_LOCKED_DAEMON = 'v1.10.0'
+const WEBBRIDGE_LOCKED_EXTENSION = '1.11.3'
+const WEBBRIDGE_VERSION_NOTE = `Use daemon ${WEBBRIDGE_LOCKED_DAEMON} + extension ${WEBBRIDGE_LOCKED_EXTENSION}. Do not auto-upgrade — newer builds can break LinkedIn Posts search.`
 
 const HEALTH_LABELS: Record<BrowserHealth, string> = {
   ready: 'Ready to search',
@@ -46,6 +50,7 @@ function WebBridgeInstallCard() {
             Download the desktop helper and add the Chrome extension — both are required for
             browser search.
           </p>
+          <p className="mt-2 text-xs font-medium text-text-primary">{WEBBRIDGE_VERSION_NOTE}</p>
           <a
             href={WEBBRIDGE_INSTALL_URL}
             target="_blank"
@@ -200,7 +205,8 @@ export function SearchHelperSettings() {
                   kimi.com/features/webbridge
                   <ArrowTopRightOnSquareIcon className="h-3.5 w-3.5" aria-hidden="true" />
                 </a>{' '}
-                (binary + Chrome extension)
+                (binary {WEBBRIDGE_LOCKED_DAEMON} + Chrome extension {WEBBRIDGE_LOCKED_EXTENSION}).
+                Do not auto-upgrade until Posts search is re-tested.
               </li>
               <li>Log into LinkedIn in your normal Chrome</li>
               <li>Pair this computer below and paste the token into worker/.env</li>

@@ -29,6 +29,8 @@ Edit `worker/.env`:
 
 ## Kimi WebBridge one-time setup
 
+**Locked versions (do not casually upgrade):** daemon **v1.10.0** + extension **1.11.3**. Details: [kimi-webbridge-provider.md §3.0](../System%20Design/kimi-webbridge-provider.md).
+
 1. Install Kimi WebBridge + Chrome extension — [kimi-webbridge-provider.md](../System%20Design/kimi-webbridge-provider.md)
 2. Log into LinkedIn in your normal Chrome (no separate profile)
 3. Pair below in JobPilot Settings → paste `WORKER_TOKEN` into `worker/.env`
@@ -45,8 +47,7 @@ Daemon status (manual check):
 & "$env:USERPROFILE\.kimi-webbridge\bin\kimi-webbridge.exe" status
 ```
 
-Expect `running: true` and `extension_connected: true` (open Chrome if extension is false).
-
+Expect `running: true`, `extension_connected: true`, `version: "v1.10.0"`, `extension_version: "1.11.3"`. If `update_available` appears, ignore it until Posts is re-tested.
 ## Run locally (test before .exe)
 
 ```powershell
@@ -77,6 +78,22 @@ Output: `worker\dist\JobPilot-SearchHelper.exe` (~70 MB).
 4. Close the window to keep running in the system tray
 
 Worker/agent code is unchanged; the exe wraps the same `main.py` loop in a subprocess.
+
+## Debug snapshots (Posts / Jobs)
+
+When `SAVE_SNAPSHOTS` is true (default), each run writes under `worker/debug_snapshots/run-{id}/`:
+
+| Path | Contents |
+|------|----------|
+| `{phase}/full/step-NN-*.json` | Raw WebBridge tool results |
+| `{phase}/compressed/step-NN-snapshot.json` | Compressed a11y + extracted posts/jobs |
+| `{phase}/diagnosis/step-NN-snapshot.json` | Tree shape, Feed post counts, verdict |
+| `{phase}/diagnosis/step-NN-activity-urls.json` | `evaluate` activity URL probe |
+| `{phase}/scrolls.jsonl` | Scroll before/after counts + errors |
+| `diagnosis.md` / `diagnosis.json` | Run-level summary |
+| `run-summary.json` | Steps, tokens, listings |
+
+Use `diagnosis.md` first when Posts returns 0 listings — it says whether the a11y tree had `Feed post` headings (`bare_list` vs `listitem` vs `none`) and whether the DOM probe saw activity nodes.
 
 ## Pairing WORKER_TOKEN
 

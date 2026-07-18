@@ -7,6 +7,7 @@ from backend.app.deps.auth import get_current_user
 from backend.app.graph.runner import run_parent_graph
 from backend.app.models.search import SearchStartResponse
 from backend.app.services.profile_store import get_search_preferences
+from backend.app.services.search_store import user_has_active_search_run
 from backend.app.services.worker_store import has_active_worker_device
 
 router = APIRouter(prefix="/api/search", tags=["search"])
@@ -21,6 +22,12 @@ def start_search(
         raise HTTPException(
             status_code=400,
             detail="Search Helper is not connected. Pair your computer on the Search page first.",
+        )
+
+    if user_has_active_search_run(current_user["id"]):
+        raise HTTPException(
+            status_code=409,
+            detail="A search is already in progress. Open Applications to follow job analysis.",
         )
 
     prefs = get_search_preferences(current_user["id"])

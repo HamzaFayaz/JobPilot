@@ -15,6 +15,12 @@ from PySide6.QtWidgets import (
 )
 
 WEBBRIDGE_INSTALL_URL = "https://www.kimi.com/features/webbridge"
+WEBBRIDGE_LOCKED_DAEMON = "v1.10.0"
+WEBBRIDGE_LOCKED_EXTENSION = "1.11.3"
+WEBBRIDGE_VERSION_NOTE = (
+  f"Use daemon {WEBBRIDGE_LOCKED_DAEMON} + extension {WEBBRIDGE_LOCKED_EXTENSION}. "
+  "Do not auto-upgrade — newer builds can break LinkedIn Posts search."
+)
 
 
 class StatusBanner(QFrame):
@@ -71,10 +77,14 @@ class SecretField(QWidget):
     self._input = QLineEdit()
     self._input.setEchoMode(QLineEdit.EchoMode.Password)
     self._input.setPlaceholderText(placeholder)
+    self._input.setMinimumHeight(40)
+    self._input.setMaximumHeight(40)
 
     self._toggle = QPushButton("Show")
     self._toggle.setObjectName("RevealButton")
     self._toggle.setCheckable(True)
+    self._toggle.setMinimumHeight(40)
+    self._toggle.setMaximumHeight(40)
     self._toggle.toggled.connect(self._on_toggle)
 
     layout.addWidget(self._input, 1)
@@ -117,7 +127,8 @@ class WebBridgeInstallCard(QFrame):
     title = QLabel("Install Kimi WebBridge")
     title.setObjectName("WebBridgeTitle")
     body = QLabel(
-      "Download the desktop helper and Chrome extension, then log into LinkedIn in Chrome."
+      "Download the desktop helper and Chrome extension, then log into LinkedIn in Chrome.\n\n"
+      + WEBBRIDGE_VERSION_NOTE
     )
     body.setWordWrap(True)
     body.setObjectName("StatusHint")
@@ -183,16 +194,22 @@ class ConnectionSummaryCard(QFrame):
     heading.setObjectName("FieldLabel")
     layout.addWidget(heading)
 
+    self._api_base_row = QLabel()
+    self._api_base_row.setObjectName("SetupStep")
+    self._api_base_row.setWordWrap(True)
     self._pairing_row = QLabel()
     self._pairing_row.setObjectName("SetupStep")
     self._api_row = QLabel()
     self._api_row.setObjectName("SetupStep")
+    layout.addWidget(self._api_base_row)
     layout.addWidget(self._pairing_row)
     layout.addWidget(self._api_row)
 
   def update_from_config(self, cfg: dict[str, str]) -> None:
+    api_base = (cfg.get("jobpilot_api_base", "") or "").strip() or "Not set"
     has_token = bool(cfg.get("worker_token", "").strip())
     has_key = bool(cfg.get("dashscope_api_key", "").strip())
+    self._api_base_row.setText(f"API URL · {api_base}")
     self._pairing_row.setText(
       "Pairing code · Configured" if has_token else "Pairing code · Not set"
     )

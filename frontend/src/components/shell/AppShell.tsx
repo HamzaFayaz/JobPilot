@@ -1,8 +1,11 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import { MobileNav } from './MobileNav'
 import { Sidebar } from './Sidebar'
 
 export function AppShell() {
+  const { pathname } = useLocation()
+  const wide = pathname.startsWith('/applications')
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-background">
       <a
@@ -17,7 +20,7 @@ export function AppShell() {
           <Sidebar />
         </div>
         <main id="main-content" className="w-full px-4 py-6 sm:px-6 lg:ml-60 lg:px-8">
-          <div className="mx-auto w-full max-w-3xl">
+          <div className={`mx-auto w-full ${wide ? 'max-w-6xl' : 'max-w-3xl'}`}>
             <Outlet />
           </div>
         </main>

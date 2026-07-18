@@ -1,24 +1,24 @@
 """State contract for the application subgraph."""
 
-from typing import TypedDict
+from typing import NotRequired, Required, TypedDict
 
 from backend.app.graph.state import JobListing, ProfileState
-from backend.app.models.search import CvDecision, JobPackageStatus
-
-
-class ApplicationState(TypedDict):
+class ApplicationState(TypedDict, total=False):
     """Subgraph memory for scoring and packaging a single job."""
 
-    run_id: int
-    user_id: int
-    job: JobListing
-    profile: ProfileState
-    match_score: int | None
-    cv_decision: CvDecision | None
-    swap_out_project: str | None
-    swap_in_text: str | None
-    current_cv_score: int | None
-    suggested_cv_score: int | None
-    draft_email: str | None
-    status: JobPackageStatus
-    error: str | None
+    run_id: Required[int]
+    user_id: Required[int]
+    job: Required[JobListing]
+    profile: Required[ProfileState]
+    validation_context: NotRequired[dict]
+    eval_payload: NotRequired[dict]
+    enrich_result: NotRequired[dict]
+    classified_result: NotRequired[dict]
+    package_id: NotRequired[int]
+    packages: NotRequired[list[dict]]
+    stage_status: NotRequired[str]
+    error: NotRequired[dict]
+
+
+class ApplicationOutputState(TypedDict):
+    packages: list[dict]

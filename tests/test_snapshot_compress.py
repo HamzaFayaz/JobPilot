@@ -12,6 +12,7 @@ from worker.snapshot_compress import (
     job_detail_metadata,
     snapshot_has_job_detail_panel,
 )
+from worker.snapshot_store import diagnose_snapshot_tree
 
 RUN28_FIXTURE = (
     Path(__file__).resolve().parents[1]
@@ -60,6 +61,16 @@ RUN36_POSTS_SEARCH_FIXTURE = (
     / "posts"
     / "full"
     / "step-09-snapshot.json"
+)
+
+RUN1_POSTS_BARE_LIST_FIXTURE = (
+    Path(__file__).resolve().parents[1]
+    / "worker"
+    / "debug_snapshots"
+    / "run-1"
+    / "posts"
+    / "full"
+    / "step-02-snapshot.json"
 )
 
 RUN33_JOB_DETAIL_FIXTURE = (
@@ -159,6 +170,31 @@ def test_extract_posts_run36_preserves_full_post_body_not_capped_at_2000():
     assert len(hashmove["descriptionText"]) > 1900
     assert not hashmove["descriptionText"].endswith("…")
     assert "#FutureOfAI" in hashmove["descriptionText"]
+
+
+def test_extract_posts_run1_bare_list_bundles_without_listitem():
+    """WebBridge may expose Feed posts as bare lists under Primary content."""
+    snapshot = _load_fixture_snapshot(RUN1_POSTS_BARE_LIST_FIXTURE)
+    posts = extract_posts_from_search_snapshot(snapshot)
+    openings = [post for post in posts if post.get("isJobOpening")]
+
+    assert len(posts) >= 3
+    assert len(openings) >= 3
+    assert any("Junior AI Engineer" in post.get("title", "") for post in posts)
+    assert any("SpaceAI360" in post.get("descriptionText", "") for post in posts)
+
+    compressed = compress_snapshot(snapshot)
+    assert compressed["hiringOpenings"] >= 3
+    assert len(compressed["posts"]) >= 3
+
+    diagnosis = diagnose_snapshot_tree(
+        snapshot.get("data") if isinstance(snapshot.get("data"), dict) else snapshot
+    )
+    assert diagnosis["postShape"] == "bare_list"
+    assert diagnosis["feedPostHeadings"] >= 3
+    assert diagnosis["feedPostBareBundles"] >= 3
+    assert diagnosis["feedPostListitems"] == 0
+    assert diagnosis["verdict"] == "posts_extracted"
 
 
 def test_compress_run36_posts_search_reports_hiring_openings():

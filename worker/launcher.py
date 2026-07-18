@@ -27,8 +27,10 @@ from PySide6.QtWidgets import (
 from worker.local_config import (
     DEFAULT_API_BASE,
     DEFAULT_MODEL,
+    api_base_looks_valid,
     apply_config_to_environ,
     load_config,
+    normalize_api_base,
     save_config,
 )
 from worker.runtime_paths import is_frozen, repo_root
@@ -42,7 +44,7 @@ from worker.ui.widgets import (
     WebBridgeInstallCard,
 )
 
-_STATUS_SETUP = "Open Settings to add your pairing code and API key"
+_STATUS_SETUP = "Open Settings to add API URL, pairing code, and API key"
 _STATUS_READY_TO_START = "Ready — click Start to connect"
 _STATUS_STARTING = "Starting Search Helper…"
 _STATUS_READY = "Connected · Ready to search"
@@ -61,8 +63,8 @@ class SearchHelperWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("JobPilot Search Helper")
-        self.setMinimumSize(400, 480)
-        self.resize(420, 520)
+        self.setMinimumSize(460, 640)
+        self.resize(480, 680)
 
         self._process: QProcess | None = None
         self._log_emitter = LogEmitter()
@@ -295,16 +297,18 @@ class SearchHelperWindow(QMainWindow):
         disk = load_config()
         if self._stack.currentIndex() == 1 and self._settings_panel.is_editing():
             form = self._settings_panel.collect()
+            api_base = form["jobpilot_api_base"]
             token = form["worker_token"]
             api_key = form["dashscope_api_key"]
             model = form["qwen_model"]
         else:
+            api_base = disk.get("jobpilot_api_base", "") or DEFAULT_API_BASE
             token = disk.get("worker_token", "")
             api_key = disk.get("dashscope_api_key", "")
             model = disk.get("qwen_model", "") or DEFAULT_MODEL
 
         return {
-            "jobpilot_api_base": DEFAULT_API_BASE,
+            "jobpilot_api_base": normalize_api_base(api_base) or DEFAULT_API_BASE,
             "worker_token": token.strip(),
             "dashscope_api_key": api_key.strip(),
             "qwen_model": model.strip() or DEFAULT_MODEL,
@@ -312,7 +316,12 @@ class SearchHelperWindow(QMainWindow):
 
     def _credentials_complete(self, cfg: dict[str, str] | None = None) -> bool:
         data = cfg or self._effective_config()
-        return bool(data.get("worker_token") and data.get("dashscope_api_key"))
+        return bool(
+            data.get("jobpilot_api_base")
+            and data.get("worker_token")
+            and data.get("dashscope_api_key")
+            and api_base_looks_valid(data.get("jobpilot_api_base", ""))
+        )
 
     def _refresh_home_state(self) -> None:
         self._saved_config = load_config()
@@ -342,6 +351,15 @@ class SearchHelperWindow(QMainWindow):
         self._start_button.setEnabled(self._credentials_complete() and not self._worker_running)
 
     def _validate(self, cfg: dict[str, str]) -> str | None:
+        api_base = cfg.get("jobpilot_api_base", "")
+        if not api_base:
+            return "JobPilot API URL is required. Add it in Settings."
+        if not api_base_looks_valid(api_base):
+            return (
+                "JobPilot API URL must start with http:// or https://.\n"
+                "Cloud example: http://43.98.197.132\n"
+                "Local example: http://localhost:8000"
+            )
         if not cfg["worker_token"]:
             return "Pairing code is required. Add it in Settings."
         if not cfg["dashscope_api_key"]:

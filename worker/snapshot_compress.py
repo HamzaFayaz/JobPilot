@@ -153,20 +153,54 @@ def _is_job_opening_post(combined: str) -> bool:
     return _has_hiring_intent(lower)
 
 
+def _is_feed_post_heading(node: dict[str, Any]) -> bool:
+    return (
+        node.get("role") == "heading"
+        and (node.get("name") or "").strip() == "Feed post"
+    )
+
+
+def _list_contains_top_level_feed_post_heading(items: list[Any]) -> bool:
+    """True when a bare list bundle starts with / contains a top-level Feed post heading.
+
+    Newer WebBridge a11y trees expose posts as flat lists under Primary content
+    (not wrapped in role=listitem). Older trees keep the listitem wrapper.
+    """
+    for item in items:
+        if isinstance(item, dict) and _is_feed_post_heading(item):
+            return True
+    return False
+
+
+def _as_feed_post_container(node: Any) -> dict[str, Any] | None:
+    """Normalize listitem or bare list bundle into a dict for parsing."""
+    if isinstance(node, dict) and node.get("role") == "listitem":
+        flat = list(_flatten_nodes(node))
+        if any(_is_feed_post_heading(item) for item in flat):
+            return node
+        return None
+    if isinstance(node, list) and _list_contains_top_level_feed_post_heading(node):
+        return {"role": "listitem", "children": node}
+    return None
+
+
 def _collect_feed_post_listitems(node: Any, out: list[dict[str, Any]]) -> None:
     if isinstance(node, list):
+        # Prefer treating the whole list as one post bundle when it looks like
+        # the new WebBridge shape — avoid double-counting nested fragments.
+        container = _as_feed_post_container(node)
+        if container is not None:
+            out.append(container)
+            return
         for item in node:
             _collect_feed_post_listitems(item, out)
         return
     if not isinstance(node, dict):
         return
-    if node.get("role") == "listitem":
-        flat = list(_flatten_nodes(node))
-        if any(
-            item.get("role") == "heading" and (item.get("name") or "").strip() == "Feed post"
-            for item in flat
-        ):
-            out.append(node)
+    container = _as_feed_post_container(node)
+    if container is not None:
+        out.append(container)
+        return
     for child in _iter_child_nodes(node.get("children")):
         _collect_feed_post_listitems(child, out)
 

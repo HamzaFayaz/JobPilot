@@ -35,8 +35,9 @@ const navItems: NavItem[] = [
   {
     key: 'applications',
     label: 'Applications',
+    to: '/applications',
     icon: DocumentTextIcon,
-    disabled: true,
+    requiresGate: true,
   },
   { key: 'settings', label: 'Settings', to: '/settings', icon: Cog6ToothIcon },
 ]
@@ -59,7 +60,7 @@ export function Sidebar({ onNavigate, className = '' }: SidebarProps) {
     >
       <div className="border-b border-white/10 px-5 py-6">
         <NavLink
-          to={gate.isComplete ? '/search' : '/'}
+          to={gate.isComplete ? '/applications' : '/'}
           onClick={onNavigate}
           className="block cursor-pointer rounded-md transition-colors duration-200 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >

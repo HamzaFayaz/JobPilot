@@ -1,7 +1,7 @@
 """Shared typed state contracts for the JobPilot graph."""
 
 import operator
-from typing import Annotated, TypedDict
+from typing import Annotated, NotRequired, TypedDict
 
 from backend.app.models.browser import Platform, RawJobListing
 from backend.app.models.search_prefs import JobAgePreset, WorkMode
@@ -17,6 +17,8 @@ class ProjectState(TypedDict):
     source: str | None
     repo_full_name: str | None
     readme_md: str | None
+    portfolio_overview: str | None
+    evidence_card: dict | None
     chars_per_line: int | None
 
 
@@ -42,17 +44,10 @@ class JobListing(TypedDict):
 class JobPackageState(TypedDict):
     """Per-job result accumulated by the application subgraph."""
 
-    job: JobListing
-    run_id: int
-    match_score: int
-    cv_decision: CvDecision
-    swap_out_project: str | None
-    swap_in_text: str | None
-    current_cv_score: int
-    suggested_cv_score: int
-    draft_email: str
+    package_id: int
+    job_url: str
     status: JobPackageStatus
-    error: str | None
+    error: dict | None
 
 
 class AppliedJobState(TypedDict):

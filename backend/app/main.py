@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.app.config import settings
 from backend.app.db import init_db
+from backend.app.observability import setup_observability
 from backend.app.routes import (
     auth,
     auth_github,
@@ -41,6 +42,7 @@ app.include_router(search.router)
 app.include_router(runs.router)
 app.include_router(jobs.router)
 app.include_router(worker.router)
+setup_observability(app)
 
 
 @app.on_event("startup")

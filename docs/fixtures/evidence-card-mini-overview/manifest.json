@@ -1,0 +1,21 @@
+{
+  "test": "evidence-card-mini-overview",
+  "generated_from": "README.md",
+  "model_config": {
+    "section": "evidence",
+    "model": "qwen3.7-plus",
+    "temperature": 0.1,
+    "max_tokens": 4096
+  },
+  "input_files": {
+    "system_prompt": "input-system-prompt.txt",
+    "cv_summary": "input-cv-summary.txt",
+    "user_message": "input-user-message.txt",
+    "readme": "input-readme.md",
+    "repository": "JobPilot/JobPilot",
+    "readme_char_count": 13603
+  },
+  "output_file": "output.json",
+  "full_record_file": "full-record.json",
+  "overview_file": "evidence-card-mini-overview.md"
+}

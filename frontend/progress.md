@@ -167,17 +167,31 @@ These three screens are **in scope**. Do not implement screens 4–8 until Phase
 
 ---
 
-## Phase 2 — Deferred (locked out)
+## Phase 2 — Next screens
 
-Not in scope until backend + Phase 1 is complete. **Do not build yet.**
+Screen **4** is unlocked for the **application-agent progress UI**. Screens 5–8 stay deferred until that works.
 
 | # | Screen | Route | Status |
 |---|--------|-------|--------|
-| 4 | Run in progress | `/runs/:runId` | `[ ]` locked |
-| 5 | Job results list | `/runs/:runId/jobs` | `[ ]` locked |
+| 4 | Run / application progress (per-job parallel cards) | `/runs/:runId` or enrich `/search` | `[o]` **next** — ref `UI Design/04-run-progress/` |
+| 5 | Job results list | `/runs/:runId/jobs` | `[ ]` may merge into screen 4 |
 | 6 | Job detail HITL | `/jobs/:id` | `[ ]` locked |
 | 7 | Applications | `/applications` | `[ ]` locked |
 | 8 | Settings | `/settings` | `[ ]` locked |
+
+### Screen 4 — Application progress (current)
+
+Backend fans out one `application_subgraph` per job (analysis ready). **Suggested CV** content is still a backend gap — see [`currently-working-feature.md`](../currently-working-feature.md). UI shows each job while they run (before/while `persist` finalizes).
+
+| Task | Status |
+|------|--------|
+| Design ref reviewed (`04-run-progress`) | `[ ]` |
+| Per-job card/row with live status (waiting → scoring → ready/failed) | `[ ]` |
+| Poll `GET /api/jobs?runId=` so cards appear as packages complete | `[ ]` |
+| Ready: current → suggested score, short summary, Review CTA | `[ ]` |
+| Show Suggested CV when backend ships it | `[ ]` blocked on backend |
+| Failed: error on that card only | `[ ]` |
+| Responsive + a11y pass | `[ ]` |
 
 ---
 
@@ -187,5 +201,6 @@ Not in scope until backend + Phase 1 is complete. **Do not build yet.**
 |------|----------|-------------|-------------|
 | Locked screens (1–3) | 3 / 3 | 0 / 3 | 0 / 3 |
 | Foundation | 9 / 9 | 0 / 9 | 0 / 9 |
+| Screen 4 application progress | 0 | 1 | tasks above |
 
-**Last updated:** 2026-06-29
+**Last updated:** 2026-07-18
