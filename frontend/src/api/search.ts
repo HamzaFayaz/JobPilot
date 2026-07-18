@@ -3,8 +3,9 @@ import type { SearchPlatform } from '../types/profile'
 const API_BASE = import.meta.env.VITE_API_BASE ?? ''
 
 export type RunStatus = 'pending' | 'running' | 'completed' | 'failed'
-export type JobPackageStatus = 'ready' | 'applied' | 'failed'
+export type JobPackageStatus = 'analyzing' | 'ready' | 'applied' | 'skipped' | 'failed'
 export type CvDecision = 'keep' | 'swap'
+export type JobDecision = 'applied' | 'skipped'
 
 export interface SearchStartResponse {
   runId: number
@@ -17,6 +18,16 @@ export interface SearchRunStatusResponse {
   jobsReadyCount: number
   progress?: number | null
   error?: string | null
+}
+
+export interface ProjectDecisionView {
+  slotIndex: number
+  action: 'keep' | 'swap'
+  currentProjectName: string
+  swapInProjectName: string | null
+  rationale: string
+  impact: string | null
+  targetRequirementIds: string[]
 }
 
 export interface JobPackage {
@@ -35,6 +46,7 @@ export interface JobPackage {
   swapOutProject: string | null
   swapInText: string | null
   draftEmail: string
+  analysis: Record<string, unknown>
   status: JobPackageStatus
   error: string | null
   createdAt: string | null
@@ -69,4 +81,57 @@ export async function getRunStatus(runId: number): Promise<SearchRunStatusRespon
 
 export async function listRunJobs(runId: number): Promise<JobPackage[]> {
   return apiFetch<JobPackage[]>(`/api/jobs?runId=${runId}`)
+}
+
+export async function listJobs(): Promise<JobPackage[]> {
+  return apiFetch<JobPackage[]>('/api/jobs')
+}
+
+export async function setJobDecision(
+  jobId: number,
+  decision: JobDecision,
+): Promise<JobPackage> {
+  return apiFetch<JobPackage>(`/api/jobs/${jobId}/decision`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ decision }),
+  })
+}
+
+export function extractProjectDecisions(job: JobPackage): ProjectDecisionView[] {
+  const analysis = job.analysis ?? {}
+  const classified =
+    (analysis.accepted_user_facing_result as Record<string, unknown> | undefined) ??
+    (analysis.classified_result as Record<string, unknown> | undefined) ??
+    (analysis.accepted_model_result as Record<string, unknown> | undefined) ??
+    null
+  const raw = (classified?.project_decisions as unknown[]) ?? []
+  return raw
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null
+      const row = item as Record<string, unknown>
+      const action = row.action === 'swap' ? 'swap' : 'keep'
+      return {
+        slotIndex: Number(row.slot_index ?? 0),
+        action,
+        currentProjectName: String(row.current_project_name ?? 'Project'),
+        swapInProjectName:
+          row.swap_in_project_name == null ? null : String(row.swap_in_project_name),
+        rationale: String(row.rationale ?? ''),
+        impact: row.impact == null ? null : String(row.impact),
+        targetRequirementIds: Array.isArray(row.target_requirement_ids)
+          ? row.target_requirement_ids.map(String)
+          : [],
+      } satisfies ProjectDecisionView
+    })
+    .filter((item): item is ProjectDecisionView => item !== null)
+}
+
+export function extractFitMessage(job: JobPackage): string | null {
+  const analysis = job.analysis ?? {}
+  const classified =
+    (analysis.accepted_user_facing_result as Record<string, unknown> | undefined) ??
+    (analysis.classified_result as Record<string, unknown> | undefined)
+  const message = classified?.fit_message
+  return typeof message === 'string' && message.trim() ? message : null
 }

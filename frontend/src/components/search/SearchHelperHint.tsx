@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom'
 import { getWorkerStatus, type BrowserHealth } from '../../api/worker'
 
 const WEBBRIDGE_INSTALL_URL = 'https://www.kimi.com/features/webbridge'
+const WEBBRIDGE_VERSION_NOTE =
+  'Locked: daemon v1.10.0 + extension 1.11.3 — do not auto-upgrade.'
 
 interface SearchHelperHintProps {
   onReadyChange?: (ready: boolean) => void
@@ -67,6 +69,7 @@ export function SearchHelperHint({ onReadyChange }: SearchHelperHintProps) {
           Install Kimi WebBridge first
           <ArrowTopRightOnSquareIcon className="h-3.5 w-3.5" aria-hidden="true" />
         </a>
+        <p className="mt-1 text-xs text-text-secondary">{WEBBRIDGE_VERSION_NOTE}</p>
       </div>
     )
   }
@@ -87,16 +90,19 @@ export function SearchHelperHint({ onReadyChange }: SearchHelperHintProps) {
           </Link>
         </p>
         {needsInstall ? (
-          <a
-            href={WEBBRIDGE_INSTALL_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-2 inline-flex items-center gap-1.5 font-medium text-primary hover:underline"
-          >
-            <PuzzlePieceIcon className="h-4 w-4" aria-hidden="true" />
-            Install or update Kimi WebBridge
-            <ArrowTopRightOnSquareIcon className="h-3.5 w-3.5" aria-hidden="true" />
-          </a>
+          <>
+            <a
+              href={WEBBRIDGE_INSTALL_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-flex items-center gap-1.5 font-medium text-primary hover:underline"
+            >
+              <PuzzlePieceIcon className="h-4 w-4" aria-hidden="true" />
+              Install or update Kimi WebBridge
+              <ArrowTopRightOnSquareIcon className="h-3.5 w-3.5" aria-hidden="true" />
+            </a>
+            <p className="mt-1 text-xs text-text-secondary">{WEBBRIDGE_VERSION_NOTE}</p>
+          </>
         ) : null}
       </div>
     )

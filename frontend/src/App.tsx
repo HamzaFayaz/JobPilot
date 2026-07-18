@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext'
 import { ProfileProvider } from './context/ProfileContext'
 import { LoginPage } from './pages/LoginPage'
 import { ProfilePage } from './pages/ProfilePage'
+import { ApplicationsPage } from './pages/ApplicationsPage'
 import { SearchPage } from './pages/SearchPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { SignupPage } from './pages/SignupPage'
@@ -29,6 +30,7 @@ export default function App() {
               <Route path="profile" element={<ProfilePage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="search" element={<SearchPage />} />
+              <Route path="applications" element={<ApplicationsPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Route>

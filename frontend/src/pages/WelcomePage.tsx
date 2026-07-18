@@ -26,7 +26,7 @@ export function WelcomePage() {
   const { gate, loading } = useProfile()
 
   if (!loading && gate.isComplete) {
-    return <Navigate to="/search" replace />
+    return <Navigate to="/applications" replace />
   }
 
   const items: ChecklistItem[] = [
