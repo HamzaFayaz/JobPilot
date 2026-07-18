@@ -49,7 +49,15 @@ from worker.snapshot_compress import (
     job_detail_metadata,
     snapshot_has_job_detail_panel,
 )
-from worker.snapshot_store import save_job_enrich_result, save_tool_result
+from worker.snapshot_store import (
+    POSTS_DOM_PROBE_JS,
+    save_activity_urls,
+    save_job_enrich_result,
+    save_scroll_event,
+    save_snapshot_diagnosis,
+    save_tool_result,
+    write_run_diagnosis,
+)
 from worker.webbridge_tools import WEBBRIDGE_TOOL_DEFINITIONS
 from worker.webbridge_scroll import (
     JOB_DETAIL_WAIT_MS,
@@ -571,17 +579,41 @@ async def _fetch_post_activity_urls(
     client: WebBridgeClient,
     *,
     session: str,
-) -> list[str]:
+) -> tuple[list[str], Any | None]:
     try:
         result = await client.command(
             "evaluate",
             {"code": POST_ACTIVITY_URLS_JS},
             session=session,
         )
-        return _parse_activity_urls(result)
+        return _parse_activity_urls(result), result
     except Exception as exc:
         logger.warning("Failed to fetch post activity URLs: %s", exc)
-        return []
+        return [], {"error": str(exc)}
+
+
+async def _fetch_posts_dom_probe(
+    client: WebBridgeClient,
+    *,
+    session: str,
+) -> dict[str, Any] | None:
+    try:
+        result = await client.command(
+            "evaluate",
+            {"code": POSTS_DOM_PROBE_JS},
+            session=session,
+        )
+        if not isinstance(result, dict):
+            return None
+        data = result.get("data")
+        if isinstance(data, dict) and "value" in data:
+            value = data.get("value")
+        else:
+            value = data
+        return value if isinstance(value, dict) else None
+    except Exception as exc:
+        logger.warning("Failed to fetch posts DOM probe: %s", exc)
+        return {"error": str(exc)}
 
 
 async def _run_tool(
@@ -603,6 +635,10 @@ async def _run_tool(
         result = await client.command(name, args, session=session)
         compressed_result = None
         llm_payload: Any = result
+        snapshot_source: Any = None
+        activity_urls: list[str] | None = None
+        activity_raw: Any | None = None
+        dom_probe: dict[str, Any] | None = None
 
         if name == "snapshot":
             snapshot_source = result
@@ -635,9 +671,12 @@ async def _run_tool(
             if last_snapshot is not None and isinstance(snapshot_source, dict):
                 last_snapshot.clear()
                 last_snapshot.append(snapshot_source)
-            activity_urls: list[str] | None = None
             if phase == "posts":
-                activity_urls = await _fetch_post_activity_urls(client, session=session)
+                activity_urls, activity_raw = await _fetch_post_activity_urls(
+                    client, session=session
+                )
+                if settings.save_snapshots:
+                    dom_probe = await _fetch_posts_dom_probe(client, session=session)
             compressed_result = compress_snapshot(
                 snapshot_source if isinstance(snapshot_source, dict) else {}
             )
@@ -680,6 +719,29 @@ async def _run_tool(
                 result=result,
                 compressed_result=compressed_result,
             )
+            if (
+                name == "snapshot"
+                and phase == "posts"
+                and isinstance(snapshot_source, dict)
+            ):
+                save_snapshot_diagnosis(
+                    settings.snapshot_dir,
+                    run_id=run_id,
+                    phase=phase,
+                    step=step,
+                    snapshot=snapshot_source,
+                    activity_urls=activity_urls,
+                    dom_probe=dom_probe,
+                )
+                if activity_urls is not None:
+                    save_activity_urls(
+                        settings.snapshot_dir,
+                        run_id=run_id,
+                        phase=phase,
+                        step=step,
+                        urls=activity_urls,
+                        raw_result=activity_raw,
+                    )
 
         if name == "snapshot":
             return _truncate(
@@ -821,7 +883,12 @@ async def _auto_scroll_after_bootstrap(
     while count < target and scroll_attempts < max_scrolls:
         scroll_attempts += 1
         step += 1
-        await scroll_page(webbridge, session=session, jobs_list=jobs_list)
+        scroll_error: str | None = None
+        try:
+            await scroll_page(webbridge, session=session, jobs_list=jobs_list)
+        except Exception as exc:
+            scroll_error = str(exc)
+            logger.warning("Worker scroll [%s] failed: %s", phase, exc)
         # Give LinkedIn time to fetch and render the newly scrolled-in results
         # before snapshotting — otherwise the count reads stale (no new rows).
         await wait_for_paint(webbridge, session=session, ms=SCROLL_SETTLE_MS)
@@ -855,6 +922,18 @@ async def _auto_scroll_after_bootstrap(
             new_count,
             target,
         )
+        if settings.save_snapshots:
+            save_scroll_event(
+                settings.snapshot_dir,
+                run_id=task.run_id,
+                phase=phase,
+                attempt=scroll_attempts,
+                before_count=count,
+                after_count=new_count,
+                target=target,
+                scroll_error=scroll_error,
+                step=step,
+            )
         if new_count > count:
             count = new_count
             stall_streak = 0
@@ -1745,6 +1824,8 @@ async def _run_linkedin_search(
         merged_listings=len(merged),
         parallel=False,
     )
+    if settings.save_snapshots:
+        write_run_diagnosis(settings.snapshot_dir, run_id=task.run_id)
 
     return _listings_to_json(merged)
 
@@ -1780,4 +1861,6 @@ async def run_search_agent(
         merged_listings=result.metrics.listings_found,
         parallel=False,
     )
+    if settings.save_snapshots:
+        write_run_diagnosis(settings.snapshot_dir, run_id=task.run_id)
     return result.raw_text
