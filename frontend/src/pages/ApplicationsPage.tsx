@@ -102,7 +102,7 @@ function ScoreMeter({
       <div className="flex items-baseline justify-between gap-2">
         <p className="text-xs font-medium uppercase tracking-wide text-text-secondary">{label}</p>
         <p className={`text-2xl font-bold tabular-nums ${scoreTone(score)}`}>
-          {score != null ? score : '—'}
+          {score != null ? score : 'n/a'}
         </p>
       </div>
       <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-border/80">
@@ -313,7 +313,7 @@ function JobDetailPanel({
               </a>
             ) : (
               <p className="mt-2 text-xs text-text-secondary">
-                LinkedIn post — use apply info below (no direct post URL).
+                LinkedIn post. Use apply info below (no direct post URL).
               </p>
             )}
           </div>
@@ -465,7 +465,7 @@ function JobDetailPanel({
                 </div>
                 {draft?.autoShortened ? (
                   <p className="mt-2 text-xs text-warning">
-                    Some lines were auto-shortened to fit your CV layout — review before using.
+                    Some lines were auto-shortened to fit your CV layout. Review before using.
                   </p>
                 ) : null}
                 {generateError ? (
@@ -609,7 +609,7 @@ export function ApplicationsPage() {
         <h1 className="text-xl font-bold text-text-primary">Finish your profile first</h1>
         <p className="text-sm text-text-secondary">
           Applications needs a complete profile (CV, skills, and at least one project). You can stay
-          on this URL — open Profile to finish setup, then come back.
+          on this URL. Open Profile to finish setup, then come back.
         </p>
         <Link
           to="/profile"
@@ -630,7 +630,7 @@ export function ApplicationsPage() {
             <h1 className="mt-1 text-2xl font-bold text-text-primary">Job inbox</h1>
             <p className="mt-1 text-sm text-text-secondary">
               {runStatus?.status === 'pending' || runStatus?.status === 'running'
-                ? 'Search running — jobs appear here as analysis starts.'
+                ? 'Search running. Jobs appear here as analysis starts.'
                 : jobs.length > 0
                   ? `${jobs.length} job${jobs.length === 1 ? '' : 's'} in your inbox`
                   : 'Start a search to fill this inbox.'}

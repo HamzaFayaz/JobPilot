@@ -98,12 +98,12 @@ def format_apply_header(
         line = f"WhatsApp: {value}"
     elif method == "linkedin_dm":
         who = value or "the poster"
-        line = f"DM on LinkedIn — search “{who}” and apply yourself"
+        line = f"DM on LinkedIn. Search “{who}” and apply yourself"
     else:
         who = value or "the poster"
         line = (
             note
-            or f"No email/link/WhatsApp in this post — search “{who}” on LinkedIn and DM to apply."
+            or f"No email/link/WhatsApp in this post. Search “{who}” on LinkedIn and DM to apply."
         )
 
     if note and method != "none" and note.lower() not in line.lower():

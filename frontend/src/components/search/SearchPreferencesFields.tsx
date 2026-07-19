@@ -123,7 +123,7 @@ export function SearchPreferencesFields({
             ))}
             {SEARCH_MAX_LISTING_UNSUPPORTED.map((value) => (
               <option key={value} value={value} disabled>
-                {value} jobs — not supported on current server resources
+                {value} jobs (not supported on current server resources)
               </option>
             ))}
           </select>
