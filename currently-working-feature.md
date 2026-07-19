@@ -32,7 +32,7 @@
 | Item | Notes |
 |------|--------|
 | **LICENSE** on GitHub About | `[x]` MIT root [`LICENSE`](./LICENSE)  -  push so About detects it |
-| **README proof links** | `[x]` Track 4 + Qwen `config.py` / `llm.yaml` + Alibaba `alibaba-cloud-trial.md` / `Dockerfile.api` |
+| **README proof links** | `[x]` Track 4 + Qwen + Alibaba (doc, Dockerfile, `deploy.yml`, Actions) + Technical depth section |
 | **Demo video** | &lt; 3 min, public YouTube/Vimeo/Youku; product working (voice optional) |
 | **Architecture diagram** | Mermaid in README; export PNG for Devpost |
 | **Alibaba proof** | Use README links on Devpost form |

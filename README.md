@@ -10,8 +10,11 @@ AI job application copilot: LangGraph orchestration, distributed browser automat
   Base URL: `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`  
   Models: [`config/llm.yaml`](./config/llm.yaml)
 
-- **Alibaba Cloud deploy proof (code):** [`System Design/alibaba-cloud-trial.md`](./System%20Design/alibaba-cloud-trial.md)  
-  Container API image: [`deploy/Dockerfile.api`](./deploy/Dockerfile.api)
+- **Alibaba Cloud deploy proof (code):**  
+  - ECS notes: [`System Design/alibaba-cloud-trial.md`](./System%20Design/alibaba-cloud-trial.md)  
+  - API image: [`deploy/Dockerfile.api`](./deploy/Dockerfile.api)  
+  - Deploy workflow: [`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml) (SSH/rsync + Docker to Alibaba ECS)  
+  - Recent runs: [github.com/HamzaFayaz/JobPilot/actions](https://github.com/HamzaFayaz/JobPilot/actions)
 
 - **Live demo:** [http://47.237.150.6](http://47.237.150.6)  
 - **Track:** Track 4 - Autopilot Agent  
@@ -20,6 +23,7 @@ AI job application copilot: LangGraph orchestration, distributed browser automat
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Alibaba%20ECS-blue?style=flat-square)](http://47.237.150.6)
 [![Qwen API](https://img.shields.io/badge/Qwen%20API-config.py-purple?style=flat-square)](./backend/app/config.py)
 [![Alibaba Proof](https://img.shields.io/badge/Alibaba%20Proof-ECS%20deploy-orange?style=flat-square)](./System%20Design/alibaba-cloud-trial.md)
+[![Deploy Workflow](https://img.shields.io/badge/Deploy-Alibaba%20ECS%20Actions-2088FF?style=flat-square)](./.github/workflows/deploy.yml)
 [![Hackathon](https://img.shields.io/badge/Qwen%20Hackathon-Track%204%20Autopilot-success?style=flat-square)](#hackathon)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](./LICENSE)
 [![Stack](https://img.shields.io/badge/stack-React%20%7C%20FastAPI%20%7C%20LangGraph-blue?style=flat-square)](#tech-stack)
@@ -112,93 +116,120 @@ LinkedIn requires the user's home IP and logged-in session - ECS + Qwen orchestr
 
 ### Parent graph pipeline
 
+Current LangGraph parent run (code: [`orchestrator.py`](./backend/app/graph/orchestrator.py)). Suggested CV is **not** inside this graph - it runs later on explicit user approve.
+
 ```mermaid
-flowchart LR
- A["init_run"] --> B["search_subgraph"]
- B --> C["prefilter"]
- C --> D{"matched_jobs?"}
- D -->|yes| E["Send × N\napplication_subgraph"]
- D -->|no| F["persist"]
- E --> F
+flowchart TB
+  START([START]) --> init["init_run"]
+  init -->|failed| END1([END])
+  init -->|ok| search["search_subgraph"]
+  search --> pref["prefilter"]
+  pref -->|no matched jobs| persist["persist"]
+  pref -->|matched jobs| fan["fan_out: Send x N"]
+  fan --> app1["application_subgraph\njob 1"]
+  fan --> app2["application_subgraph\njob 2"]
+  fan --> appN["application_subgraph\njob N"]
+  app1 --> persist
+  app2 --> persist
+  appN --> persist
+  persist --> END2([END])
+
+  HITL["HITL later: approve swaps"] -.->|user action| tailor["tailor_cv\noutside parent graph"]
 ```
 
 | Node | Layer | Responsibility |
 |------|-------|----------------|
-| `init_run` | Parent | Load profile snapshot, validate gates, set `search_runs.status` |
-| `search_subgraph` | Subgraph | Enqueue worker task → poll until listings arrive |
+| `init_run` | Parent | Load profile snapshot, validate gates, set run status |
+| `search_subgraph` | Subgraph | Enqueue Helper task → wait for listings (Qwen ReAct + WebBridge) |
 | `prefilter` | Parent | Normalize → dedupe → drop already-applied |
-| `fan_out_applications` | Parent | LangGraph `Send` - parallel per-job subgraphs |
-| `application_subgraph` | Subgraph | `enrich_job` → score threshold → write `job_packages` |
+| `fan_out` / `Send` | Parent | Parallel per-job `application_subgraph` |
+| `application_subgraph` | Subgraph | Enrich → classify fit → package `job_packages` |
 | `persist` | Parent | Finalize run status and counts |
+| `tailor_cv` | API / HITL | After Applications approve - not a parent-graph node |
 
-### End-to-end search flow
+### Subgraph detail
+
+One diagram per **compiled subgraph** (not every leaf helper). Enough for judges to see depth without noise.
+
+#### `search_subgraph`
+
+LangGraph nodes are enqueue → wait. While waiting, the cloud **Qwen ReAct** agent + **Search Helper / WebBridge** collect LinkedIn Posts and POST the result.
 
 ```mermaid
-sequenceDiagram
- participant U as User browser
- participant ECS as FastAPI + LangGraph
- participant H as Search Helper
- participant C as Chrome (WebBridge)
-
- U->>ECS: POST /api/search
- ECS->>ECS: enqueue worker_tasks row
- ECS-->>U: { runId, pending }
- H->>ECS: GET /api/worker/tasks/next
- ECS-->>H: browser_search task
- H->>C: Kimi WebBridge + Qwen ReAct
- C-->>H: RawJobListing[]
- H->>ECS: POST /api/worker/tasks/{id}/result
- ECS->>ECS: wait_for_listings → prefilter → fan-out
- U->>ECS: GET /api/runs/{id}/status (poll)
- U->>ECS: GET /api/jobs?runId=
+flowchart LR
+  enq["enqueue_browser_task"] --> wait["wait_for_listings"]
+  wait --> out["raw_listings"]
 ```
 
-**Contract:** one task out, one result back. ECS never imports browser SDKs - only HTTP and JSON across the boundary.
+**Outside those nodes (same task):** ECS Qwen ReAct ↔ Helper WebBridge → `POST /api/worker/tasks/{id}/result`  
+**Contract:** one task out, one result back over HTTP. ECS never imports browser SDKs.
 
-### Data flow
+#### `application_subgraph` (per job, parallel)
 
-```text
-Search Helper
- POST /api/worker/tasks/{taskId}/result
- { listings: RawJobListing[], warnings: string[] }
- ↓
-worker_tasks.result_json
- ↓
-search_subgraph.wait_for_listings()
- ↓
-prefilter → matched_jobs
- ↓
-application_subgraph (per job) → job_packages
- ↓
-search_runs (jobs_ready_count, status)
+```mermaid
+flowchart LR
+  e["enrich_job\nQwen score + swap plan"] --> c["classify_fit"]
+  c --> p["package_out\njob_packages row"]
 ```
+
+Code: [`subgraphs/search/`](./backend/app/graph/subgraphs/search/) · [`subgraphs/application/`](./backend/app/graph/subgraphs/application/)
 
 Posts without a public URL receive an internal `linkedin-post://{hash}` identifier for deduplication and storage - used server-side only, not shown as a user-facing link.
 
 ---
 
-## Engineering highlights
+## Technical depth / Engineering
+
+Scannable map of the autopilot stack (Track 4): what each piece does and why it matters.
+
+### Agents and components
+
+| Piece | What it does | Why it matters |
+|-------|----------------|----------------|
+| **Parent LangGraph** | Routes `init_run` → search → prefilter → parallel application subgraphs → persist | Deterministic orchestration; code owns control flow |
+| **Search subgraph** | Enqueues a worker task and waits for listings | Separates "order" (cloud) from "delivery" (desktop browser) |
+| **Cloud browser agent (Qwen ReAct)** | On ECS, decides WebBridge tool calls for LinkedIn Posts | Qwen Cloud drives search; tools run on the user PC |
+| **Search Helper (`worker/`)** | Paired desktop app; polls tasks; executes WebBridge actions | Real Chrome + home IP; LinkedIn session never uploaded to ECS |
+| **Kimi WebBridge** | Local bridge into the user's Chrome | Browser tools without shipping cookies to the cloud |
+| **Prefilter (code)** | Normalize, dedupe, drop already-applied | Cheap gate before LLM scoring |
+| **Application subgraph** | Per-job `enrich_job` (score, summary, keep/swap plan) | Parallel Qwen judgment per listing |
+| **Suggested CV (`tailor_cv`)** | User-approved slot swaps → layout-preserving `.docx` | HITL; analysis never writes the master CV |
+| **Profile / evidence LLMs** | CV skills, GitHub overview, embeddings + rerank | Grounds scoring in the user's real projects |
+
+### Search Helper and session boundary
+
+LinkedIn automation needs the user's logged-in Chrome and residential network. Running that browser on Alibaba ECS would use a datacenter IP and would not see the user's session. JobPilot keeps **orchestration and Qwen keys on ECS**, and keeps **browser execution on the paired Search Helper**.
+
+- Helper code: [`worker/`](./worker/)  
+- WebBridge provider notes: [`System Design/kimi-webbridge-provider.md`](./System%20Design/kimi-webbridge-provider.md)  
+- Pairing and task queue: [`backend/app/services/worker_store.py`](./backend/app/services/worker_store.py)
+
+The Helper talks to ECS over a device-paired HTTP task API. Review the `worker/` package for how tasks are fetched and how WebBridge is invoked locally.
+
+### Engineering decisions
 
 | Decision | Rationale |
 |----------|-----------|
 | **LangGraph parent + subgraphs** | Clean separation: search wait loop, per-job scoring, browser ReAct |
 | **Worker task queue (HTTP)** | Resilient polling; simple to debug; no WebSocket infra |
-| **Kimi WebBridge** | Real Chrome session, residential IP, existing LinkedIn login |
-| **Targeted Qwen usage** | Profile extraction, browser agent, `enrich_job` - no LLM supervisor router |
+| **Kimi WebBridge on user PC** | Real Chrome session and home IP for LinkedIn Posts |
+| **Targeted Qwen usage** | Profile, browser agent, `enrich_job`, `tailor_cv`, embeddings - no LLM supervisor router |
 | **Code-only prefilter** | Normalize, URL/email dedupe, drop applied before fan-out |
 | **Fernet + per-user scope** | Encrypted secrets; every row keyed by `user_id` |
-| **Docker + GitHub Actions** | Repeatable ECS deploy with public demo URL |
+| **Docker + GitHub Actions** | Repeatable Alibaba ECS deploy ([`deploy.yml`](./.github/workflows/deploy.yml)) |
 
-**Key modules:**
+### Key modules
 
 | Path | Role |
 |------|------|
 | [`backend/app/graph/orchestrator.py`](./backend/app/graph/orchestrator.py) | Parent LangGraph - nodes, edges, `Send` fan-out |
 | [`backend/app/graph/subgraphs/search/`](./backend/app/graph/subgraphs/search/) | Enqueue + wait for worker listings |
 | [`backend/app/graph/subgraphs/application/`](./backend/app/graph/subgraphs/application/) | Per-job enrich, score gate, package output |
+| [`backend/app/services/browser_agent/`](./backend/app/services/browser_agent/) | Cloud Qwen ReAct loop (ECS) |
 | [`backend/app/services/listing_prefilter.py`](./backend/app/services/listing_prefilter.py) | Normalize, dedupe, drop applied |
 | [`backend/app/services/worker_store.py`](./backend/app/services/worker_store.py) | Device pairing, task queue, result polling |
-| [`worker/agent_loop.py`](./worker/agent_loop.py) | Qwen ReAct loop over WebBridge snapshots |
+| [`backend/app/services/tailor_cv_llm.py`](./backend/app/services/tailor_cv_llm.py) | Suggested CV generation after user approve |
+| [`worker/`](./worker/) | Search Helper - WebBridge executor + UI |
 | [`worker/api_client.py`](./worker/api_client.py) | Search Helper ↔ ECS HTTP client |
 
 ---
@@ -386,8 +417,9 @@ JobPilot is an end-to-end autopilot-style agent: cloud LangGraph orchestration, 
 | **Track** | Track 4 - Autopilot Agent |
 | **Qwen Cloud API** (OpenAI-compatible base URL) | [`backend/app/config.py`](./backend/app/config.py) - `qwen_base_url = https://dashscope-intl.aliyuncs.com/compatible-mode/v1` |
 | **Qwen models by call site** | [`config/llm.yaml`](./config/llm.yaml) |
-| **Alibaba Cloud deploy proof** | [`System Design/alibaba-cloud-trial.md`](./System%20Design/alibaba-cloud-trial.md) · [`deploy/Dockerfile.api`](./deploy/Dockerfile.api) |
+| **Alibaba Cloud deploy proof** | [`alibaba-cloud-trial.md`](./System%20Design/alibaba-cloud-trial.md) · [`deploy/Dockerfile.api`](./deploy/Dockerfile.api) · [`deploy.yml`](./.github/workflows/deploy.yml) · [Actions runs](https://github.com/HamzaFayaz/JobPilot/actions) |
 | **Architecture diagram** | [Agentic architecture](#agentic-architecture) (Mermaid: ECS · Qwen Cloud · Search Helper · WebBridge) |
+| **Technical depth** | [Technical depth / Engineering](#technical-depth--engineering) |
 | **Live demo** | [http://47.237.150.6](http://47.237.150.6) |
 | **Open-source license** | [`LICENSE`](./LICENSE) (MIT) |
 

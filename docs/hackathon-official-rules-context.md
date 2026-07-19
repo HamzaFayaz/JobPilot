@@ -101,4 +101,5 @@ JobPilot: DashScope OpenAI-compatible
 
 **Judge deep-links (after push):**
 - Qwen API: `backend/app/config.py` · models: `config/llm.yaml`
-- Alibaba: `System Design/alibaba-cloud-trial.md` · `deploy/Dockerfile.api`
+- Alibaba: `System Design/alibaba-cloud-trial.md` · `deploy/Dockerfile.api` · `.github/workflows/deploy.yml` · https://github.com/HamzaFayaz/JobPilot/actions
+- Technical depth: README `#technical-depth--engineering` · worker: `worker/`
