@@ -98,27 +98,10 @@ JobPilot uses a **deterministic LangGraph pipeline** - code routes between subgr
 
 ### Three-tier deployment
 
-Layout locked for GitHub + local preview: **left** = user PC (Helper → WebBridge → Chrome), **right** = Alibaba ECS + Qwen. (Pure `TB` alone lets GitHub flip tiers upside down.)
+Three **separate** tiers, full detail, order locked **1 → 2 → 3** (GitHub-safe). Connector nodes keep reverse edges from flipping the stack.
 
 ```mermaid
-flowchart LR
-  subgraph DESKTOP["User PC"]
-    direction TB
-    subgraph T2["Tier 2 - Search Helper"]
-      direction TB
-      WH["Paired worker\ntask poll + heartbeat"]
-      EX["WebBridge tool executor"]
-      WH --> EX
-    end
-    subgraph T3["Tier 3 - Kimi WebBridge"]
-      direction TB
-      WB["Daemon :10086"]
-      CH["User Chrome\nLinkedIn Posts"]
-      WB --> CH
-    end
-    EX --> WB
-  end
-
+flowchart TB
   subgraph T1["Tier 1 - Alibaba ECS"]
     direction TB
     UI["React SPA"]
@@ -138,19 +121,38 @@ flowchart LR
     SC --> Qwen
   end
 
-  API -->|"HTTPS task queue"| WH
-  WH -->|"poll / heartbeat"| API
-  BA -->|"tool calls"| EX
-  EX -->|"tool results"| BA
-  EX -->|"listings result"| API
-  CH -->|"page / a11y"| EX
+  C1["HTTPS task queue · tool round-trips · listings result"]
+
+  subgraph T2["Tier 2 - Search Helper - user PC"]
+    direction TB
+    WH["Paired worker\ntask poll + heartbeat"]
+    EX["WebBridge tool executor"]
+    WH --> EX
+  end
+
+  C2["WebBridge protocol · page / a11y"]
+
+  subgraph T3["Tier 3 - Kimi WebBridge"]
+    direction TB
+    WB["Daemon :10086"]
+    CH["User Chrome\nLinkedIn Posts"]
+    WB --> CH
+  end
+
+  T1 --> C1 --> T2
+  T2 --> C2 --> T3
+  API -.-> WH
+  BA -.-> EX
+  EX -.-> API
+  EX -.-> WB
+  CH -.-> EX
 ```
 
 | Tier | Where | What judges should see |
 |------|--------|-------------------------|
-| **1** | Alibaba ECS (right) | LangGraph + Qwen (`compatible-mode/v1`); secrets stay on server |
-| **2** | User PC (left) | Search Helper - paired executor only |
-| **3** | User Chrome (left) | WebBridge + real LinkedIn session (home IP) |
+| **1** | Alibaba ECS | React · FastAPI · LangGraph · Qwen ReAct · scoring / `tailor_cv` · SQLite · DashScope |
+| **2** | User PC | Paired Search Helper - task poll, WebBridge tool executor |
+| **3** | User Chrome | WebBridge daemon + LinkedIn Posts session (home IP) |
 
 After listings are scored: **HITL** in Applications → user approves swaps → `tailor_cv` download (not inside the search graph).  
 
