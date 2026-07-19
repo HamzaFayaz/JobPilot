@@ -1,4 +1,5 @@
 import {
+  ArrowDownTrayIcon,
   ArrowPathIcon,
   ArrowTopRightOnSquareIcon,
   ClipboardDocumentIcon,
@@ -12,6 +13,7 @@ import {
   unpairWorker,
   type BrowserHealth,
 } from '../../api/worker'
+import { DOWNLOADS } from '../../constants/downloads'
 import { Button } from '../ui/Button'
 
 const WEBBRIDGE_INSTALL_URL = 'https://www.kimi.com/features/webbridge'
@@ -185,6 +187,21 @@ export function SearchHelperSettings() {
           {healthHint ? <p className="mt-2 text-xs text-text-secondary">{healthHint}</p> : null}
           {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
 
+          <div className="mt-4 rounded-lg border border-border bg-background/50 px-4 py-4">
+            <p className="text-sm font-semibold text-text-primary">Download Search Helper</p>
+            <p className="mt-1 text-xs text-text-secondary">
+              Windows app — no installer. Download, open the .exe, paste your pairing token, and
+              Start.
+            </p>
+            <a
+              href={DOWNLOADS.searchHelperExe}
+              className="mt-3 inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors duration-200 hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            >
+              <ArrowDownTrayIcon className="h-4 w-4" aria-hidden="true" />
+              Download JobPilot-SearchHelper.exe
+            </a>
+          </div>
+
           {!isSearchReady ? (
             <div className="mt-4">
               <WebBridgeInstallCard />
@@ -196,6 +213,16 @@ export function SearchHelperSettings() {
               Full setup checklist
             </summary>
             <ol className="mt-3 list-decimal space-y-2 pl-5 text-text-secondary">
+              <li>
+                Download Search Helper —{' '}
+                <a
+                  href={DOWNLOADS.searchHelperExe}
+                  className="font-medium text-primary hover:underline"
+                >
+                  JobPilot-SearchHelper.exe
+                </a>{' '}
+                (double-click, no install)
+              </li>
               <li>
                 Install Kimi WebBridge —{' '}
                 <a
