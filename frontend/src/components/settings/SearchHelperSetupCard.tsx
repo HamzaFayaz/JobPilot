@@ -263,6 +263,7 @@ export function SearchHelperSetupCard() {
             description="Install Kimi WebBridge and its Chrome extension in the exact Chrome profile you use for LinkedIn. Then sign in to LinkedIn there."
             tone={isSearchReady ? 'complete' : browserHealth === 'profile_setup' || browserHealth === 'not_installed' ? 'active' : 'neutral'}
           >
+            <p className="rounded-xl border border-warning/20 bg-warning-soft px-3 py-2 text-xs leading-5 text-hitl-text">Required: Kimi WebBridge daemon <strong>{WEBBRIDGE_LOCKED_DAEMON}</strong> + Chrome extension <strong>{WEBBRIDGE_LOCKED_EXTENSION}</strong>. Do not auto-update.</p>
             <a
               href={WEBBRIDGE_INSTALL_URL}
               target="_blank"
@@ -310,6 +311,9 @@ export function SearchHelperSetupCard() {
                 </div>
                 <p className="mt-2 text-xs leading-5 text-text-secondary">
                   In Search Helper: Settings ? pairing code ? paste ? Save settings ? Start.
+                </p>
+                <p className="mt-2 text-xs font-medium leading-5 text-warning">
+                  This pairing code is shown only in this session. Copy it now; if you refresh or leave this page before pairing, create a new code.
                 </p>
               </div>
             ) : (
