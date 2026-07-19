@@ -98,11 +98,28 @@ JobPilot uses a **deterministic LangGraph pipeline** - code routes between subgr
 
 ### Three-tier deployment
 
-**Vertical** stack (read top → bottom): cloud decides → Helper executes → Chrome acts. Same diagram to screenshot for the ~8s video end-card.
+Layout locked for GitHub + local preview: **left** = user PC (Helper → WebBridge → Chrome), **right** = Alibaba ECS + Qwen. (Pure `TB` alone lets GitHub flip tiers upside down.)
 
 ```mermaid
-flowchart TB
-  subgraph T1 ["Tier 1 - Alibaba ECS"]
+flowchart LR
+  subgraph DESKTOP["User PC"]
+    direction TB
+    subgraph T2["Tier 2 - Search Helper"]
+      direction TB
+      WH["Paired worker\ntask poll + heartbeat"]
+      EX["WebBridge tool executor"]
+      WH --> EX
+    end
+    subgraph T3["Tier 3 - Kimi WebBridge"]
+      direction TB
+      WB["Daemon :10086"]
+      CH["User Chrome\nLinkedIn Posts"]
+      WB --> CH
+    end
+    EX --> WB
+  end
+
+  subgraph T1["Tier 1 - Alibaba ECS"]
     direction TB
     UI["React SPA"]
     API["FastAPI"]
@@ -110,45 +127,30 @@ flowchart TB
     BA["Cloud browser agent\nQwen ReAct"]
     SC["Scoring + suggested CV\nenrich_job / tailor_cv"]
     DB[("SQLite")]
+    Qwen["Qwen Cloud / DashScope\ncompatible-mode/v1"]
     UI --> API
     API --> LG
     API --> BA
     LG --> SC
     SC --> DB
     LG --> DB
+    BA --> Qwen
+    SC --> Qwen
   end
 
-  Qwen["Qwen Cloud / DashScope\ncompatible-mode/v1"]
-
-  subgraph T2 ["Tier 2 - Search Helper - user PC"]
-    direction TB
-    WH["Paired worker\ntask poll + heartbeat"]
-    EX["WebBridge tool executor"]
-    WH --> EX
-  end
-
-  subgraph T3 ["Tier 3 - Kimi WebBridge"]
-    direction TB
-    WB["Daemon :10086"]
-    CH["User Chrome\nLinkedIn Posts"]
-    WB --> CH
-  end
-
-  BA --> Qwen
-  SC --> Qwen
-
-  API <-->|"HTTPS task queue"| WH
-  BA <-->|"tool round-trips"| EX
-  EX --> WB
-  CH --> EX
+  API -->|"HTTPS task queue"| WH
+  WH -->|"poll / heartbeat"| API
+  BA -->|"tool calls"| EX
+  EX -->|"tool results"| BA
   EX -->|"listings result"| API
+  CH -->|"page / a11y"| EX
 ```
 
 | Tier | Where | What judges should see |
 |------|--------|-------------------------|
-| **1** | Alibaba ECS | LangGraph + Qwen (`compatible-mode/v1`); secrets stay on server |
-| **2** | User PC | Search Helper - paired executor only |
-| **3** | User Chrome | WebBridge + real LinkedIn session (home IP) |
+| **1** | Alibaba ECS (right) | LangGraph + Qwen (`compatible-mode/v1`); secrets stay on server |
+| **2** | User PC (left) | Search Helper - paired executor only |
+| **3** | User Chrome (left) | WebBridge + real LinkedIn session (home IP) |
 
 After listings are scored: **HITL** in Applications → user approves swaps → `tailor_cv` download (not inside the search graph).  
 
