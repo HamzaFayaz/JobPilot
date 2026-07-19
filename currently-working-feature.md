@@ -1,6 +1,6 @@
 # Currently Working On
 
-**Status:** Hackathon product build **complete** (Track 4 — Autopilot Agent). Live on Alibaba ECS.
+**Status:** Hackathon product build **complete** (Track 4  -  Autopilot Agent). Live on Alibaba ECS.
 
 **Baseline:** Run 3 (~79/100). Evals off for product work.
 
@@ -11,7 +11,7 @@
 
 ## Start here (new chat)
 
-### Done — hackathon product path `[x]`
+### Done  -  hackathon product path `[x]`
 
 | Area | Status |
 |------|--------|
@@ -20,18 +20,18 @@
 | Dual JD: raw `description_text` for analysis; display rewrite for UI | ✅ |
 | Cloud browser agent (Qwen ReAct on backend; Helper = WebBridge only) | ✅ |
 | Background GitHub import (projects until overview/evidence/index ready) | ✅ |
-| Suggested CV (`tailor_cv`) — approve swaps → generate → download draft | ✅ |
+| Suggested CV (`tailor_cv`)  -  approve swaps → generate → download draft | ✅ |
 | Search Helper `.exe` + CV template downloads; Windows SmartScreen note | ✅ |
 | Alibaba ECS deploy (EIP `47.237.150.6`) | ✅ |
 
-### Next — submission packaging `[ ]`
+### Next  -  submission packaging `[ ]`
 
 **Official rules (saved context):** [`docs/hackathon-official-rules-context.md`](docs/hackathon-official-rules-context.md)  
 **Deadline:** Jul 20, 2026 2:00 pm PT · **Track:** 4 Autopilot Agent
 
 | Item | Notes |
 |------|--------|
-| **LICENSE** on GitHub About | `[x]` MIT root [`LICENSE`](./LICENSE) — push so About detects it |
+| **LICENSE** on GitHub About | `[x]` MIT root [`LICENSE`](./LICENSE)  -  push so About detects it |
 | **README proof links** | `[x]` Track 4 + Qwen `config.py` / `llm.yaml` + Alibaba `alibaba-cloud-trial.md` / `Dockerfile.api` |
 | **Demo video** | &lt; 3 min, public YouTube/Vimeo/Youku; product working (voice optional) |
 | **Architecture diagram** | Mermaid in README; export PNG for Devpost |
@@ -39,15 +39,15 @@
 | **Devpost description** | Features + DashScope `compatible-mode/v1` |
 | **Track field** | Select Track 4 on Devpost form |
 | **Testing access** | Live http://47.237.150.6 (+ login notes if needed) |
-| **Blog / social** | Optional — required only for Blog Post prize |
+| **Blog / social** | Optional  -  required only for Blog Post prize |
 
 ### Cancelled / deferred
 
 | Item | Notes |
 |------|--------|
-| Send application (Gmail) | **Cancelled** — suggested CV download only |
-| Indeed / LinkedIn Jobs | Deferred — LinkedIn Posts only for hackathon |
-| Windows code-signing cert | Deferred — Settings explains SmartScreen |
+| Send application (Gmail) | **Cancelled**  -  suggested CV download only |
+| Indeed / LinkedIn Jobs | Deferred  -  LinkedIn Posts only for hackathon |
+| Windows code-signing cert | Deferred  -  Settings explains SmartScreen |
 
 **Frozen:** worker search loop unless listing contract changes. WebBridge versions locked (daemon `v1.10.0` + extension `1.11.3`).
 
