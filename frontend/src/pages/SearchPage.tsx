@@ -102,8 +102,14 @@ export function SearchPage() {
   ])
 
   useEffect(() => {
+    // Indeed is coming soon — keep searches on LinkedIn.
+    if (profile.searchPlatform === 'indeed') {
+      setPlatform('linkedin')
+      void updateProfile({ searchPlatform: 'linkedin' })
+      return
+    }
     setPlatform(profile.searchPlatform)
-  }, [profile.searchPlatform])
+  }, [profile.searchPlatform, updateProfile])
 
   useEffect(() => {
     if (!activeRunId || !runStatus) {
@@ -276,46 +282,47 @@ export function SearchPage() {
             <fieldset disabled={runActive}>
               <legend className="mb-2 text-sm font-semibold text-text-primary">Platform</legend>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {(
-                  [
-                    {
-                      id: 'linkedin' as const,
-                      label: 'LinkedIn',
-                      badge: 'in',
-                      color: 'bg-[#0A66C2]',
-                    },
-                    { id: 'indeed' as const, label: 'Indeed', badge: 'i', color: 'bg-[#2164f3]' },
-                  ] as const
-                ).map((item) => (
-                  <label
-                    key={item.id}
-                    className={`flex cursor-pointer items-center justify-between rounded-lg border p-4 transition-colors duration-200 ${
-                      platform === item.id
-                        ? 'border-primary bg-chip-bg/40'
-                        : 'border-border hover:border-primary/40'
-                    } ${runActive ? 'cursor-not-allowed opacity-60' : ''}`}
-                  >
-                    <span className="flex items-center gap-3">
-                      <span
-                        className={`flex h-8 w-8 items-center justify-center rounded text-sm font-bold text-white ${item.color}`}
-                      >
-                        {item.badge}
-                      </span>
-                      <span className="text-sm font-medium">{item.label}</span>
+                <label
+                  className={`flex cursor-pointer items-center justify-between rounded-lg border p-4 transition-colors duration-200 ${
+                    platform === 'linkedin'
+                      ? 'border-primary bg-chip-bg/40'
+                      : 'border-border hover:border-primary/40'
+                  } ${runActive ? 'cursor-not-allowed opacity-60' : ''}`}
+                >
+                  <span className="flex items-center gap-3">
+                    <span className="flex h-8 w-8 items-center justify-center rounded bg-[#0A66C2] text-sm font-bold text-white">
+                      in
                     </span>
-                    <input
-                      type="radio"
-                      name="platform"
-                      value={item.id}
-                      checked={platform === item.id}
-                      onChange={() => {
-                        setPlatform(item.id)
-                        void updateProfile({ searchPlatform: item.id })
-                      }}
-                      className="h-4 w-4 cursor-pointer accent-primary"
-                    />
-                  </label>
-                ))}
+                    <span className="text-sm font-medium">LinkedIn</span>
+                  </span>
+                  <input
+                    type="radio"
+                    name="platform"
+                    value="linkedin"
+                    checked={platform === 'linkedin'}
+                    onChange={() => {
+                      setPlatform('linkedin')
+                      void updateProfile({ searchPlatform: 'linkedin' })
+                    }}
+                    className="h-4 w-4 cursor-pointer accent-primary"
+                  />
+                </label>
+                <button
+                  type="button"
+                  disabled={runActive}
+                  onClick={() => showToast('Indeed — coming soon')}
+                  className={`flex items-center justify-between rounded-lg border border-border p-4 text-left transition-colors duration-200 hover:border-primary/40 disabled:cursor-not-allowed disabled:opacity-60`}
+                >
+                  <span className="flex items-center gap-3">
+                    <span className="flex h-8 w-8 items-center justify-center rounded bg-[#2164f3] text-sm font-bold text-white">
+                      i
+                    </span>
+                    <span className="text-sm font-medium">Indeed</span>
+                  </span>
+                  <span className="rounded-full bg-background px-2 py-0.5 text-[11px] font-semibold uppercase text-text-secondary">
+                    Coming soon
+                  </span>
+                </button>
               </div>
             </fieldset>
 

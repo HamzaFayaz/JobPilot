@@ -73,7 +73,9 @@ export function CvUpload() {
             <p className="text-sm text-text-secondary">
               Drag and drop or click to upload your CV
             </p>
-            <p className="mt-1 text-xs text-text-secondary">.docx only</p>
+            <p className="mt-1 text-xs text-text-secondary">
+              .docx only · Best results: clear Projects section, each project title + bullets, then Skills
+            </p>
           </>
         )}
       </div>
