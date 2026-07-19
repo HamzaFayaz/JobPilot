@@ -1,0 +1,111 @@
+- generic [active] [ref=e1]:
+  - complementary [ref=e2]:
+    - generic [ref=e3]:
+      - heading "DevCopilot AI" [level=1] [ref=e4]
+      - paragraph [ref=e5]: AI Job Assistant
+    - navigation [ref=e6]:
+      - link "account_circle Profile" [ref=e7] [cursor=pointer]:
+        - /url: "#"
+        - generic [ref=e8]: account_circle
+        - generic [ref=e9]: Profile
+      - link "search Search" [ref=e10] [cursor=pointer]:
+        - /url: "#"
+        - generic [ref=e11]: search
+        - generic [ref=e12]: Search
+      - link "description Applications" [ref=e13] [cursor=pointer]:
+        - /url: "#"
+        - generic [ref=e14]: description
+        - generic [ref=e15]: Applications
+      - link "settings Settings" [ref=e16] [cursor=pointer]:
+        - /url: "#"
+        - generic [ref=e17]: settings
+        - generic [ref=e18]: Settings
+    - button "add New Application" [ref=e20] [cursor=pointer]:
+      - generic [ref=e21]: add
+      - text: New Application
+  - banner [ref=e22]:
+    - heading "Applications" [level=2] [ref=e24]
+    - generic [ref=e25]:
+      - generic [ref=e26]:
+        - textbox "Search applications..." [ref=e27]
+        - generic [ref=e28]: search
+      - generic [ref=e29]:
+        - button "notifications" [ref=e30] [cursor=pointer]
+        - button "help_outline" [ref=e32] [cursor=pointer]
+  - main [ref=e36]:
+    - generic [ref=e37]:
+      - generic [ref=e38]:
+        - generic [ref=e39]: verified_user
+        - paragraph [ref=e40]: You approve before anything is sent. DevCopilot acts as your assistant, not your replacement.
+      - heading "Applications" [level=1] [ref=e42]
+      - generic [ref=e43]:
+        - generic [ref=e44]:
+          - generic [ref=e45]: check_circle
+          - generic [ref=e47]:
+            - heading "Applied" [level=2] [ref=e48]
+            - paragraph [ref=e49]: These jobs won't be searched again
+        - generic [ref=e50]:
+          - generic [ref=e51]:
+            - generic [ref=e52]:
+              - generic [ref=e53]: business
+              - generic [ref=e55]:
+                - heading "Acme Corp" [level=3] [ref=e56]
+                - paragraph [ref=e57]: Senior Full-Stack Developer
+            - generic [ref=e58]:
+              - generic [ref=e59]:
+                - generic [ref=e60]: check_circle
+                - text: Sent
+              - paragraph [ref=e61]: Mar 15, 2026
+          - generic [ref=e62]:
+            - generic [ref=e63]:
+              - generic [ref=e64]: rocket_launch
+              - generic [ref=e66]:
+                - heading "TechStart Inc" [level=3] [ref=e67]
+                - paragraph [ref=e68]: Full-Stack Engineer
+            - generic [ref=e69]:
+              - generic [ref=e70]:
+                - generic [ref=e71]: check_circle
+                - text: Sent
+              - paragraph [ref=e72]: Mar 12, 2026
+          - generic [ref=e73]:
+            - generic [ref=e74]:
+              - generic [ref=e75]: lightbulb
+              - generic [ref=e77]:
+                - heading "InnovateCo" [level=3] [ref=e78]
+                - paragraph [ref=e79]: Software Engineer
+            - generic [ref=e80]:
+              - generic [ref=e81]:
+                - generic [ref=e82]: check_circle
+                - text: Sent
+              - paragraph [ref=e83]: Mar 8, 2026
+      - generic [ref=e84]:
+        - generic [ref=e85]:
+          - heading "Past Searches" [level=2] [ref=e86]
+          - button "View all" [ref=e87] [cursor=pointer]
+        - table [ref=e89]:
+          - rowgroup [ref=e90]:
+            - row [ref=e91]:
+              - columnheader "Date" [ref=e92]
+              - columnheader "Role" [ref=e93]
+              - columnheader "Platform" [ref=e94]
+              - columnheader "Jobs found" [ref=e95]
+              - columnheader "Status" [ref=e96]
+          - rowgroup [ref=e97]:
+            - row [ref=e98]:
+              - cell "Mar 15, 2026" [ref=e99]
+              - cell "Senior Full-Stack Developer" [ref=e100]
+              - cell [ref=e101]
+              - cell "6 jobs" [ref=e104]
+              - cell "Done" [ref=e105]
+            - row [ref=e107]:
+              - cell "Mar 10, 2026" [ref=e108]
+              - cell "React Developer" [ref=e109]
+              - cell [ref=e110]
+              - cell "3 jobs" [ref=e113]
+              - cell "Done" [ref=e114]
+            - row [ref=e116]:
+              - cell "Mar 5, 2026" [ref=e117]
+              - cell "Backend Engineer" [ref=e118]
+              - cell [ref=e119]
+              - cell "0 jobs" [ref=e122]
+              - cell "Done" [ref=e123]
