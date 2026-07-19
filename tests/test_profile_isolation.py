@@ -86,9 +86,13 @@ def test_github_import_stores_readme_server_side(mock_readme, mock_evidence, cli
     )
     assert response.status_code == 200, response.text
     body = response.json()
+    assert body["projectsIndexingStatus"] == "pending"
+    assert body["projects"] == []
 
-    assert len(body["projects"]) == 1
-    project = body["projects"][0]
+    ready = client.get("/api/profile").json()
+    assert ready["projectsIndexingStatus"] == "ready"
+    assert len(ready["projects"]) == 1
+    project = ready["projects"][0]
     assert project["name"] == "JobPilot"
     assert project["repoFullName"] == "alice/jobpilot"
     assert "readmeMd" not in project

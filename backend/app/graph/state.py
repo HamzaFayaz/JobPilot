@@ -39,6 +39,7 @@ class JobListing(TypedDict):
     url: str
     platform: Platform
     description_text: str
+    display_description_text: NotRequired[str]
 
 
 class JobPackageState(TypedDict):

@@ -61,6 +61,23 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     void refreshProfile()
   }, [refreshProfile])
 
+  // Poll while GitHub import / CV skills are preparing so UI unlocks when ready.
+  useEffect(() => {
+    const pending =
+      profile.projectsIndexingStatus === 'pending' ||
+      profile.skillsExtractionStatus === 'pending'
+    if (!user || !pending) return
+    const timer = window.setInterval(() => {
+      void refreshProfile()
+    }, 3000)
+    return () => window.clearInterval(timer)
+  }, [
+    user,
+    profile.projectsIndexingStatus,
+    profile.skillsExtractionStatus,
+    refreshProfile,
+  ])
+
   const persistPatch = useCallback(async (patch: Partial<Profile>) => {
     const next = await apiUpdateProfile(patch)
     setProfile(next)

@@ -164,6 +164,7 @@ def test_worker_result_endpoint_completes_task(test_db, client):
     assert next_task.json()["maxListings"] == 8
     assert next_task.json()["jobAge"] == "week"
     assert next_task.json()["maxJobAgeDays"] == 7
+    assert next_task.json()["agentMode"] == "cloud"
 
     response = client.post(
         f"/api/worker/tasks/{task_id}/result",
@@ -194,6 +195,11 @@ def test_wait_for_listings_polls_until_worker_posts_result(test_db, client, monk
 
     monkeypatch.setattr("backend.app.config.settings.browser_search_wait_timeout_seconds", 10)
     monkeypatch.setattr("backend.app.services.worker_store.time.sleep", lambda _: None)
+    # Avoid real Dashscope rewrite blocking past the wait timeout.
+    monkeypatch.setattr(
+        "backend.app.routes.worker.rewrite_listings",
+        lambda listings: listings,
+    )
 
     user = signup(client, "poll@example.com")
     login(client, "poll@example.com")

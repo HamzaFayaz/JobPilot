@@ -1,8 +1,13 @@
+import { useEffect } from 'react'
 import { GlobeAltIcon } from '@heroicons/react/24/outline'
 import {
+  DEFAULT_MAX_LISTINGS,
+  DEFAULT_SEARCH_COUNTRY,
+  MAX_SUPPORTED_LISTINGS,
   SEARCH_COUNTRIES,
   SEARCH_JOB_AGE_OPTIONS,
   SEARCH_MAX_LISTING_OPTIONS,
+  SEARCH_MAX_LISTING_UNSUPPORTED,
   SEARCH_WORK_MODE_OPTIONS,
   type SearchJobAge,
   type SearchWorkMode,
@@ -25,6 +30,25 @@ export function SearchPreferencesFields({
   const maxListings = profile.searchMaxListings
   const jobAge = profile.searchJobAge
 
+  // Launch scope: lock to Pakistan (migrate any older saved country).
+  useEffect(() => {
+    if (country !== DEFAULT_SEARCH_COUNTRY) {
+      onChange({ searchCountry: DEFAULT_SEARCH_COUNTRY })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- lock country once when mismatched
+  }, [country])
+
+  // Cap max jobs to what current server resources support.
+  useEffect(() => {
+    if (maxListings > MAX_SUPPORTED_LISTINGS) {
+      onChange({ searchMaxListings: DEFAULT_MAX_LISTINGS })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- clamp once when over cap
+  }, [maxListings])
+
+  const selectMaxListings =
+    maxListings > MAX_SUPPORTED_LISTINGS ? DEFAULT_MAX_LISTINGS : maxListings
+
   return (
     <div className={compact ? 'space-y-5' : 'space-y-6'}>
       <div>
@@ -38,11 +62,11 @@ export function SearchPreferencesFields({
           />
           <select
             id="search-country"
-            value={country}
-            onChange={(e) => onChange({ searchCountry: e.target.value || null })}
-            className="w-full cursor-pointer rounded-lg border border-border bg-surface py-3 pl-10 pr-3 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:text-sm"
+            value={DEFAULT_SEARCH_COUNTRY}
+            disabled
+            aria-readonly="true"
+            className="w-full cursor-not-allowed rounded-lg border border-border bg-background py-3 pl-10 pr-3 text-base text-text-primary opacity-90 focus-visible:outline-none sm:text-sm"
           >
-            <option value="">Select one country</option>
             {SEARCH_COUNTRIES.map((item) => (
               <option key={item} value={item}>
                 {item}
@@ -51,7 +75,7 @@ export function SearchPreferencesFields({
           </select>
         </div>
         <p className="mt-1 text-xs text-text-secondary">
-          One country per search to keep results fast and focused.
+          Pakistan only for now. More countries coming soon.
         </p>
       </div>
 
@@ -88,7 +112,7 @@ export function SearchPreferencesFields({
           </label>
           <select
             id="search-max-listings"
-            value={maxListings}
+            value={selectMaxListings}
             onChange={(e) => onChange({ searchMaxListings: Number(e.target.value) })}
             className="w-full cursor-pointer rounded-lg border border-border bg-surface px-3 py-3 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:text-sm"
           >
@@ -97,7 +121,15 @@ export function SearchPreferencesFields({
                 {value} jobs
               </option>
             ))}
+            {SEARCH_MAX_LISTING_UNSUPPORTED.map((value) => (
+              <option key={value} value={value} disabled>
+                {value} jobs — not supported on current server resources
+              </option>
+            ))}
           </select>
+          <p className="mt-1 text-xs text-text-secondary">
+            Up to {MAX_SUPPORTED_LISTINGS} jobs per search on current hardware.
+          </p>
         </div>
 
         <div>

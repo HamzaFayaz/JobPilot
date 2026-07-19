@@ -86,8 +86,14 @@ class Settings(BaseSettings):
     data_encryption_key: str = ""
 
     # Search Helper / ECS orchestration (system settings — not user search prefs)
-    browser_search_wait_timeout_seconds: int = 120
+    # ReAct search (esp. LinkedIn Posts) routinely exceeds 2 minutes.
+    browser_search_wait_timeout_seconds: int = 900
     worker_heartbeat_stale_seconds: int = 60
+    # local = worker runs Qwen ReAct; cloud = backend runs ReAct, worker is WebBridge executor
+    browser_agent_mode: str = "cloud"
+    browser_agent_max_steps: int = 40
+    browser_agent_save_snapshots: bool = False
+    browser_agent_snapshot_max_chars: int = 12000
 
     # Paths
     data_dir: Path = ROOT / "data"
@@ -165,6 +171,28 @@ class Settings(BaseSettings):
         if self.application_fit_threshold_override is not None:
             return self.application_fit_threshold_override
         return int(self.llm_config.get("application", {}).get("fit_threshold", 60))
+
+    @property
+    def tailor_cv_model(self) -> str:
+        return self.llm_config.get("tailor_cv", {}).get(
+            "model", self.application_model
+        )
+
+    @property
+    def tailor_cv_temperature(self) -> float:
+        return float(self.llm_config.get("tailor_cv", {}).get("temperature", 0.2))
+
+    @property
+    def tailor_cv_enable_thinking(self) -> bool:
+        return bool(
+            self.llm_config.get("tailor_cv", {}).get("enable_thinking", False)
+        )
+
+    @property
+    def tailor_cv_prompt_version(self) -> str:
+        return self.llm_config.get("tailor_cv", {}).get(
+            "prompt_version", "tailor_cv_v1"
+        )
 
     @property
     def requirement_extraction_model(self) -> str:

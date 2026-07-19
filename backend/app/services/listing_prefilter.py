@@ -170,13 +170,17 @@ def normalize_raw_listing(raw: RawJobListing) -> JobListing | None:
     if not url:
         url = synthetic_post_url(company, title, description)
 
-    return JobListing(
-        title=title,
-        company=company,
-        url=url,
-        platform=raw.source_platform,
-        description_text=description,
-    )
+    display = (raw.display_description_text or "").strip()
+    listing: JobListing = {
+        "title": title,
+        "company": company,
+        "url": url,
+        "platform": raw.source_platform,
+        "description_text": description,
+    }
+    if display:
+        listing["display_description_text"] = display
+    return listing
 
 
 def dedupe_listings(listings: list[JobListing]) -> list[JobListing]:

@@ -11,6 +11,8 @@ function normalize(profile: Partial<Profile>): Profile {
     ...EMPTY_PROFILE,
     ...profile,
     skills: profile.skills ?? [],
+    skillsExtractionStatus: profile.skillsExtractionStatus ?? 'idle',
+    projectsIndexingStatus: profile.projectsIndexingStatus ?? 'idle',
     targetRoles: profile.targetRoles ?? [],
     searchRole: profile.searchRole ?? null,
     searchPlatform: profile.searchPlatform ?? 'linkedin',

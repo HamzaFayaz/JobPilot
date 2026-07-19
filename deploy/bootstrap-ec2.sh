@@ -22,7 +22,7 @@ DEPLOY_USER="${SUDO_USER:-$(whoami)}"
 sudo usermod -aG docker "$DEPLOY_USER"
 
 echo "==> Preparing application directory..."
-sudo mkdir -p "$APP_DIR/data/uploads"
+sudo mkdir -p "$APP_DIR/data/uploads" "$APP_DIR/static/downloads"
 sudo chown -R "$DEPLOY_USER:$DEPLOY_USER" "$APP_DIR"
 
 if [ ! -f "$APP_DIR/.env" ]; then

@@ -45,6 +45,13 @@ server {
         proxy_pass http://api:8000;
     }
 
+    location /downloads/ {
+        alias /var/www/downloads/;
+        autoindex off;
+        default_type application/octet-stream;
+        add_header Cache-Control "public, max-age=300";
+    }
+
     location / {
         try_files $uri $uri/ /index.html;
     }

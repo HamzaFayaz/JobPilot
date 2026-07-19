@@ -9,6 +9,9 @@ WorkMode = Literal["remote", "onsite", "both"]
 JobAge = Literal["24h", "week", "month"]
 
 
+AgentMode = Literal["local", "cloud"]
+
+
 class WorkerTask(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="ignore")
 
@@ -22,6 +25,7 @@ class WorkerTask(BaseModel):
     job_age: JobAge = Field(alias="jobAge")
     max_job_age_days: int = Field(alias="maxJobAgeDays")
     skills_summary: str = Field(alias="skillsSummary")
+    agent_mode: AgentMode = Field(default="cloud", alias="agentMode")
 
 
 class RawJobListing(BaseModel):

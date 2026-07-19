@@ -24,6 +24,13 @@ application:
   repair_retries: 1
   fit_threshold: 60
 
+tailor_cv:
+  model: qwen3.7-max-2026-06-08
+  temperature: 0.2
+  enable_thinking: false
+  response_format: json_object
+  prompt_version: tailor_cv_v1
+
 requirement_extraction:
   model: qwen3.7-max-2026-06-08
   temperature: 0

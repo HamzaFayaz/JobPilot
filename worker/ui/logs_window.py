@@ -33,6 +33,9 @@ class LogWindow(QMainWindow):
     def set_content(self, text: str) -> None:
         self._view.setPlainText(text)
 
+    def clear(self) -> None:
+        self._view.clear()
+
     def append_line(self, line: str) -> None:
         self._view.appendPlainText(line)
         bar = self._view.verticalScrollBar()

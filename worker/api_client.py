@@ -90,3 +90,45 @@ class JobPilotWorkerClient:
             f"/api/worker/tasks/{task_id}/fail",
             json={"error": error, "code": code},
         )
+
+    def attach_cloud_agent(self, task_id: str) -> dict[str, Any]:
+        response = self._request("POST", f"/api/worker/tasks/{task_id}/agent/attach")
+        return response.json() if response.content else {"ok": True}
+
+    def poll_agent_command(
+        self,
+        task_id: str,
+        *,
+        timeout_seconds: float = 25.0,
+    ) -> dict[str, Any] | None:
+        # Long-poll: do not retry timeouts — idle is a normal outcome.
+        try:
+            with self._client() as client:
+                response = client.request(
+                    "GET",
+                    f"/api/worker/tasks/{task_id}/agent/next",
+                    params={"timeout": timeout_seconds},
+                    timeout=timeout_seconds + 10.0,
+                )
+                response.raise_for_status()
+        except _RETRYABLE as exc:
+            logger.warning("Agent command poll failed (%s) — treating as idle", exc)
+            return None
+        if response.status_code == 204 or not response.content:
+            return None
+        data = response.json()
+        return data if data else None
+
+    def post_agent_tool_result(
+        self,
+        task_id: str,
+        *,
+        call_id: str,
+        result: Any,
+    ) -> None:
+        self._request(
+            "POST",
+            f"/api/worker/tasks/{task_id}/agent/tool-result",
+            json={"callId": call_id, "result": result},
+            timeout=60.0,
+        )

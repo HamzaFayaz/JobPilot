@@ -1,8 +1,7 @@
-"""Lightweight LinkedIn post listing rewrite — not part of the LangGraph orchestrator.
+"""Lightweight LinkedIn post listing display formatter — not part of LangGraph.
 
-Cleans messy WebBridge a11y dumps into title / company / description and an
-apply hint (email, link, WhatsApp, LinkedIn DM, or none). Failures fall back
-to the original listing.
+Formats messy WebBridge a11y dumps for the Applications UI only.
+Keeps description_text (raw JD) unchanged for analysis / retrieval.
 """
 
 from __future__ import annotations
@@ -21,10 +20,11 @@ logger = logging.getLogger(__name__)
 
 ApplyMethod = Literal["email", "url", "whatsapp", "linkedin_dm", "none"]
 
-_REWRITE_SYSTEM = """You clean LinkedIn hiring POST listings scraped from an accessibility tree.
+_REWRITE_SYSTEM = """You format LinkedIn hiring POST listings for display only.
 
-The raw text is messy: author profile chrome ("Premium Profile 2nd"), headlines,
-"Follow", reaction counts, and duplicated names are mixed into the body.
+The input is a messy accessibility-tree dump (Premium Profile, Follow, reaction
+counts, duplicated names mixed into the body). Your job is FORMAT + APPLY HINTS —
+not to rewrite, summarize, or judge what matters.
 
 Return ONLY valid JSON:
 {
@@ -33,23 +33,27 @@ Return ONLY valid JSON:
       "index": 0,
       "title": "real job title only",
       "company": "employer or hiring org (not author connection degree)",
-      "description": "clean readable post body — role, requirements, location, pay if present. No reaction counts, no Follow buttons, no Premium Profile chrome.",
-      "apply_method": "email" | "url" | "whatsapp" | "linkedin_dm" | "none",
-      "apply_value": "email address, URL, phone, or poster name to search — empty string if none",
-      "apply_note": "one short sentence telling the user how to apply"
+      "description": "same post content, cleaned of UI chrome only — keep ALL role facts, requirements, location, pay, tech, and instructions that appear in the post",
+      "apply_method": "email" | "url" | "whatsapp" | "linkedin_dm",
+      "apply_value": "exact email, exact URL, exact phone, or poster name for DM search",
+      "apply_note": "one short sentence on how to apply"
     }
   ]
 }
 
-Rules:
-- Prefer real role titles (e.g. Senior AI Engineer) over poster names.
-- company = employer brand when known; else the poster/person name without '2nd'/'Premium Profile'.
-- If the post says DM / message me / comment: apply_method=linkedin_dm and apply_value=poster name.
-- If email present: apply_method=email.
-- If apply/JD http(s) link present: apply_method=url (prefer apply over JD when both).
-- If WhatsApp present: apply_method=whatsapp.
-- If nothing: apply_method=none, apply_note explains to search the poster/company on LinkedIn.
-- Do not invent emails, links, or companies. Keep facts from the post only.
+Hard rules:
+- SAME content: do not drop requirements, skills, tenure, location, or other facts.
+- Do not decide importance. Do not invent or improve the JD.
+- Strip only UI chrome: Follow, reactions, Premium Profile, connection degree, duplicated nav noise.
+- title = real role title when present; else best title from the post (not "Verified Profile 2nd").
+- company = employer brand when known; else poster name without Premium/2nd chrome.
+- Apply extraction (use what is EXPLICITLY in the post only):
+  - email → apply_method=email, apply_value=that email
+  - http(s) apply/JD/form link (Google Form, careers page, etc.) → apply_method=url, apply_value=that exact URL
+  - WhatsApp / wa.me / phone for WhatsApp → apply_method=whatsapp
+  - DM / message me / comment to apply → apply_method=linkedin_dm, apply_value=poster name
+- NEVER invent emails, phone numbers, or URLs. Never fabricate a LinkedIn job URL or any link not in the post.
+- If none of email / url / whatsapp / explicit DM apply are present: apply_method=linkedin_dm and apply_value=poster name so the user can search that person on LinkedIn and apply themselves.
 - Keep one listing per input index. Same order.
 """
 
@@ -94,11 +98,12 @@ def format_apply_header(
         line = f"WhatsApp: {value}"
     elif method == "linkedin_dm":
         who = value or "the poster"
-        line = f"DM on LinkedIn — search “{who}”"
+        line = f"DM on LinkedIn — search “{who}” and apply yourself"
     else:
+        who = value or "the poster"
         line = (
             note
-            or "No apply info in this post — search the poster or company on LinkedIn."
+            or f"No email/link/WhatsApp in this post — search “{who}” on LinkedIn and DM to apply."
         )
 
     if note and method != "none" and note.lower() not in line.lower():
@@ -121,20 +126,42 @@ def _should_rewrite(listing: RawJobListing) -> bool:
     return bool(listing.description_text.strip())
 
 
+def _poster_fallback_name(listing: RawJobListing, item: dict[str, Any]) -> str:
+    company = str(item.get("company") or listing.company or "").strip()
+    if company and "premium" not in company.lower() and "2nd" not in company.lower():
+        return company
+    title = str(item.get("title") or listing.title or "").strip()
+    return title or "the poster"
+
+
 def _apply_rewrite(
     listing: RawJobListing,
     item: dict[str, Any],
 ) -> RawJobListing:
+    """Keep raw description_text; set display_description_text for UI only."""
+    raw_description = listing.description_text
     title = str(item.get("title") or listing.title).strip() or listing.title
     company = str(item.get("company") or listing.company).strip() or listing.company
-    body = str(item.get("description") or listing.description_text).strip()
+    body = str(item.get("description") or raw_description).strip()
     apply_method = str(item.get("apply_method") or "none").strip().lower()
     apply_value = str(item.get("apply_value") or "").strip()
     apply_note = str(item.get("apply_note") or "").strip()
     if apply_method not in {"email", "url", "whatsapp", "linkedin_dm", "none"}:
         apply_method = "none"
 
-    description = _compose_description(
+    # No inventable contact → DM / search the poster (same as linkedin_dm).
+    if apply_method == "none" or (
+        apply_method in {"email", "url", "whatsapp"} and not apply_value
+    ):
+        apply_method = "linkedin_dm"
+        if not apply_value:
+            apply_value = _poster_fallback_name(listing, item)
+        if not apply_note:
+            apply_note = (
+                f"Search “{apply_value}” on LinkedIn and message them to apply."
+            )
+
+    display = _compose_description(
         body,
         format_apply_header(
             apply_method=apply_method,
@@ -146,13 +173,14 @@ def _apply_rewrite(
         update={
             "title": title,
             "company": company,
-            "description_text": description,
+            "description_text": raw_description,
+            "display_description_text": display,
         }
     )
 
 
 def rewrite_listings(listings: list[RawJobListing]) -> list[RawJobListing]:
-    """Rewrite messy post listings with a normal Qwen call. Best-effort."""
+    """Format LinkedIn posts for UI; leave raw description_text for analysis."""
     if not listings:
         return listings
     if not settings.dashscope_api_key:
@@ -209,7 +237,7 @@ def rewrite_listings(listings: list[RawJobListing]) -> list[RawJobListing]:
             if item:
                 rewritten[index] = _apply_rewrite(listing, item)
         logger.info(
-            "listing rewrite applied to %s/%s LinkedIn listing(s)",
+            "listing display format applied to %s/%s LinkedIn listing(s)",
             sum(1 for index, _ in targets if index in by_index),
             len(targets),
         )

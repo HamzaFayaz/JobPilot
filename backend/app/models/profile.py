@@ -17,6 +17,7 @@ from backend.app.models.search_prefs import (
 )
 
 SkillsExtractionStatus = Literal["idle", "pending", "ready", "failed"]
+ProjectsIndexingStatus = Literal["idle", "pending", "ready", "failed"]
 ProjectSource = Literal["manual", "github"]
 
 # Max README bytes stored per GitHub project (server-side only).
@@ -75,6 +76,9 @@ class ProfileResponse(BaseModel):
     skills: list[str] = []
     skills_extraction_status: SkillsExtractionStatus = Field(
         "idle", alias="skillsExtractionStatus"
+    )
+    projects_indexing_status: ProjectsIndexingStatus = Field(
+        "idle", alias="projectsIndexingStatus"
     )
     target_roles: list[str] = Field(default_factory=list, alias="targetRoles")
     search_role: str | None = Field(None, alias="searchRole")

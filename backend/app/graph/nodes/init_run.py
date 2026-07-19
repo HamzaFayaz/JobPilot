@@ -49,6 +49,9 @@ def _validate_profile(user_id: int) -> tuple[ProfileState | None, str | None]:
     if not profile.projects:
         return None, "At least one project is required before starting a search."
 
+    if profile.projects_indexing_status == "pending":
+        return None, "Projects are still being prepared. Please wait a few minutes."
+
     profile_state = ProfileState(
         cv_text=cv_text,
         skills=list(profile.skills),

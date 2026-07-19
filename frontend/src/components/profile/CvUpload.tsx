@@ -1,5 +1,10 @@
-import { ArrowUpTrayIcon, DocumentTextIcon } from '@heroicons/react/24/outline'
+import {
+  ArrowDownTrayIcon,
+  ArrowUpTrayIcon,
+  DocumentTextIcon,
+} from '@heroicons/react/24/outline'
 import { useRef, useState, type DragEvent } from 'react'
+import { DOWNLOADS } from '../../constants/downloads'
 import { useProfile } from '../../context/ProfileContext'
 
 const DOCX_MIME =
@@ -44,6 +49,31 @@ export function CvUpload() {
         <h3 className="text-base font-semibold text-text-primary">CV &amp; Resume</h3>
       </div>
 
+      <div className="mb-4 rounded-lg border border-border bg-background/60 px-4 py-3">
+        <p className="text-sm font-medium text-text-primary">Supported CV template</p>
+        <p className="mt-1 text-xs text-text-secondary">
+          Suggested CV editing works best with this layout. Preview the PDF, or download the
+          .docx to fill and upload.
+        </p>
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <a
+            href={DOWNLOADS.cvTemplateDocx}
+            className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors duration-200 hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          >
+            <ArrowDownTrayIcon className="h-4 w-4" aria-hidden="true" />
+            Download .docx template
+          </a>
+          <a
+            href={DOWNLOADS.cvTemplatePdf}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-primary px-4 py-2 text-sm font-semibold text-primary transition-colors duration-200 hover:bg-chip-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          >
+            Preview PDF layout
+          </a>
+        </div>
+      </div>
+
       <div
         role="button"
         tabIndex={0}
@@ -73,7 +103,10 @@ export function CvUpload() {
             <p className="text-sm text-text-secondary">
               Drag and drop or click to upload your CV
             </p>
-            <p className="mt-1 text-xs text-text-secondary">.docx only</p>
+            <p className="mt-1 text-xs text-text-secondary">
+              .docx only · Best results: clear Projects section, each project title + bullets,
+              then Skills
+            </p>
           </>
         )}
       </div>

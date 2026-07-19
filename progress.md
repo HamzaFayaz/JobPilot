@@ -7,7 +7,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 
 **Build plans:** [`.agent/plans/`](.agent/plans/) — naming: `jobpilot_<domain>_<scope>_plan.md`
 
-> **Current focus:** Application **analysis** is done (scores + keep/swap plans, Run 3 ~79/100). **Next backend:** **create Suggested CV** from those plans (not a separate CV Tailor / DOCX workflow). **Next frontend:** per-job application progress UI (`04-run-progress/`). Start at **[`currently-working-feature.md`](currently-working-feature.md)**. Worker search logic stays **frozen**.
+> **Current focus:** Suggested CV (`tailor_cv`) is **shipped** — see [`.agent/plans/jobpilot_suggested_cv_tailor_plan.md`](.agent/plans/jobpilot_suggested_cv_tailor_plan.md). **Gmail/send cancelled.** Worker search logic stays **frozen**; WebBridge versions locked.
 
 ---
 
@@ -30,8 +30,8 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | **2 — Data & auth** | Single-user profile + GitHub OAuth (MVP) | `[x]` |
 | **2b — Multi-user auth** | Login, signup, per-user profiles + tokens | `[x]` |
 | **3 — Backend core** | FastAPI profile API, CV upload, GitHub import | `[x]` |
-| **4 — Agents** | LangGraph search + per-job application sub-agents | `[x]` analysis · `[ ]` Suggested CV · `[o]` application UI |
-| **5 — HITL flow** | Job detail, send, applications memory | `[ ]` (CV Tailor / edit-cv **not needed**) |
+| **4 — Agents** | LangGraph search + per-job application analysis | `[x]` |
+| **5 — HITL flow** | Applications inbox + decisions | `[x]` · **Suggested CV** `[x]` · Send **cancelled** |
 | **6 — Deploy** | Alibaba ECS (public IP) | `[x]` |
 
 ---
@@ -45,11 +45,14 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | [`jobpilot_backend_profile_api_plan.md`](.agent/plans/jobpilot_backend_profile_api_plan.md) | FastAPI + SQLite + CV/GitHub (single-user MVP) | `[x]` |
 | [`jobpilot_multi_user_auth_plan.md`](.agent/plans/jobpilot_multi_user_auth_plan.md) | Login, signup, per-user profiles + encryption | `[x]` |
 | [`jobpilot_phase2_recall_phase3_llm_authority_plan.md`](.agent/plans/jobpilot_phase2_recall_phase3_llm_authority_plan.md) | Retrieval recall + LLM-authority application | `[x]` Run 3 baseline |
-| [`browser-provider-abstraction.md`](System%20Design/browser-provider-abstraction.md) | Kimi WebBridge provider layer + worker protocol | `[x]` spec |
-| [`kimi-webbridge-provider.md`](System%20Design/kimi-webbridge-provider.md) | WebBridge setup, API, migration from Browser-Use | `[x]` spec |
+| [`cloud-browser-agent.md`](System%20Design/cloud-browser-agent.md) | Cloud Qwen ReAct; Helper = WebBridge executor | `[x]` |
+| [`browser-provider-abstraction.md`](System%20Design/browser-provider-abstraction.md) | Kimi WebBridge provider layer + worker protocol | `[x]` |
+| [`kimi-webbridge-provider.md`](System%20Design/kimi-webbridge-provider.md) | WebBridge setup, API, version lock | `[x]` |
+| [`enrich-job-to-cv-tailoring-handoff.md`](docs/discussion/enrich-job-to-cv-tailoring-handoff.md) | Analysis ↔ suggested CV boundary | `[x]` design |
+| [`jobpilot_suggested_cv_tailor_plan.md`](.agent/plans/jobpilot_suggested_cv_tailor_plan.md) | Suggested CV (`tailor_cv`) build — locked agreements | `[x]` shipped |
 | [`jobpilot-agent-build-guide.md`](System%20Design/jobpilot-agent-build-guide.md) | LangGraph + Search Helper build phases | `[x]` spec |
 
-**Active implementation:** **Suggested CV** creation (backend), then per-job application **UI**. Graph: [`orchestrator.py`](backend/app/graph/orchestrator.py). Tracking: [`currently-working-feature.md`](currently-working-feature.md).
+**Active implementation:** Suggested CV shipped. Tracking: [`currently-working-feature.md`](currently-working-feature.md).
 
 ---
 
@@ -62,31 +65,32 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | Stitch project + 8 desktop screens | `[x]` |
 | `.stitch/DESIGN.md` design tokens | `[x]` |
 | `frontend/UI Design/` exports (PNG + HTML) | `[x]` |
-| Frontend screens 1–3 shipped | `[x]` |
-| Unlock screen 4 for application progress | `[o]` |
+| Frontend screens 1–3 + Applications | `[x]` |
+| Tailored CV preview / download UI | `[x]` |
 | Responsive web UI rules documented | `[x]` |
 | ui-ux-pro-max skill installed (`.cursor/skills/`) | `[x]` |
 | `design-system/MASTER.md` (Stitch overrides) | `[x]` |
 
-### Frontend — Welcome, Profile, Search
+### Frontend — Welcome, Profile, Search, Applications
 
 | Screen | Route | Status |
 |--------|-------|--------|
 | Welcome / setup gate | `/` | `[x]` |
 | Profile setup | `/profile` | `[x]` |
 | New search | `/search` | `[x]` |
-| Run / application progress (per-job cards) | `/search` or `/runs/:runId` | `[o]` **next** — ref `UI Design/04-run-progress/` |
+| Applications inbox (list + detail + decisions) | `/applications` | `[x]` |
+| Settings (Search Helper pair + skills/projects) | `/settings` | `[x]` |
+| Tailored CV generate / preview / download | job detail / Applications | `[x]` |
 
 | Foundation | Status |
 |------------|--------|
 | Vite + React + TypeScript + Tailwind (locked) | `[x]` |
 | AppShell: sidebar desktop + drawer mobile | `[x]` |
-| Nav: Profile, Search, Applications†, Settings† (†disabled) | `[x]` |
-| Heroicons; brand **JobPilot** | `[x]` |
-| Profile store + gate rules | `[x]` |
-| CV `.docx` upload → API; skills read-only from LLM | `[x]` |
-| GitHub OAuth + repo import | `[x]` |
-| Gmail OAuth (UI + send) | `[x]` cancelled |
+| Nav: Profile, Search, Applications, Settings | `[x]` |
+| Profile store + gate; CV upload; GitHub import | `[x]` |
+| Background GitHub import + Search “preparing” wait | `[x]` |
+| Per-user `runNumber` display | `[x]` |
+| Gmail OAuth (UI + send) | `[ ]` **cancelled** |
 | API layer (fetch → FastAPI) | `[x]` |
 
 → Task-level detail: [`frontend/progress.md`](frontend/progress.md)
@@ -95,61 +99,63 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 
 | Item | Status | Notes |
 |------|--------|--------|
-| Profile schema + SQLite MVP | `[x]` | |
-| `GET/PUT /api/profile`, `POST /api/profile/cv` | `[x]` | |
-| GitHub OAuth + repo import + evidence index | `[x]` | |
-| Multi-user auth | `[x]` | |
-| `search_runs` / `job_packages` | `[x]` | Live |
-| `POST /search` + polling | `[x]` | Graph + worker + application fan-out |
+| Profile schema + SQLite + multi-user | `[x]` | |
+| GitHub import + evidence + **background** indexing status | `[x]` | Projects hidden until ready |
+| Dual JD (`description_text` raw + `display_description_text`) | `[x]` | Analysis uses raw |
+| Listing rewrite (format + apply hints) | `[x]` | |
+| `search_runs` / `job_packages` + decisions | `[x]` | |
+| Cloud browser agent (`backend/app/services/browser_agent/`) | `[x]` | Server Dashscope |
+| Worker thin executor (cloud) + local fallback | `[x]` | |
+| Per-user `runNumber` on run APIs | `[x]` | Global `id` unchanged |
+| **Tailored CV** API + draft storage | `[x]` | |
 
 ### Integrations
 
 | Integration | Purpose | Status |
 |-------------|---------|--------|
 | **GitHub** | Auto-import repos | `[x]` |
-| **Gmail** | Email send | `[x]` cancelled |
+| **Gmail** | Email send | `[ ]` **cancelled** |
 | **LinkedIn / Indeed** | Job search | `[x]` LinkedIn Posts · `[ ]` Indeed / LinkedIn Jobs deferred |
+| **Kimi WebBridge** | Browser tools | `[x]` locked daemon `v1.10.0` + ext `1.11.3` |
 
 ### Agents & orchestration
 
 | Item | Status |
 |------|--------|
 | Search subgraph + Search Helper | `[x]` |
+| Cloud ReAct on backend (default) | `[x]` |
 | `prefilter` → `matched_jobs` | `[x]` |
-| Fan-out (`Send` × N application subgraph) | `[x]` parallel per job |
-| Application analysis (`enrich_job` → `classify_fit` → `package_out`) | `[x]` Max + `enrich_job_v4` — scores + keep/swap plans |
-| **Suggested CV** creation (from swap plans) | `[ ]` **next backend** |
-| CV Tailor (full DOCX / edit-cv HITL) | `[x]` cancelled — **not needed** |
+| Fan-out application subgraph | `[x]` |
+| Application analysis (`enrich_job` → `classify_fit` → `package_out`) | `[x]` scores + keep/swap **plans** |
+| **Tailored CV** (`tailor_cv` — user-triggered, not in graph) | `[x]` |
 | `persist` (finalize run) | `[x]` |
-| Application-agent **UI** (per-job live cards) | `[o]` next frontend |
 | Run 3 accuracy baseline | `[x]` ~79/100 — [`evals/system/`](evals/system/) |
 
-**Worker → graph path:** listings → prefilter → **parallel** application subgraphs → packages → **`persist`**. Suggested CV still missing after analysis.
+**Worker → graph path:** listings → prefilter → **parallel** application subgraphs → packages → **`persist`**.  
+**Missing:** generate layout-preserving draft CV from approved swap plans.
 
 ### Post-flow validation
 
-Analysis → package path works. **Suggested CV** is the remaining application-backend gap. Retrieve/rerank noise reduction is optional backlog ([`optimization/system-accuracy-improvements.md`](optimization/system-accuracy-improvements.md)).
+Analysis → Applications → **Suggested CV download** path works. Gmail/send cancelled. Optional accuracy backlog: [`optimization/system-accuracy-improvements.md`](optimization/system-accuracy-improvements.md).
 
 ### Documentation
 
 | Doc | Status |
 |-----|--------|
-| System Design core docs | `[x]` |
+| System Design core + cloud browser agent | `[x]` |
+| CV tailoring handoff | `[x]` design — implement next |
 | `evals/system/` Run 3 accuracy | `[x]` |
 | `optimization/system-accuracy-improvements.md` | `[x]` backlog |
-| `System Design/JobPilot-Frontend-Design.md` | `[ ]` |
 
 ---
 
-## Deferred screens
+## Deferred screens / features
 
-| Screen | Route | Status |
-|--------|-------|--------|
-| Run in progress (per-job application cards) | `/runs/:runId` or enrich `/search` | `[o]` **unlock — next UI** |
-| Job results list | `/runs/:runId/jobs` | `[ ]` can merge with run progress |
-| Job detail HITL | `/jobs/:id` | `[ ]` locked |
-| Applications | `/applications` | `[ ]` locked |
-| Settings | `/settings` | `[ ]` locked |
+| Item | Status |
+|------|--------|
+| Tailored CV generate / preview / download | `[x]` |
+| Job detail HITL (send) | `[ ]` **cancelled** |
+| Indeed / LinkedIn Jobs platforms | `[ ]` |
 
 ---
 
@@ -167,10 +173,10 @@ Analysis → package path works. **Suggested CV** is the remaining application-b
 | Area | Complete | In progress | Not started |
 |------|----------|-------------|-------------|
 | Design | 7 | 0 | 0 |
-| Frontend web app | 13 | 1 (application progress UI) | HITL screens |
-| Backend & DB | 11 | 0 | 0 |
-| Agents | backend done | application UI | — |
-| Integrations | LinkedIn Posts | 0 | other platforms |
+| Frontend | Applications + Search + Settings + Suggested CV | 0 | Send cancelled |
+| Backend & DB | Search, analysis, cloud agent, import, suggested CV | 0 | — |
+| Agents | Search + application analysis + `tailor_cv` service | 0 | — |
+| Integrations | LinkedIn Posts + WebBridge | 0 | Gmail send |
 | Deploy | 5 | 0 | 0 |
 
 **Last updated:** 2026-07-18

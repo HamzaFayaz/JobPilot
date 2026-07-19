@@ -296,7 +296,11 @@ def build_task_payload(
     max_listings: int,
     job_age: JobAgePreset,
     skills_summary: str,
+    agent_mode: str | None = None,
 ) -> dict[str, Any]:
+    mode = (agent_mode or settings.browser_agent_mode or "cloud").strip().lower()
+    if mode not in ("local", "cloud"):
+        mode = "cloud"
     return {
         "taskId": task_id,
         "runId": run_id,
@@ -308,4 +312,5 @@ def build_task_payload(
         "jobAge": job_age,
         "maxJobAgeDays": job_age_to_days(job_age),
         "skillsSummary": skills_summary,
+        "agentMode": mode,
     }

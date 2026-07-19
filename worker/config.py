@@ -27,6 +27,8 @@ class WorkerSettings(BaseSettings):
     browser_provider: str = "webbridge"
     webbridge_url: str = "http://127.0.0.1:10086"
     poll_interval_seconds: float = 3.0
+    # cloud = thin WebBridge executor (no local Dashscope); local = legacy ReAct on PC
+    agent_mode: str = "cloud"
     agent_max_steps: int = 40
     save_snapshots: bool = True
     snapshot_dir: Path = DATA_DIR / "debug_snapshots"

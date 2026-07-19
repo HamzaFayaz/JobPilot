@@ -9,11 +9,13 @@ export type JobDecision = 'applied' | 'skipped'
 
 export interface SearchStartResponse {
   runId: number
+  runNumber: number
   status: RunStatus
 }
 
 export interface SearchRunStatusResponse {
   runId: number
+  runNumber: number
   status: RunStatus
   jobsReadyCount: number
   progress?: number | null
@@ -24,6 +26,7 @@ export interface ProjectDecisionView {
   slotIndex: number
   action: 'keep' | 'swap'
   currentProjectName: string
+  swapInProjectId: string | null
   swapInProjectName: string | null
   rationale: string
   impact: string | null
@@ -98,6 +101,42 @@ export async function setJobDecision(
   })
 }
 
+export interface SuggestedCvResponse {
+  draftId: number
+  filename: string
+  autoShortened: boolean
+  approvedSlotIndexes: number[]
+  downloadPath: string
+}
+
+export async function generateSuggestedCv(
+  jobId: number,
+  approvedSlotIndexes: number[],
+): Promise<SuggestedCvResponse> {
+  return apiFetch<SuggestedCvResponse>(`/api/jobs/${jobId}/suggested-cv`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ approvedSlotIndexes }),
+  })
+}
+
+export async function getLatestSuggestedCv(
+  jobId: number,
+): Promise<SuggestedCvResponse | null> {
+  try {
+    return await apiFetch<SuggestedCvResponse>(
+      `/api/jobs/${jobId}/suggested-cv/latest`,
+    )
+  } catch {
+    return null
+  }
+}
+
+export function suggestedCvDownloadUrl(downloadPath: string): string {
+  const base = import.meta.env.VITE_API_BASE ?? ''
+  return `${base}${downloadPath}`
+}
+
 export function extractProjectDecisions(job: JobPackage): ProjectDecisionView[] {
   const analysis = job.analysis ?? {}
   const classified =
@@ -115,6 +154,8 @@ export function extractProjectDecisions(job: JobPackage): ProjectDecisionView[] 
         slotIndex: Number(row.slot_index ?? 0),
         action,
         currentProjectName: String(row.current_project_name ?? 'Project'),
+        swapInProjectId:
+          row.swap_in_project_id == null ? null : String(row.swap_in_project_id),
         swapInProjectName:
           row.swap_in_project_name == null ? null : String(row.swap_in_project_name),
         rationale: String(row.rationale ?? ''),

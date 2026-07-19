@@ -9,7 +9,7 @@ DEFAULT_WORK_MODE: WorkMode = "both"
 DEFAULT_JOB_AGE: JobAgePreset = "week"
 DEFAULT_MAX_LISTINGS = 8
 MIN_MAX_LISTINGS = 1
-MAX_MAX_LISTINGS = 20
+MAX_MAX_LISTINGS = 8
 
 JOB_AGE_DAYS: dict[JobAgePreset, int] = {
     "24h": 1,

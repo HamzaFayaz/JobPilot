@@ -102,8 +102,14 @@ export function SearchPage() {
   ])
 
   useEffect(() => {
+    // Indeed is coming soon — keep searches on LinkedIn.
+    if (profile.searchPlatform === 'indeed') {
+      setPlatform('linkedin')
+      void updateProfile({ searchPlatform: 'linkedin' })
+      return
+    }
     setPlatform(profile.searchPlatform)
-  }, [profile.searchPlatform])
+  }, [profile.searchPlatform, updateProfile])
 
   useEffect(() => {
     if (!activeRunId || !runStatus) {
@@ -128,6 +134,24 @@ export function SearchPage() {
     return (
       <div className="flex min-h-[40vh] items-center justify-center text-sm text-text-secondary">
         Loading…
+      </div>
+    )
+  }
+
+  if (profile.projectsIndexingStatus === 'pending') {
+    return (
+      <div className="mx-auto max-w-lg space-y-4 rounded-xl border border-border bg-surface px-6 py-8 text-center shadow-sm">
+        <h1 className="text-xl font-bold text-text-primary">Preparing your profile</h1>
+        <p className="text-sm text-text-secondary">
+          The system is building project overviews and evidence. This can take a few minutes.
+          You can connect Search Helper in Settings while you wait.
+        </p>
+        <Link
+          to="/settings"
+          className="inline-flex min-h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover"
+        >
+          Open Settings
+        </Link>
       </div>
     )
   }
@@ -161,6 +185,9 @@ export function SearchPage() {
     jobs.some((job) => job.status === 'analyzing')
 
   const searchBlockers: string[] = []
+  if (profile.projectsIndexingStatus === 'pending') {
+    searchBlockers.push('Projects are still being prepared. Please wait a few minutes.')
+  }
   if (!profile.targetRoles.length) {
     searchBlockers.push('Add at least one target role on your profile.')
   }
@@ -211,7 +238,7 @@ export function SearchPage() {
                 const started = await startSearch()
                 setActiveRunId(started.runId)
                 await refreshRun(started.runId)
-                showToast(`Search run #${started.runId} started.`)
+                showToast(`Search run #${started.runNumber} started.`)
                 navigate('/applications')
               } catch (error: unknown) {
                 const message =
@@ -255,46 +282,47 @@ export function SearchPage() {
             <fieldset disabled={runActive}>
               <legend className="mb-2 text-sm font-semibold text-text-primary">Platform</legend>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {(
-                  [
-                    {
-                      id: 'linkedin' as const,
-                      label: 'LinkedIn',
-                      badge: 'in',
-                      color: 'bg-[#0A66C2]',
-                    },
-                    { id: 'indeed' as const, label: 'Indeed', badge: 'i', color: 'bg-[#2164f3]' },
-                  ] as const
-                ).map((item) => (
-                  <label
-                    key={item.id}
-                    className={`flex cursor-pointer items-center justify-between rounded-lg border p-4 transition-colors duration-200 ${
-                      platform === item.id
-                        ? 'border-primary bg-chip-bg/40'
-                        : 'border-border hover:border-primary/40'
-                    } ${runActive ? 'cursor-not-allowed opacity-60' : ''}`}
-                  >
-                    <span className="flex items-center gap-3">
-                      <span
-                        className={`flex h-8 w-8 items-center justify-center rounded text-sm font-bold text-white ${item.color}`}
-                      >
-                        {item.badge}
-                      </span>
-                      <span className="text-sm font-medium">{item.label}</span>
+                <label
+                  className={`flex cursor-pointer items-center justify-between rounded-lg border p-4 transition-colors duration-200 ${
+                    platform === 'linkedin'
+                      ? 'border-primary bg-chip-bg/40'
+                      : 'border-border hover:border-primary/40'
+                  } ${runActive ? 'cursor-not-allowed opacity-60' : ''}`}
+                >
+                  <span className="flex items-center gap-3">
+                    <span className="flex h-8 w-8 items-center justify-center rounded bg-[#0A66C2] text-sm font-bold text-white">
+                      in
                     </span>
-                    <input
-                      type="radio"
-                      name="platform"
-                      value={item.id}
-                      checked={platform === item.id}
-                      onChange={() => {
-                        setPlatform(item.id)
-                        void updateProfile({ searchPlatform: item.id })
-                      }}
-                      className="h-4 w-4 cursor-pointer accent-primary"
-                    />
-                  </label>
-                ))}
+                    <span className="text-sm font-medium">LinkedIn</span>
+                  </span>
+                  <input
+                    type="radio"
+                    name="platform"
+                    value="linkedin"
+                    checked={platform === 'linkedin'}
+                    onChange={() => {
+                      setPlatform('linkedin')
+                      void updateProfile({ searchPlatform: 'linkedin' })
+                    }}
+                    className="h-4 w-4 cursor-pointer accent-primary"
+                  />
+                </label>
+                <button
+                  type="button"
+                  disabled={runActive}
+                  onClick={() => showToast('Indeed — coming soon')}
+                  className={`flex items-center justify-between rounded-lg border border-border p-4 text-left transition-colors duration-200 hover:border-primary/40 disabled:cursor-not-allowed disabled:opacity-60`}
+                >
+                  <span className="flex items-center gap-3">
+                    <span className="flex h-8 w-8 items-center justify-center rounded bg-[#2164f3] text-sm font-bold text-white">
+                      i
+                    </span>
+                    <span className="text-sm font-medium">Indeed</span>
+                  </span>
+                  <span className="rounded-full bg-background px-2 py-0.5 text-[11px] font-semibold uppercase text-text-secondary">
+                    Coming soon
+                  </span>
+                </button>
               </div>
             </fieldset>
 
@@ -352,7 +380,9 @@ export function SearchPage() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="text-base font-semibold text-text-primary">Current run</h2>
-              <p className="mt-1 text-sm text-text-secondary">Run #{activeRunId}</p>
+              <p className="mt-1 text-sm text-text-secondary">
+                Run #{runStatus?.runNumber ?? activeRunId}
+              </p>
             </div>
             <Button type="button" variant="ghost" onClick={() => void refreshRun(activeRunId)}>
               Refresh

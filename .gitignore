@@ -46,3 +46,7 @@ ssh_keys/
 # Local agent handoff plans (not part of the app)
 .agent/plans/
 New UI design/
+
+# Server download artifacts (uploaded by Actions; not committed)
+static/downloads/*
+!static/downloads/.gitkeep

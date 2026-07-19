@@ -3,12 +3,16 @@ import { Link } from 'react-router-dom'
 import {
   extractFitMessage,
   extractProjectDecisions,
+  generateSuggestedCv,
+  getLatestSuggestedCv,
   getLatestRun,
   listJobs,
   setJobDecision,
+  suggestedCvDownloadUrl,
   type JobPackage,
   type JobPackageStatus,
   type SearchRunStatusResponse,
+  type SuggestedCvResponse,
 } from '../api/search'
 import { Button } from '../components/ui/Button'
 import { useProfile } from '../context/ProfileContext'
@@ -206,6 +210,76 @@ function JobDetailPanel({
   const decisions = extractProjectDecisions(job)
   const fitMessage = extractFitMessage(job)
   const analyzing = job.status === 'analyzing'
+  const swapSlots = decisions.filter((item) => item.action === 'swap')
+  const [approvedSlots, setApprovedSlots] = useState<number[]>([])
+  const [generating, setGenerating] = useState(false)
+  const [generateError, setGenerateError] = useState<string | null>(null)
+  const [draft, setDraft] = useState<SuggestedCvResponse | null>(null)
+
+  useEffect(() => {
+    const swaps = extractProjectDecisions(job)
+      .filter((item) => item.action === 'swap')
+      .map((item) => item.slotIndex)
+    setApprovedSlots(swaps)
+    setGenerateError(null)
+    setDraft(null)
+
+    // Restore download after refresh for ready/applied; skipped drafts are deleted.
+    if (job.id == null || job.status === 'skipped') return
+    let cancelled = false
+    void getLatestSuggestedCv(job.id).then((latest) => {
+      if (!cancelled && latest) setDraft(latest)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [job.id, job.status])
+
+  const toggleSlot = (slotIndex: number) => {
+    setApprovedSlots((current) =>
+      current.includes(slotIndex)
+        ? current.filter((value) => value !== slotIndex)
+        : [...current, slotIndex],
+    )
+  }
+
+  const onGenerate = async () => {
+    if (job.id == null || approvedSlots.length === 0) return
+    setGenerating(true)
+    setGenerateError(null)
+    try {
+      const result = await generateSuggestedCv(job.id, approvedSlots)
+      setDraft(result)
+    } catch (error: unknown) {
+      setGenerateError(
+        error instanceof Error ? error.message : 'Failed to generate suggested CV',
+      )
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  const onDownload = async () => {
+    if (!draft) return
+    try {
+      const res = await fetch(suggestedCvDownloadUrl(draft.downloadPath), {
+        credentials: 'include',
+      })
+      if (!res.ok) {
+        throw new Error((await res.text()) || 'Download failed')
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = draft.filename
+      anchor.click()
+      URL.revokeObjectURL(url)
+    } catch (error: unknown) {
+      setGenerateError(error instanceof Error ? error.message : 'Download failed')
+    }
+  }
+
   const { applyBlock, body } = splitPostDescription(job.descriptionText || '')
   const applyLines = (applyBlock || '')
     .split('\n')
@@ -327,6 +401,17 @@ function JobDetailPanel({
                   className="rounded-xl border border-border bg-surface px-4 py-3 shadow-sm"
                 >
                   <div className="flex flex-wrap items-center gap-2">
+                    {job.status === 'ready' && item.action === 'swap' ? (
+                      <label className="flex items-center gap-2 text-[11px] font-semibold uppercase text-text-secondary">
+                        <input
+                          type="checkbox"
+                          className="rounded border-border"
+                          checked={approvedSlots.includes(item.slotIndex)}
+                          onChange={() => toggleSlot(item.slotIndex)}
+                        />
+                        Include
+                      </label>
+                    ) : null}
                     <span
                       className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase ${
                         item.action === 'swap'
@@ -352,6 +437,55 @@ function JobDetailPanel({
                 </li>
               ))}
             </ul>
+
+            {job.status === 'ready' && swapSlots.length > 0 ? (
+              <div className="rounded-xl border border-border bg-background px-4 py-3">
+                <p className="text-sm text-text-secondary">
+                  Generate a suggested CV draft for approved swaps. Your uploaded CV stays unchanged.
+                </p>
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <Button
+                    type="button"
+                    disabled={
+                      busy ||
+                      generating ||
+                      job.id == null ||
+                      approvedSlots.length === 0 ||
+                      analyzing
+                    }
+                    onClick={() => void onGenerate()}
+                  >
+                    {generating ? 'Generating…' : 'Generate suggested CV'}
+                  </Button>
+                  {draft ? (
+                    <Button type="button" variant="secondary" onClick={() => void onDownload()}>
+                      Download suggested CV
+                    </Button>
+                  ) : null}
+                </div>
+                {draft?.autoShortened ? (
+                  <p className="mt-2 text-xs text-warning">
+                    Some lines were auto-shortened to fit your CV layout — review before using.
+                  </p>
+                ) : null}
+                {generateError ? (
+                  <p className="mt-2 text-sm text-error">{generateError}</p>
+                ) : null}
+              </div>
+            ) : null}
+          </section>
+        ) : null}
+
+        {job.status === 'applied' && draft ? (
+          <section className="rounded-xl border border-border bg-background px-4 py-3">
+            <p className="text-sm text-text-secondary">
+              Suggested CV from this application is saved for download.
+            </p>
+            <div className="mt-3">
+              <Button type="button" variant="secondary" onClick={() => void onDownload()}>
+                Download suggested CV
+              </Button>
+            </div>
           </section>
         ) : null}
       </div>
@@ -504,7 +638,7 @@ export function ApplicationsPage() {
           </div>
           {runStatus ? (
             <p className="text-xs text-text-secondary">
-              Run #{runStatus.runId} · {runStatus.status}
+              Run #{runStatus.runNumber} · {runStatus.status}
             </p>
           ) : null}
         </div>
