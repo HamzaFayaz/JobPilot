@@ -1,8 +1,10 @@
-# Alibaba Cloud — ECS Deploy (Active)
+# Alibaba Cloud - ECS Deploy (Active)
 
-**Status:** **Primary cloud target** — trial instance running (hackathon submission).  
+**Status:** **Live for hackathon submission** - Alibaba ECS public demo.  
 **Previous:** AWS EC2 proof-of-deploy → [`aws-ec2-deploy.md`](./aws-ec2-deploy.md)  
-**Last updated:** 2026-07-01  
+**Last updated:** 2026-07-19  
+**Live demo:** [http://47.237.150.6](http://47.237.150.6)  
+**Deploy automation:** [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml) (`Deploy to Alibaba ECS`) · [Actions runs](https://github.com/HamzaFayaz/JobPilot/actions)  
 **Hackathon requirement:** Agent backend on Alibaba Cloud ECS ([`jobpilot_prd.md`](../jobpilot_prd.md))
 
 ---
@@ -11,11 +13,11 @@
 
 | Phase | Platform | Status |
 |-------|----------|--------|
-| **Proof of deploy** | AWS EC2 | `[x]` Docker + GitHub Actions + DuckDNS |
-| **Active / submit** | **Alibaba ECS (this doc)** | `[o]` migrate host + OAuth + HTTPS |
+| **Early proof** | AWS EC2 | `[x]` retired path (see aws-ec2-deploy.md) |
+| **Active / submit** | **Alibaba ECS (this doc)** | `[x]` live EIP `47.237.150.6` · Docker Compose · GitHub Actions |
 | **Local dev** | `dev.cmd` | `[x]` unchanged |
 
-**Same stack on Alibaba:** Docker Compose (`web` + `api`), GitHub Actions rsync + deploy, SQLite on disk, DuckDNS domain.
+**Stack on Alibaba:** Docker Compose (`web` + `api`), GitHub Actions SSH/rsync + remote Docker rebuild, SQLite on ECS disk, public IP (no DuckDNS required for submit).
 
 ---
 
@@ -157,10 +159,10 @@ Gmail send is out of scope for LinkedIn/Indeed flows. Skip unless you add HTTPS 
 Written automatically from GitHub Secrets on deploy. Target values:
 
 ```env
-DOMAIN=43.98.197.132
-FRONTEND_URL=http://43.98.197.132
-GOOGLE_REDIRECT_URI=http://43.98.197.132/auth/google/callback
-GITHUB_REDIRECT_URI=http://43.98.197.132/auth/github/callback
+DOMAIN=47.237.150.6
+FRONTEND_URL=http://47.237.150.6
+GOOGLE_REDIRECT_URI=http://47.237.150.6/auth/google/callback
+GITHUB_REDIRECT_URI=http://47.237.150.6/auth/github/callback
 QWEN_BASE_URL=https://dashscope-intl.aliyuncs.com/compatible-mode/v1
 ```
 

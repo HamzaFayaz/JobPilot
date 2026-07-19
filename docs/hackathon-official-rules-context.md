@@ -87,7 +87,7 @@ JobPilot: DashScope OpenAI-compatible
 ## JobPilot packaging checklist
 
 - [x] GitHub **LICENSE** (MIT)  -  push so About detects it
-- [x] README: Track 4 + Qwen + Alibaba proof links ([README Hackathon](../README.md#hackathon))
+- [x] README: Track 4 + Qwen + Alibaba proof links (single [Hackathon](../README.md#hackathon) block at top)
 - [ ] Devpost: Track 4 selected
 - [ ] Description: features + **Qwen Cloud / DashScope compatible-mode** stated
 - [ ] Architecture diagram uploaded (export Mermaid from README to PNG)
