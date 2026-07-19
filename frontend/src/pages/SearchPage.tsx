@@ -102,7 +102,7 @@ export function SearchPage() {
   ])
 
   useEffect(() => {
-    // Indeed is coming soon — keep searches on LinkedIn.
+    // Indeed is coming soon. Keep searches on LinkedIn.
     if (profile.searchPlatform === 'indeed') {
       setPlatform('linkedin')
       void updateProfile({ searchPlatform: 'linkedin' })
@@ -161,7 +161,7 @@ export function SearchPage() {
       <div className="mx-auto max-w-lg space-y-4 rounded-xl border border-border bg-surface px-6 py-8 text-center shadow-sm">
         <h1 className="text-xl font-bold text-text-primary">Finish your profile first</h1>
         <p className="text-sm text-text-secondary">
-          Search needs a complete profile. Stay on this page URL — finish setup, then return here.
+          Search needs a complete profile. Stay on this page URL. Finish setup, then return here.
         </p>
         <Link
           to="/profile"
@@ -307,7 +307,7 @@ export function SearchPage() {
                 <button
                   type="button"
                   disabled={runActive}
-                  onClick={() => showToast('Indeed — coming soon')}
+                  onClick={() => showToast('Indeed: coming soon')}
                   className={`flex items-center justify-between rounded-lg border border-border p-4 text-left transition-colors duration-200 hover:border-primary/40 disabled:cursor-not-allowed disabled:opacity-60`}
                 >
                   <span className="flex items-center gap-3">

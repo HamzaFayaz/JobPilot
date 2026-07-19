@@ -34,7 +34,7 @@ export function ProfileDerivedStatus() {
   const projectsIndexing = profile.projectsIndexingStatus
   const projectsLabel = (() => {
     if (projectsIndexing === 'pending') {
-      return { text: 'Preparing projects — this can take a few minutes…', tone: 'pending' as const }
+      return { text: 'Preparing projects. This can take a few minutes…', tone: 'pending' as const }
     }
     if (projectsIndexing === 'failed') {
       return { text: 'Project import failed. Try importing again', tone: 'error' as const }

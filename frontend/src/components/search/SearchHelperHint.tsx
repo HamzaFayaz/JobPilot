@@ -5,7 +5,7 @@ import { getWorkerStatus, type BrowserHealth } from '../../api/worker'
 
 const WEBBRIDGE_INSTALL_URL = 'https://www.kimi.com/features/webbridge'
 const WEBBRIDGE_VERSION_NOTE =
-  'Locked: daemon v1.10.0 + extension 1.11.3 — do not auto-upgrade.'
+  'Locked: daemon v1.10.0 + extension 1.11.3. Do not auto-upgrade.'
 
 interface SearchHelperHintProps {
   onReadyChange?: (ready: boolean) => void
@@ -84,7 +84,7 @@ export function SearchHelperHint({ onReadyChange }: SearchHelperHintProps) {
       <div className="rounded-lg border border-warning/30 bg-hitl-bg/60 px-4 py-3 text-sm text-hitl-text">
         <p>
           Search Helper is connected but WebBridge is not ready
-          {browserHealth === 'not_installed' ? ' — open Chrome with the extension' : ''}.{' '}
+          {browserHealth === 'not_installed' ? '. Open Chrome with the extension' : ''}.{' '}
           <Link to="/settings" className="font-medium text-primary hover:underline">
             Check Settings
           </Link>
@@ -110,7 +110,7 @@ export function SearchHelperHint({ onReadyChange }: SearchHelperHintProps) {
 
   return (
     <div className="rounded-lg border border-success/30 bg-success/5 px-4 py-3 text-sm text-success">
-      Search Helper ready — WebBridge connected.
+      Search Helper ready. WebBridge connected.
     </div>
   )
 }

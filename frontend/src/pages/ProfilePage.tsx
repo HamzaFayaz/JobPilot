@@ -44,7 +44,7 @@ export function ProfilePage() {
         {gate.isComplete ? (
           <p className="mt-3 flex items-center gap-2 text-sm text-success">
             <CheckCircleIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
-            Profile complete — you can start searching.
+            Profile complete. You can start searching.
           </p>
         ) : (
           <ul className="mt-3 space-y-1 text-xs text-text-secondary">

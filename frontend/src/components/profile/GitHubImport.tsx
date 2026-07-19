@@ -92,7 +92,7 @@ export function GitHubImport() {
               ) : null}
               {indexingPending ? (
                 <p className="mt-1 text-sm font-medium text-warning">
-                  Preparing projects in the background — this can take a few minutes.
+                  Preparing projects in the background. This can take a few minutes.
                 </p>
               ) : null}
               {indexingFailed ? (

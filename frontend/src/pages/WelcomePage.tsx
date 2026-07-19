@@ -33,7 +33,7 @@ export function WelcomePage() {
     {
       key: 'cv',
       title: 'Upload CV',
-      description: '.docx only — skills are extracted automatically.',
+      description: '.docx only. Skills are extracted automatically.',
       done: gate.hasCv,
       icon: ArrowUpTrayIcon,
     },

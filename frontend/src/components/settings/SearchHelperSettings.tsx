@@ -17,15 +17,15 @@ import { DOWNLOADS, SUPPORT_EMAIL } from '../../constants/downloads'
 import { Button } from '../ui/Button'
 
 const WEBBRIDGE_INSTALL_URL = 'https://www.kimi.com/features/webbridge'
-/** Locked pair for JobPilot LinkedIn Posts — do not casually upgrade. */
+/** Locked pair for JobPilot LinkedIn Posts. Do not casually upgrade. */
 const WEBBRIDGE_LOCKED_DAEMON = 'v1.10.0'
 const WEBBRIDGE_LOCKED_EXTENSION = '1.11.3'
-const WEBBRIDGE_VERSION_NOTE = `Use daemon ${WEBBRIDGE_LOCKED_DAEMON} + extension ${WEBBRIDGE_LOCKED_EXTENSION}. Do not auto-upgrade — newer builds can break LinkedIn Posts search.`
+const WEBBRIDGE_VERSION_NOTE = `Use daemon ${WEBBRIDGE_LOCKED_DAEMON} + extension ${WEBBRIDGE_LOCKED_EXTENSION}. Do not auto-upgrade. Newer builds can break LinkedIn Posts search.`
 
 const HEALTH_LABELS: Record<BrowserHealth, string> = {
   ready: 'Ready to search',
   busy: 'Running a search',
-  not_installed: 'Open Chrome — extension not connected',
+  not_installed: 'Open Chrome. Extension not connected',
   daemon_down: 'Starting WebBridge daemon…',
   profile_setup: 'WebBridge setup needed',
   error: 'Error',
@@ -49,7 +49,7 @@ function WebBridgeInstallCard() {
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-text-primary">Install Kimi WebBridge</p>
           <p className="mt-1 text-xs text-text-secondary">
-            Download the desktop helper and add the Chrome extension — both are required for
+            Download the desktop helper and add the Chrome extension. Both are required for
             browser search.
           </p>
           <p className="mt-2 text-xs font-medium text-text-primary">{WEBBRIDGE_VERSION_NOTE}</p>
@@ -141,7 +141,7 @@ export function SearchHelperSettings() {
         ok = true
       }
     } catch {
-      // HTTP / non-secure contexts block clipboard API — fall through.
+      // HTTP / non-secure contexts block clipboard API; fall through.
     }
 
     if (!ok) {
@@ -157,7 +157,7 @@ export function SearchHelperSettings() {
     }
 
     if (!ok) {
-      setError('Could not copy token — select it and press Ctrl+C.')
+      setError('Could not copy token. Select it and press Ctrl+C.')
       return
     }
 
@@ -180,7 +180,7 @@ export function SearchHelperSettings() {
             <div>
               <h2 className="text-base font-semibold text-text-primary">Search Helper</h2>
               <p className="mt-1 text-sm text-text-secondary">
-                Desktop app on this PC — paste the pairing token below, install WebBridge,
+                Desktop app on this PC. Paste the pairing token below, install WebBridge,
                 and Start. The search agent (model + Dashscope key) runs on the JobPilot
                 server, not in this app.
               </p>
@@ -207,7 +207,7 @@ export function SearchHelperSettings() {
                 {healthLabel ? ` · ${healthLabel}` : ''}
               </span>
             ) : (
-              <span>Helper not connected — pair below, then open the Search Helper app</span>
+              <span>Helper not connected. Pair below, then open the Search Helper app</span>
             )}
           </div>
 
@@ -217,7 +217,7 @@ export function SearchHelperSettings() {
           <div className="mt-4 rounded-lg border border-border bg-background/50 px-4 py-4">
             <p className="text-sm font-semibold text-text-primary">Download Search Helper</p>
             <p className="mt-1 text-xs text-text-secondary">
-              Windows app — no installer. Download, open the .exe, paste your pairing token, and
+              Windows app (no installer). Download, open the .exe, paste your pairing token, and
               Start.
             </p>
             <a
@@ -228,13 +228,13 @@ export function SearchHelperSettings() {
               Download JobPilot-SearchHelper.exe
             </a>
             <p className="mt-3 text-xs text-text-secondary">
-              Windows may warn that the app is unrecognized — that is expected for this unsigned
+              Windows may warn that the app is unrecognized. That is expected for this unsigned
               build. Choose <span className="font-medium text-text-primary">More info</span>, then{' '}
               <span className="font-medium text-text-primary">Run anyway</span>.
             </p>
             <details className="mt-2 text-xs text-text-secondary">
               <summary className="cursor-pointer font-medium text-text-primary">
-                More details — why Windows may block it
+                More details: why Windows may block it
               </summary>
               <div className="mt-2 space-y-2 leading-relaxed">
                 <p>
@@ -243,7 +243,7 @@ export function SearchHelperSettings() {
                   certificate, so SmartScreen or Defender may show an unknown-publisher warning.
                 </p>
                 <p>
-                  The app only talks to your JobPilot account and local Kimi WebBridge / Chrome — it
+                  The app only talks to your JobPilot account and local Kimi WebBridge / Chrome. It
                   does not install drivers or run in the background after you quit (unless you leave
                   it in the tray).
                 </p>
@@ -273,7 +273,7 @@ export function SearchHelperSettings() {
             </summary>
             <ol className="mt-3 list-decimal space-y-2 pl-5 text-text-secondary">
               <li>
-                Download Search Helper —{' '}
+                Download Search Helper:{' '}
                 <a
                   href={DOWNLOADS.searchHelperExe}
                   className="font-medium text-primary hover:underline"
@@ -283,7 +283,7 @@ export function SearchHelperSettings() {
                 (double-click, no install)
               </li>
               <li>
-                Install Kimi WebBridge —{' '}
+                Install Kimi WebBridge:{' '}
                 <a
                   href={WEBBRIDGE_INSTALL_URL}
                   target="_blank"
@@ -298,7 +298,7 @@ export function SearchHelperSettings() {
               </li>
               <li>Log into LinkedIn in your normal Chrome</li>
               <li>Pair this computer below and paste the token into the Search Helper app</li>
-              <li>Start the Helper — only pairing + WebBridge (no model API key on the PC)</li>
+              <li>Start the Helper. Only pairing + WebBridge (no model API key on the PC)</li>
               <li>
                 Use WebBridge daemon {WEBBRIDGE_LOCKED_DAEMON} + extension{' '}
                 {WEBBRIDGE_LOCKED_EXTENSION}

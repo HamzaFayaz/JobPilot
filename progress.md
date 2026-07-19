@@ -7,7 +7,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 
 **Build plans:** [`.agent/plans/`](.agent/plans/) — naming: `jobpilot_<domain>_<scope>_plan.md`
 
-> **Current focus:** Suggested CV (`tailor_cv`) is **shipped** — see [`.agent/plans/jobpilot_suggested_cv_tailor_plan.md`](.agent/plans/jobpilot_suggested_cv_tailor_plan.md). **Gmail/send cancelled.** Worker search logic stays **frozen**; WebBridge versions locked.
+> **Current focus:** Hackathon **product build complete**. Next: **demo video** + **blog**. Suggested CV shipped; Gmail/send cancelled; WebBridge versions locked.
 
 ---
 
@@ -32,7 +32,8 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | **3 — Backend core** | FastAPI profile API, CV upload, GitHub import | `[x]` |
 | **4 — Agents** | LangGraph search + per-job application analysis | `[x]` |
 | **5 — HITL flow** | Applications inbox + decisions | `[x]` · **Suggested CV** `[x]` · Send **cancelled** |
-| **6 — Deploy** | Alibaba ECS (public IP) | `[x]` |
+| **6 — Deploy** | Alibaba ECS (public EIP) | `[x]` |
+| **7 — Hackathon packaging** | Demo video + blog | `[ ]` next |
 
 ---
 
@@ -52,7 +53,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | [`jobpilot_suggested_cv_tailor_plan.md`](.agent/plans/jobpilot_suggested_cv_tailor_plan.md) | Suggested CV (`tailor_cv`) build — locked agreements | `[x]` shipped |
 | [`jobpilot-agent-build-guide.md`](System%20Design/jobpilot-agent-build-guide.md) | LangGraph + Search Helper build phases | `[x]` spec |
 
-**Active implementation:** Suggested CV shipped. Tracking: [`currently-working-feature.md`](currently-working-feature.md).
+**Active implementation:** Hackathon build complete. Next: demo + blog — [`currently-working-feature.md`](currently-working-feature.md).
 
 ---
 
@@ -132,7 +133,7 @@ Overall status for the full JobPilot product (frontend, backend, agents, integra
 | Run 3 accuracy baseline | `[x]` ~79/100 — [`evals/system/`](evals/system/) |
 
 **Worker → graph path:** listings → prefilter → **parallel** application subgraphs → packages → **`persist`**.  
-**Missing:** generate layout-preserving draft CV from approved swap plans.
+**Suggested CV:** user-triggered `tailor_cv` after swap approval (shipped).
 
 ### Post-flow validation
 
@@ -143,9 +144,10 @@ Analysis → Applications → **Suggested CV download** path works. Gmail/send c
 | Doc | Status |
 |-----|--------|
 | System Design core + cloud browser agent | `[x]` |
-| CV tailoring handoff | `[x]` design — implement next |
+| CV tailoring handoff + suggested CV plan | `[x]` |
 | `evals/system/` Run 3 accuracy | `[x]` |
 | `optimization/system-accuracy-improvements.md` | `[x]` backlog |
+| README hackathon section | `[x]` |
 
 ---
 
@@ -156,6 +158,7 @@ Analysis → Applications → **Suggested CV download** path works. Gmail/send c
 | Tailored CV generate / preview / download | `[x]` |
 | Job detail HITL (send) | `[ ]` **cancelled** |
 | Indeed / LinkedIn Jobs platforms | `[ ]` |
+| Demo video + blog (hackathon packaging) | `[ ]` **next** |
 
 ---
 
@@ -164,7 +167,7 @@ Analysis → Applications → **Suggested CV download** path works. Gmail/send c
 | Item | Status |
 |------|--------|
 | Alibaba ECS Singapore + Actions deploy | `[x]` |
-| Public IP `43.98.197.132` | `[x]` |
+| Elastic IP `47.237.150.6` | `[x]` |
 
 ---
 
@@ -177,6 +180,7 @@ Analysis → Applications → **Suggested CV download** path works. Gmail/send c
 | Backend & DB | Search, analysis, cloud agent, import, suggested CV | 0 | — |
 | Agents | Search + application analysis + `tailor_cv` service | 0 | — |
 | Integrations | LinkedIn Posts + WebBridge | 0 | Gmail send |
-| Deploy | 5 | 0 | 0 |
+| Deploy | ECS live | 0 | — |
+| Hackathon packaging | README / product complete | Demo + blog | — |
 
-**Last updated:** 2026-07-18
+**Last updated:** 2026-07-19
