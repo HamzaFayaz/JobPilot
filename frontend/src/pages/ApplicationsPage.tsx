@@ -622,7 +622,7 @@ export function ApplicationsPage() {
   }
 
   return (
-    <div className="-mx-4 -my-6 flex min-h-[calc(100vh-3.5rem)] flex-col sm:-mx-6 lg:mx-0 lg:my-0 lg:min-h-[calc(100vh-3rem)] lg:rounded-xl lg:border lg:border-border lg:bg-surface lg:shadow-sm">
+    <div className="jp-inbox -mx-4 -my-6 flex min-h-[calc(100vh-3.5rem)] flex-col sm:-mx-6 lg:mx-0 lg:my-0 lg:min-h-[calc(100vh-3rem)] lg:rounded-xl lg:border lg:border-border lg:bg-surface lg:shadow-sm">
       <header className="border-b border-border bg-surface px-4 py-4 sm:px-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>

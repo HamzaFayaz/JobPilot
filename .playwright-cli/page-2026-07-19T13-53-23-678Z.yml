@@ -1,0 +1,22 @@
+- main [ref=e3]:
+  - generic [ref=e6]:
+    - generic [ref=e11]:
+      - paragraph [ref=e12]: JobPilot
+      - paragraph [ref=e13]: Career intelligence
+    - generic [ref=e14]:
+      - paragraph [ref=e15]: Welcome back
+      - heading "Pick up where your search left off." [level=2] [ref=e16]
+      - paragraph [ref=e17]: Review new matches, tune your career signal, and stay in control of every application decision.
+    - generic [ref=e18]:
+      - generic [ref=e19]:
+        - generic [ref=e20]: Email
+        - textbox "Email" [ref=e21]
+      - generic [ref=e22]:
+        - generic [ref=e23]: Password
+        - textbox "Password" [ref=e24]
+      - button "Sign in" [ref=e25] [cursor=pointer]
+    - paragraph [ref=e26]:
+      - text: No account?
+      - link "Sign up" [ref=e27] [cursor=pointer]:
+        - /url: /signup
+    - generic [ref=e28]: Your profile stays private and under your control.

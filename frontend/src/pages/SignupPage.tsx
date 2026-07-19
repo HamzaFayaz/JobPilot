@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { AuthLayout } from '../components/auth/AuthLayout'
 import { Button } from '../components/ui/Button'
 import { useAuth } from '../context/AuthContext'
 
@@ -36,16 +37,14 @@ export function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md rounded-xl border border-border bg-surface p-8 shadow-sm">
-        <h1 className="text-2xl font-bold text-text-primary">Create your JobPilot account</h1>
-        <p className="mt-2 text-sm text-text-secondary">
-          Upload your CV, connect GitHub, and keep your job search data private.
-        </p>
-
-        <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+    <AuthLayout
+      eyebrow="Create your pilot desk"
+      title="A better way to run your job search."
+      description="Turn your CV and projects into evidence-backed job matches—without giving up control."
+    >
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-text-primary">
+            <label htmlFor="email" className="mb-2 block text-sm font-semibold text-text-primary">
               Email
             </label>
             <input
@@ -55,11 +54,11 @@ export function SignupPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="jp-input w-full px-3.5 py-2.5 text-base sm:text-sm"
             />
           </div>
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-text-primary">
+            <label htmlFor="password" className="mb-2 block text-sm font-semibold text-text-primary">
               Password
             </label>
             <input
@@ -70,11 +69,11 @@ export function SignupPage() {
               minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="jp-input w-full px-3.5 py-2.5 text-base sm:text-sm"
             />
           </div>
           <div>
-            <label htmlFor="confirm" className="block text-sm font-medium text-text-primary">
+            <label htmlFor="confirm" className="mb-2 block text-sm font-semibold text-text-primary">
               Confirm password
             </label>
             <input
@@ -84,12 +83,12 @@ export function SignupPage() {
               required
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="jp-input w-full px-3.5 py-2.5 text-base sm:text-sm"
             />
           </div>
 
           {error && (
-            <p className="text-sm text-red-600" role="alert">
+            <p className="rounded-xl border border-error/20 bg-error-soft px-3.5 py-3 text-sm text-error" role="alert">
               {error}
             </p>
           )}
@@ -99,13 +98,12 @@ export function SignupPage() {
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-text-secondary">
+        <p className="mt-7 text-center text-sm text-text-secondary">
           Already have an account?{' '}
-          <Link to="/login" className="font-semibold text-primary hover:underline">
+          <Link to="/login" className="font-semibold text-primary hover:text-primary-hover hover:underline">
             Sign in
           </Link>
         </p>
-      </div>
-    </div>
+    </AuthLayout>
   )
 }

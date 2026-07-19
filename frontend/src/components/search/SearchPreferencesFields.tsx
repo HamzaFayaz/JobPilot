@@ -1,5 +1,5 @@
+import { GlobeAltIcon, MapPinIcon } from '@heroicons/react/24/outline'
 import { useEffect } from 'react'
-import { GlobeAltIcon } from '@heroicons/react/24/outline'
 import {
   DEFAULT_MAX_LISTINGS,
   DEFAULT_SEARCH_COUNTRY,
@@ -52,12 +52,12 @@ export function SearchPreferencesFields({
   return (
     <div className={compact ? 'space-y-5' : 'space-y-6'}>
       <div>
-        <label htmlFor="search-country" className="mb-2 block text-sm font-semibold">
-          Country
+        <label htmlFor="search-country" className="mb-2 block text-sm font-semibold text-text-primary">
+          Search region
         </label>
         <div className="relative">
           <GlobeAltIcon
-            className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-text-secondary"
+            className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-primary"
             aria-hidden="true"
           />
           <select
@@ -65,7 +65,7 @@ export function SearchPreferencesFields({
             value={DEFAULT_SEARCH_COUNTRY}
             disabled
             aria-readonly="true"
-            className="w-full cursor-not-allowed rounded-lg border border-border bg-background py-3 pl-10 pr-3 text-base text-text-primary opacity-90 focus-visible:outline-none sm:text-sm"
+            className="jp-input w-full cursor-not-allowed bg-surface-muted py-2.5 pl-11 pr-3 text-base opacity-95 sm:text-sm"
           >
             {SEARCH_COUNTRIES.map((item) => (
               <option key={item} value={item}>
@@ -74,24 +74,25 @@ export function SearchPreferencesFields({
             ))}
           </select>
         </div>
-        <p className="mt-1 text-xs text-text-secondary">
-          Pakistan only for now. More countries coming soon.
+        <p className="mt-1.5 flex items-center gap-1.5 text-xs text-text-secondary">
+          <MapPinIcon className="h-3.5 w-3.5" aria-hidden="true" />
+          Pakistan is the currently supported launch region.
         </p>
       </div>
 
       <fieldset>
-        <legend className="mb-2 text-sm font-semibold text-text-primary">Work mode</legend>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <legend className="mb-3 text-sm font-semibold text-text-primary">Work mode</legend>
+        <div className="grid gap-2 sm:grid-cols-3">
           {SEARCH_WORK_MODE_OPTIONS.map((item) => (
             <label
               key={item.value}
-              className={`flex cursor-pointer items-center justify-between rounded-lg border p-4 transition-colors duration-200 ${
+              className={`flex min-h-12 cursor-pointer items-center justify-between rounded-xl border px-3 py-2.5 transition-all duration-200 ${
                 workMode === item.value
-                  ? 'border-primary bg-chip-bg/40'
-                  : 'border-border hover:border-primary/40'
+                  ? 'border-primary/45 bg-primary-soft/65 text-primary shadow-sm'
+                  : 'border-border bg-surface hover:border-primary/30'
               }`}
             >
-              <span className="text-sm font-medium">{item.label}</span>
+              <span className="text-sm font-semibold">{item.label}</span>
               <input
                 type="radio"
                 name="search-work-mode"
@@ -105,16 +106,16 @@ export function SearchPreferencesFields({
         </div>
       </fieldset>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label htmlFor="search-max-listings" className="mb-2 block text-sm font-semibold">
-            Max jobs
+          <label htmlFor="search-max-listings" className="mb-2 block text-sm font-semibold text-text-primary">
+            Review queue size
           </label>
           <select
             id="search-max-listings"
             value={selectMaxListings}
-            onChange={(e) => onChange({ searchMaxListings: Number(e.target.value) })}
-            className="w-full cursor-pointer rounded-lg border border-border bg-surface px-3 py-3 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:text-sm"
+            onChange={(event) => onChange({ searchMaxListings: Number(event.target.value) })}
+            className="jp-input w-full cursor-pointer px-3 py-2.5 text-base sm:text-sm"
           >
             {SEARCH_MAX_LISTING_OPTIONS.map((value) => (
               <option key={value} value={value}>
@@ -123,24 +124,24 @@ export function SearchPreferencesFields({
             ))}
             {SEARCH_MAX_LISTING_UNSUPPORTED.map((value) => (
               <option key={value} value={value} disabled>
-                {value} jobs (not supported on current server resources)
+                {value} jobs (not supported)
               </option>
             ))}
           </select>
-          <p className="mt-1 text-xs text-text-secondary">
-            Up to {MAX_SUPPORTED_LISTINGS} jobs per search on current hardware.
+          <p className="mt-1.5 text-xs text-text-secondary">
+            Up to {MAX_SUPPORTED_LISTINGS} jobs per run on current server resources.
           </p>
         </div>
 
         <div>
-          <label htmlFor="search-job-age" className="mb-2 block text-sm font-semibold">
+          <label htmlFor="search-job-age" className="mb-2 block text-sm font-semibold text-text-primary">
             Posted within
           </label>
           <select
             id="search-job-age"
             value={jobAge}
-            onChange={(e) => onChange({ searchJobAge: e.target.value as SearchJobAge })}
-            className="w-full cursor-pointer rounded-lg border border-border bg-surface px-3 py-3 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:text-sm"
+            onChange={(event) => onChange({ searchJobAge: event.target.value as SearchJobAge })}
+            className="jp-input w-full cursor-pointer px-3 py-2.5 text-base sm:text-sm"
           >
             {SEARCH_JOB_AGE_OPTIONS.map((item) => (
               <option key={item.value} value={item.value}>
