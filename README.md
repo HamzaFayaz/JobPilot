@@ -98,63 +98,15 @@ JobPilot uses a **deterministic LangGraph pipeline** - code routes between subgr
 
 ### Three-tier deployment
 
-Three **separate** tiers, full detail, order locked **1 → 2 → 3** (GitHub-safe). Connector nodes keep reverse edges from flipping the stack.
+Main architecture for judges / Devpost / demo video end-card:
 
-```mermaid
-flowchart TB
-  subgraph T1["Tier 1 - Alibaba ECS"]
-    direction TB
-    UI["React SPA"]
-    API["FastAPI"]
-    LG["LangGraph orchestrator\nsearch → prefilter → parallel jobs"]
-    BA["Cloud browser agent\nQwen ReAct"]
-    SC["Scoring + suggested CV\nenrich_job / tailor_cv"]
-    DB[("SQLite")]
-    Qwen["Qwen Cloud / DashScope\ncompatible-mode/v1"]
-    UI --> API
-    API --> LG
-    API --> BA
-    LG --> SC
-    SC --> DB
-    LG --> DB
-    BA --> Qwen
-    SC --> Qwen
-  end
-
-  C1["HTTPS task queue · tool round-trips · listings result"]
-
-  subgraph T2["Tier 2 - Search Helper - user PC"]
-    direction TB
-    WH["Paired worker\ntask poll + heartbeat"]
-    EX["WebBridge tool executor"]
-    WH --> EX
-  end
-
-  C2["WebBridge protocol · page / a11y"]
-
-  subgraph T3["Tier 3 - Kimi WebBridge"]
-    direction TB
-    WB["Daemon :10086"]
-    CH["User Chrome\nLinkedIn Posts"]
-    WB --> CH
-  end
-
-  T1 --> C1 --> T2
-  T2 --> C2 --> T3
-  API -.-> WH
-  BA -.-> EX
-  EX -.-> API
-  EX -.-> WB
-  CH -.-> EX
-```
+![JobPilot three-tier architecture](./docs/architecture.png)
 
 | Tier | Where | What judges should see |
 |------|--------|-------------------------|
 | **1** | Alibaba ECS | React · FastAPI · LangGraph · Qwen ReAct · scoring / `tailor_cv` · SQLite · DashScope |
 | **2** | User PC | Paired Search Helper - task poll, WebBridge tool executor |
 | **3** | User Chrome | WebBridge daemon + LinkedIn Posts session (home IP) |
-
-After listings are scored: **HITL** in Applications → user approves swaps → `tailor_cv` download (not inside the search graph).  
 
 **Track 4 fit:** ambiguous posts + external tools + human checkpoint + production deploy on Alibaba.
 
