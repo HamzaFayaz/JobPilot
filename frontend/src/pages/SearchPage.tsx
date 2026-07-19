@@ -185,9 +185,6 @@ export function SearchPage() {
     jobs.some((job) => job.status === 'analyzing')
 
   const searchBlockers: string[] = []
-  if (profile.projectsIndexingStatus === 'pending') {
-    searchBlockers.push('Projects are still being prepared. Please wait a few minutes.')
-  }
   if (!profile.targetRoles.length) {
     searchBlockers.push('Add at least one target role on your profile.')
   }

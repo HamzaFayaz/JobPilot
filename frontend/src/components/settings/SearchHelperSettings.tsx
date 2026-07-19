@@ -13,7 +13,7 @@ import {
   unpairWorker,
   type BrowserHealth,
 } from '../../api/worker'
-import { DOWNLOADS } from '../../constants/downloads'
+import { DOWNLOADS, SUPPORT_EMAIL } from '../../constants/downloads'
 import { Button } from '../ui/Button'
 
 const WEBBRIDGE_INSTALL_URL = 'https://www.kimi.com/features/webbridge'
@@ -133,7 +133,34 @@ export function SearchHelperSettings() {
     if (!workerToken) {
       return
     }
-    await navigator.clipboard.writeText(workerToken)
+
+    let ok = false
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(workerToken)
+        ok = true
+      }
+    } catch {
+      // HTTP / non-secure contexts block clipboard API — fall through.
+    }
+
+    if (!ok) {
+      const textarea = document.createElement('textarea')
+      textarea.value = workerToken
+      textarea.setAttribute('readonly', '')
+      textarea.style.position = 'fixed'
+      textarea.style.left = '-9999px'
+      document.body.appendChild(textarea)
+      textarea.select()
+      ok = document.execCommand('copy')
+      document.body.removeChild(textarea)
+    }
+
+    if (!ok) {
+      setError('Could not copy token — select it and press Ctrl+C.')
+      return
+    }
+
     setCopied(true)
     window.setTimeout(() => setCopied(false), 2000)
   }
@@ -200,6 +227,38 @@ export function SearchHelperSettings() {
               <ArrowDownTrayIcon className="h-4 w-4" aria-hidden="true" />
               Download JobPilot-SearchHelper.exe
             </a>
+            <p className="mt-3 text-xs text-text-secondary">
+              Windows may warn that the app is unrecognized — that is expected for this unsigned
+              build. Choose <span className="font-medium text-text-primary">More info</span>, then{' '}
+              <span className="font-medium text-text-primary">Run anyway</span>.
+            </p>
+            <details className="mt-2 text-xs text-text-secondary">
+              <summary className="cursor-pointer font-medium text-text-primary">
+                More details — why Windows may block it
+              </summary>
+              <div className="mt-2 space-y-2 leading-relaxed">
+                <p>
+                  JobPilot Search Helper is a portable <code className="rounded bg-surface px-1">.exe</code>{' '}
+                  built for this project. It is not yet signed with a paid Windows code-signing
+                  certificate, so SmartScreen or Defender may show an unknown-publisher warning.
+                </p>
+                <p>
+                  The app only talks to your JobPilot account and local Kimi WebBridge / Chrome — it
+                  does not install drivers or run in the background after you quit (unless you leave
+                  it in the tray).
+                </p>
+                <p>
+                  If Windows fully blocks the file or you cannot click Run anyway, email{' '}
+                  <a
+                    href={`mailto:${SUPPORT_EMAIL}`}
+                    className="font-medium text-primary hover:underline"
+                  >
+                    {SUPPORT_EMAIL}
+                  </a>
+                  .
+                </p>
+              </div>
+            </details>
           </div>
 
           {!isSearchReady ? (
