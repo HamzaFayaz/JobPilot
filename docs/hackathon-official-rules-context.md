@@ -1,9 +1,9 @@
-# Qwen Cloud Hackathon — Official Rules (main context)
+# Qwen Cloud Hackathon  -  Official Rules (main context)
 
 **Source:** Global AI Hackathon Series with Qwen Cloud Official Rules (Devpost).  
-**JobPilot track:** Track 4 — Autopilot Agent.  
+**JobPilot track:** Track 4  -  Autopilot Agent.  
 **Deadline:** Jul 20, 2026, 2:00 pm PT (Submission Period ends).  
-**Judging:** Jul 28 – Aug 11, 2026 PT · Winners ~Aug 17, 2026.
+**Judging:** Jul 28 - Aug 11, 2026 PT · Winners ~Aug 17, 2026.
 
 If marketing pages conflict with these rules, **Official Rules win**.
 
@@ -12,7 +12,7 @@ If marketing pages conflict with these rules, **Official Rules win**.
 ## What we must build
 
 - Project uses **Qwen models on Qwen Cloud**.
-- Fits **at least one track** — JobPilot: **Track 4 Autopilot Agent**
+- Fits **at least one track**  -  JobPilot: **Track 4 Autopilot Agent**
   - End-to-end real-world workflow
   - Ambiguous inputs
   - External tools
@@ -86,7 +86,7 @@ JobPilot: DashScope OpenAI-compatible
 
 ## JobPilot packaging checklist
 
-- [x] GitHub **LICENSE** (MIT) — push so About detects it
+- [x] GitHub **LICENSE** (MIT)  -  push so About detects it
 - [x] README: Track 4 + Qwen + Alibaba proof links ([README Hackathon](../README.md#hackathon))
 - [ ] Devpost: Track 4 selected
 - [ ] Description: features + **Qwen Cloud / DashScope compatible-mode** stated
