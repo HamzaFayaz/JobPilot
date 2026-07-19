@@ -1,0 +1,72 @@
+name: Build and upload Search Helper
+
+# Manual only — Windows PyInstaller build, then SCP .exe to ECS /downloads/
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: build-upload-worker
+  cancel-in-progress: true
+
+jobs:
+  build-and-upload:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build dependencies
+        working-directory: worker
+        run: |
+          python -m venv .venv
+          .\.venv\Scripts\python.exe -m pip install --upgrade pip
+          .\.venv\Scripts\python.exe -m pip install -r requirements-build.txt
+
+      - name: Build JobPilot-SearchHelper.exe
+        working-directory: worker
+        run: |
+          .\.venv\Scripts\pyinstaller.exe --noconfirm build.spec
+          if (!(Test-Path "dist\JobPilot-SearchHelper.exe")) {
+            Write-Error "Build failed — exe not found"
+            exit 1
+          }
+          Get-Item "dist\JobPilot-SearchHelper.exe" | Format-List Name, Length, LastWriteTime
+
+      - name: Configure SSH (OpenSSH)
+        shell: bash
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Upload exe to ECS
+        shell: bash
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            "${EC2_USER}@${EC2_HOST}" \
+            "mkdir -p /opt/jobpilot/static/downloads"
+
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            "worker/dist/JobPilot-SearchHelper.exe" \
+            "${EC2_USER}@${EC2_HOST}:/opt/jobpilot/static/downloads/JobPilot-SearchHelper.exe"
+
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            "${EC2_USER}@${EC2_HOST}" \
+            "ls -lah /opt/jobpilot/static/downloads/"
+
+      - name: Print public URL
+        shell: bash
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+        run: |
+          echo "Search Helper uploaded. After nginx /downloads is deployed:"
+          echo "  http://${EC2_HOST}/downloads/JobPilot-SearchHelper.exe"

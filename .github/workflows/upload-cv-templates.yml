@@ -1,0 +1,55 @@
+name: Upload CV templates
+
+# Manual only — copies cv-templates to ECS public /downloads/
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: upload-cv-templates
+  cancel-in-progress: true
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify template files
+        run: |
+          test -f "cv-templates/JobPilot-CV-Template.docx"
+          test -f "cv-templates/JobPilot-CV-Template.pdf"
+          ls -la cv-templates/
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Upload templates to ECS
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            "${EC2_USER}@${EC2_HOST}" \
+            "mkdir -p /opt/jobpilot/static/downloads"
+
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            "cv-templates/JobPilot-CV-Template.docx" \
+            "cv-templates/JobPilot-CV-Template.pdf" \
+            "${EC2_USER}@${EC2_HOST}:/opt/jobpilot/static/downloads/"
+
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            "${EC2_USER}@${EC2_HOST}" \
+            "ls -la /opt/jobpilot/static/downloads/"
+
+      - name: Print public URLs
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+        run: |
+          echo "Templates uploaded. After nginx /downloads is deployed:"
+          echo "  http://${EC2_HOST}/downloads/JobPilot-CV-Template.docx"
+          echo "  http://${EC2_HOST}/downloads/JobPilot-CV-Template.pdf"

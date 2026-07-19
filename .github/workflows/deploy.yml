@@ -28,7 +28,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
             "${EC2_USER}@${EC2_HOST}" \
-            "sudo mkdir -p /opt/jobpilot/data/uploads && sudo chown -R ${EC2_USER}:${EC2_USER} /opt/jobpilot"
+            "sudo mkdir -p /opt/jobpilot/data/uploads /opt/jobpilot/static/downloads && sudo chown -R ${EC2_USER}:${EC2_USER} /opt/jobpilot"
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
             "${EC2_USER}@${EC2_HOST}" 'bash -s' < deploy/bootstrap-ec2.sh || true
 
@@ -45,6 +45,7 @@ jobs:
             --exclude 'frontend/node_modules' \
             --exclude 'data/jobpilot.db' \
             --exclude 'data/uploads' \
+            --exclude 'static/downloads' \
             --exclude '.env' \
             --exclude '.cursor' \
             ./ "${EC2_USER}@${EC2_HOST}:/opt/jobpilot/"
