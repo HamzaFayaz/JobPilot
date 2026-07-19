@@ -26,11 +26,20 @@
 
 ### Next — submission packaging `[ ]`
 
+**Official rules (saved context):** [`docs/hackathon-official-rules-context.md`](docs/hackathon-official-rules-context.md)  
+**Deadline:** Jul 20, 2026 2:00 pm PT · **Track:** 4 Autopilot Agent
+
 | Item | Notes |
 |------|--------|
-| **Demo video** | End-to-end walkthrough for judges |
-| **Blog post** | Architecture + Qwen usage + three-tier design |
-| Optional | Judge feedback polish |
+| **LICENSE** on GitHub About | `[x]` MIT root [`LICENSE`](./LICENSE) — push so About detects it |
+| **README proof links** | `[x]` Track 4 + Qwen `config.py` / `llm.yaml` + Alibaba `alibaba-cloud-trial.md` / `Dockerfile.api` |
+| **Demo video** | &lt; 3 min, public YouTube/Vimeo/Youku; product working (voice optional) |
+| **Architecture diagram** | Mermaid in README; export PNG for Devpost |
+| **Alibaba proof** | Use README links on Devpost form |
+| **Devpost description** | Features + DashScope `compatible-mode/v1` |
+| **Track field** | Select Track 4 on Devpost form |
+| **Testing access** | Live http://47.237.150.6 (+ login notes if needed) |
+| **Blog / social** | Optional — required only for Blog Post prize |
 
 ### Cancelled / deferred
 

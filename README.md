@@ -1,9 +1,11 @@
 # JobPilot
 
-**AI job application copilot — LangGraph orchestration, distributed browser automation, and human-in-the-loop control.**
+**JobPilot · Track 4 — Autopilot Agent**  
+AI job application copilot — LangGraph orchestration, distributed browser automation, and human-in-the-loop control.
 
 [![Live Demo](https://img.shields.io/badge/demo-Alibaba%20ECS-47.237.150.6-blue?style=flat-square)](http://47.237.150.6)
-[![Hackathon](https://img.shields.io/badge/Qwen%20Hackathon-Track%204%20complete-success?style=flat-square)](#hackathon)
+[![Hackathon](https://img.shields.io/badge/Qwen%20Hackathon-Track%204%20Autopilot-success?style=flat-square)](#hackathon)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](./LICENSE)
 [![Stack](https://img.shields.io/badge/stack-React%20%7C%20FastAPI%20%7C%20LangGraph-blue?style=flat-square)](#tech-stack)
 [![LLM](https://img.shields.io/badge/LLM-Qwen%20Cloud-purple?style=flat-square)](https://home.qwencloud.com)
 [![Search](https://img.shields.io/badge/search-LinkedIn%20Posts-0A66C2?style=flat-square)](#features)
@@ -18,13 +20,13 @@ The platform is optimized for **LinkedIn Posts** — the format where hiring man
 
 | Tier | Components |
 |------|------------|
-| **Cloud (Alibaba ECS)** | React UI · FastAPI · LangGraph · SQLite · Qwen API |
+| **Cloud (Alibaba ECS)** | React UI · FastAPI · LangGraph · SQLite · Qwen Cloud (DashScope) |
 | **Desktop** | JobPilot Search Helper — Windows `.exe`, task queue client |
-| **Browser** | Kimi WebBridge + Qwen ReAct loop in logged-in Chrome |
+| **Browser** | Kimi WebBridge in the user's logged-in Chrome |
 
 **Live demo:** [http://47.237.150.6](http://47.237.150.6)
 
-**Hackathon status:** Build for **Qwen Cloud Global AI Hackathon (Track 4 — Autopilot Agent)** is **complete**. Next: demo video + blog write-up.
+**Hackathon:** [Qwen Cloud Global AI Hackathon](https://qwencloud-hackathon.devpost.com/) — **Track 4: Autopilot Agent** (product build complete; packaging for submission).
 
 ---
 
@@ -58,7 +60,7 @@ JobPilot delivers the middle path: **agentic search, scoring, and drafting with 
 
 ## Agentic architecture
 
-JobPilot uses a **deterministic LangGraph pipeline** — code routes between subgraphs. Qwen is invoked where structured judgment is required: the browser ReAct agent on the user's PC and `enrich_job` on the server.
+JobPilot uses a **deterministic LangGraph pipeline** — code routes between subgraphs. **Qwen Cloud** runs on the ECS backend (browser ReAct, scoring, suggested CV). The Search Helper executes **Kimi WebBridge** tools in the user's Chrome.
 
 ### Three-tier deployment
 
@@ -72,25 +74,28 @@ flowchart TB
     UI --> API --> LG --> DB
   end
 
+  Qwen["Qwen Cloud / DashScope\ncompatible-mode/v1"]
+
   subgraph T2 ["Tier 2 — Search Helper (user PC)"]
-    WH["worker/main.py poll loop"]
-    BC["browser_client + agent_loop"]
-    WH --> BC
+    WH["Worker poll loop"]
+    WH --> WBExec["WebBridge tool executor"]
   end
 
   subgraph T3 ["Tier 3 — Kimi WebBridge"]
     WB["HTTP :10086"]
-    Chrome["User Chrome — LinkedIn session"]
+    Chrome["User Chrome — LinkedIn Posts"]
     WB --> Chrome
   end
 
+  API --> Qwen
+  LG --> Qwen
   API <-->|"HTTPS task queue"| WH
-  BC --> WB
-  Chrome -->|"raw listings JSON"| BC
-  BC -->|"POST /api/worker/tasks/{id}/result"| API
+  WBExec --> WB
+  Chrome -->|"raw listings JSON"| WH
+  WH -->|"POST /api/worker/tasks/{id}/result"| API
 ```
 
-LinkedIn requires the user's home IP and logged-in session — ECS orchestrates; the Search Helper executes in real Chrome.
+LinkedIn requires the user's home IP and logged-in session — ECS + Qwen orchestrate; the Search Helper + WebBridge execute in real Chrome.
 
 ### Parent graph pipeline
 
@@ -353,28 +358,43 @@ JobPilot/
 
 ## Hackathon
 
-**Event:** [Qwen Cloud Global AI Hackathon](https://home.qwencloud.com) — **Track 4: Autopilot Agent**  
-**Status:** **Complete for submission** (July 2026)
+**Title:** JobPilot  
+**Track:** **Track 4 — Autopilot Agent**  
+**Event:** [Qwen Cloud Global AI Hackathon](https://qwencloud-hackathon.devpost.com/)  
+**License:** [MIT](./LICENSE)  
+**Status:** Product build complete — packaging for Devpost submission (July 2026)
 
-JobPilot is an end-to-end autopilot-style agent: cloud LangGraph orchestration, Qwen judgment calls, and a distributed desktop executor that browses LinkedIn Posts in the user's real Chrome session — with human approval before any CV draft is finalized.
+JobPilot is an end-to-end autopilot-style agent: cloud LangGraph orchestration, Qwen Cloud judgment calls, and a distributed desktop Search Helper (Kimi WebBridge) that browses LinkedIn Posts in the user's real Chrome session — with human approval before any suggested CV draft is finalized.
+
+### Submission proof links (judges)
+
+| Requirement | Link |
+|-------------|------|
+| **Track** | Track 4 — Autopilot Agent |
+| **Qwen Cloud API** (OpenAI-compatible base URL) | [`backend/app/config.py`](./backend/app/config.py) — `qwen_base_url = https://dashscope-intl.aliyuncs.com/compatible-mode/v1` |
+| **Qwen models by call site** | [`config/llm.yaml`](./config/llm.yaml) |
+| **Alibaba Cloud deploy proof** | [`System Design/alibaba-cloud-trial.md`](./System%20Design/alibaba-cloud-trial.md) · [`deploy/Dockerfile.api`](./deploy/Dockerfile.api) |
+| **Architecture diagram** | [Agentic architecture](#agentic-architecture) (Mermaid: ECS · Qwen Cloud · Search Helper · WebBridge) |
+| **Live demo** | [http://47.237.150.6](http://47.237.150.6) |
+| **Open-source license** | [`LICENSE`](./LICENSE) (MIT) |
 
 ### What ships for the hackathon
 
 | Requirement / theme | JobPilot delivery |
 |---------------------|-------------------|
 | Agent on Alibaba Cloud | FastAPI + LangGraph on **Alibaba ECS** (Singapore) |
-| Qwen Cloud APIs | Profile skills, listing rewrite, cloud browser ReAct, `enrich_job`, `tailor_cv` |
+| Qwen Cloud APIs | DashScope `compatible-mode/v1` — profile skills, listing rewrite, cloud browser ReAct, `enrich_job`, `tailor_cv`, embeddings/rerank |
 | Autopilot agent loop | Parent graph → search subgraph → prefilter → parallel application subgraphs |
-| Human-in-the-loop | Applications inbox; suggested CV only after user-approved swaps |
+| Human-in-the-loop | Applications inbox; suggested CV (`tailor_cv`) only after user-approved swaps |
 | Live demo | [http://47.237.150.6](http://47.237.150.6) |
 
 **Out of hackathon scope (intentional):** Gmail/send apply, Indeed / LinkedIn Jobs boards, Windows code-signing cert (SmartScreen guidance in Settings).
 
-### Next (post-build)
+### Next (packaging)
 
-1. **Demo video** — short walkthrough: signup → CV/GitHub → Search Helper + WebBridge → search → Applications → suggested CV download  
-2. **Blog post** — architecture story (three-tier design, why WebBridge, Qwen call sites, HITL)  
-3. Optional polish from judge feedback  
+1. **Demo video** (&lt; 3 min) — title → ECS IP → app → Helper connect → search → analysis → suggested CV  
+2. **Blog / social post** — optional Blog Post prize  
+3. Devpost: same proof links + architecture image export of the Mermaid above  
 
 Contact: [hamza.fayaz.ai@gmail.com](mailto:hamza.fayaz.ai@gmail.com)
 
