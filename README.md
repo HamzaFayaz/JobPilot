@@ -2,7 +2,8 @@
 
 **AI job application copilot — LangGraph orchestration, distributed browser automation, and human-in-the-loop control.**
 
-[![Live Demo](https://img.shields.io/badge/demo-Alibaba%20ECS-43.98.197.132-blue?style=flat-square)](http://43.98.197.132)
+[![Live Demo](https://img.shields.io/badge/demo-Alibaba%20ECS-47.237.150.6-blue?style=flat-square)](http://47.237.150.6)
+[![Hackathon](https://img.shields.io/badge/Qwen%20Hackathon-Track%204%20complete-success?style=flat-square)](#hackathon)
 [![Stack](https://img.shields.io/badge/stack-React%20%7C%20FastAPI%20%7C%20LangGraph-blue?style=flat-square)](#tech-stack)
 [![LLM](https://img.shields.io/badge/LLM-Qwen%20Cloud-purple?style=flat-square)](https://home.qwencloud.com)
 [![Search](https://img.shields.io/badge/search-LinkedIn%20Posts-0A66C2?style=flat-square)](#features)
@@ -21,7 +22,9 @@ The platform is optimized for **LinkedIn Posts** — the format where hiring man
 | **Desktop** | JobPilot Search Helper — Windows `.exe`, task queue client |
 | **Browser** | Kimi WebBridge + Qwen ReAct loop in logged-in Chrome |
 
-**Live demo:** [http://43.98.197.132](http://43.98.197.132)
+**Live demo:** [http://47.237.150.6](http://47.237.150.6)
+
+**Hackathon status:** Build for **Qwen Cloud Global AI Hackathon (Track 4 — Autopilot Agent)** is **complete**. Next: demo video + blog write-up.
 
 ---
 
@@ -43,8 +46,10 @@ JobPilot delivers the middle path: **agentic search, scoring, and drafting with 
 - **LinkedIn Posts search** — Search Helper captures hiring posts via Kimi WebBridge in real Chrome
 - **LangGraph orchestration** — parent graph with search subgraph, prefilter, and parallel application subgraphs
 - **Listing prefilter** — normalize, dedupe, drop already-applied jobs (no LLM cost)
-- **Per-job application agents** — structured Qwen scoring, match summary, CV guidance, draft email
-- **Worker task queue** — device pairing, heartbeat, async `browser_search` tasks over HTTPS
+- **Per-job application agents** — structured Qwen scoring, match summary, CV swap plans, draft email
+- **Suggested CV** — user-approved, layout-preserving `.docx` drafts (never overwrites the master CV)
+- **Search Helper downloads** — Windows `.exe` + supported CV template from Settings / Profile
+- **Worker task queue** — device pairing, heartbeat, async `browser_search` tasks over HTTP
 - **Run polling API** — `POST /api/search`, status polling, `job_packages` results per run
 - **Encrypted storage** — Fernet for CV text and OAuth tokens; all tables scoped by `user_id`
 - **Cloud deploy** — Docker Compose, Nginx, GitHub Actions on Alibaba ECS
@@ -320,7 +325,7 @@ JobPilot/
 - **Stitch** desktop reference screens adapted to responsive web (`frontend/UI Design/`)
 - **Design tokens:** [`.stitch/DESIGN.md`](./.stitch/DESIGN.md), [`design-system/MASTER.md`](./design-system/MASTER.md)
 - **App shell:** sidebar desktop, drawer mobile, profile gate before search
-- **Core screens:** Welcome (`/`), Profile (`/profile`), Search (`/search`)
+- **Core screens:** Welcome (`/`), Profile (`/profile`), Search (`/search`), Applications (`/applications`), Settings (`/settings`)
 
 ---
 
@@ -348,16 +353,35 @@ JobPilot/
 
 ## Hackathon
 
-Submitted to the **Qwen Cloud Global AI Hackathon** (Track 4: Autopilot Agent).
+**Event:** [Qwen Cloud Global AI Hackathon](https://home.qwencloud.com) — **Track 4: Autopilot Agent**  
+**Status:** **Complete for submission** (July 2026)
 
-- **Alibaba Cloud deployment** — ECS, Docker, public URL
-- **Qwen Cloud APIs** — CV skills, README summarization, browser ReAct agent, per-job scoring
-- **Agentic system** — LangGraph multi-subgraph orchestration with distributed Search Helper
+JobPilot is an end-to-end autopilot-style agent: cloud LangGraph orchestration, Qwen judgment calls, and a distributed desktop executor that browses LinkedIn Posts in the user's real Chrome session — with human approval before any CV draft is finalized.
+
+### What ships for the hackathon
+
+| Requirement / theme | JobPilot delivery |
+|---------------------|-------------------|
+| Agent on Alibaba Cloud | FastAPI + LangGraph on **Alibaba ECS** (Singapore) |
+| Qwen Cloud APIs | Profile skills, listing rewrite, cloud browser ReAct, `enrich_job`, `tailor_cv` |
+| Autopilot agent loop | Parent graph → search subgraph → prefilter → parallel application subgraphs |
+| Human-in-the-loop | Applications inbox; suggested CV only after user-approved swaps |
+| Live demo | [http://47.237.150.6](http://47.237.150.6) |
+
+**Out of hackathon scope (intentional):** Gmail/send apply, Indeed / LinkedIn Jobs boards, Windows code-signing cert (SmartScreen guidance in Settings).
+
+### Next (post-build)
+
+1. **Demo video** — short walkthrough: signup → CV/GitHub → Search Helper + WebBridge → search → Applications → suggested CV download  
+2. **Blog post** — architecture story (three-tier design, why WebBridge, Qwen call sites, HITL)  
+3. Optional polish from judge feedback  
+
+Contact: [hamza.fayaz.ai@gmail.com](mailto:hamza.fayaz.ai@gmail.com)
 
 ---
 
 <p align="center">
   <strong>JobPilot</strong> — agentic job search with production architecture patterns.
   <br />
-  <sub>July 2026</sub>
+  <sub>Qwen Cloud Global AI Hackathon · Track 4 · July 2026</sub>
 </p>
