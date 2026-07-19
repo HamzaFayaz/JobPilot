@@ -133,7 +133,34 @@ export function SearchHelperSettings() {
     if (!workerToken) {
       return
     }
-    await navigator.clipboard.writeText(workerToken)
+
+    let ok = false
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(workerToken)
+        ok = true
+      }
+    } catch {
+      // HTTP / non-secure contexts block clipboard API — fall through.
+    }
+
+    if (!ok) {
+      const textarea = document.createElement('textarea')
+      textarea.value = workerToken
+      textarea.setAttribute('readonly', '')
+      textarea.style.position = 'fixed'
+      textarea.style.left = '-9999px'
+      document.body.appendChild(textarea)
+      textarea.select()
+      ok = document.execCommand('copy')
+      document.body.removeChild(textarea)
+    }
+
+    if (!ok) {
+      setError('Could not copy token — select it and press Ctrl+C.')
+      return
+    }
+
     setCopied(true)
     window.setTimeout(() => setCopied(false), 2000)
   }

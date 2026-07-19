@@ -119,6 +119,22 @@ CREATE TABLE IF NOT EXISTS worker_devices (
     revoked_at TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS worker_tasks (
+    id TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    run_id INTEGER NOT NULL REFERENCES search_runs(id) ON DELETE CASCADE,
+    type TEXT NOT NULL DEFAULT 'browser_search',
+    status TEXT NOT NULL DEFAULT 'pending',
+    payload_json TEXT NOT NULL,
+    result_json TEXT,
+    error TEXT,
+    error_code TEXT,
+    warnings_json TEXT,
+    claimed_at TIMESTAMP,
+    completed_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS suggested_cv_drafts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -370,6 +386,35 @@ def _ensure_evidence_schema(conn: sqlite3.Connection) -> None:
         )
 
 
+def _ensure_worker_tasks_schema(conn: sqlite3.Connection) -> None:
+    """Ensure worker_tasks exists on DBs created after it was dropped from SCHEMA."""
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS worker_tasks (
+            id TEXT PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            run_id INTEGER NOT NULL REFERENCES search_runs(id) ON DELETE CASCADE,
+            type TEXT NOT NULL DEFAULT 'browser_search',
+            status TEXT NOT NULL DEFAULT 'pending',
+            payload_json TEXT NOT NULL,
+            result_json TEXT,
+            error TEXT,
+            error_code TEXT,
+            warnings_json TEXT,
+            claimed_at TIMESTAMP,
+            completed_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_worker_tasks_user_pending
+        ON worker_tasks (user_id, status, created_at)
+        """
+    )
+
+
 def _ensure_suggested_cv_schema(conn: sqlite3.Connection) -> None:
     conn.execute(
         """
@@ -406,6 +451,7 @@ def init_db() -> None:
         else:
             conn.executescript(SCHEMA)
             _ensure_search_schema(conn)
+            _ensure_worker_tasks_schema(conn)
             _ensure_evidence_schema(conn)
             _ensure_suggested_cv_schema(conn)
             conn.commit()
