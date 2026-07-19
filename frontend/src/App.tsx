@@ -6,8 +6,11 @@ import { ProfileProvider } from './context/ProfileContext'
 import { LoginPage } from './pages/LoginPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { ApplicationsPage } from './pages/ApplicationsPage'
+import { ProjectEvidencePage } from './pages/ProjectEvidencePage'
 import { SearchPage } from './pages/SearchPage'
+import { SearchHelperGuidePage } from './pages/SearchHelperGuidePage'
 import { SettingsPage } from './pages/SettingsPage'
+import { SkillsLibraryPage } from './pages/SkillsLibraryPage'
 import { SignupPage } from './pages/SignupPage'
 import { WelcomePage } from './pages/WelcomePage'
 
@@ -29,6 +32,9 @@ export default function App() {
               <Route index element={<WelcomePage />} />
               <Route path="profile" element={<ProfilePage />} />
               <Route path="settings" element={<SettingsPage />} />
+              <Route path="settings/search-helper-guide" element={<SearchHelperGuidePage />} />
+              <Route path="settings/projects" element={<ProjectEvidencePage />} />
+              <Route path="settings/skills" element={<SkillsLibraryPage />} />
               <Route path="search" element={<SearchPage />} />
               <Route path="applications" element={<ApplicationsPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,4 +1,4 @@
-import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
+import { Bars3Icon, PaperAirplaneIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { useEffect, useState } from 'react'
 import { Sidebar } from './Sidebar'
 
@@ -20,17 +20,24 @@ export function MobileNav() {
 
   return (
     <>
-      <header className="flex items-center justify-between border-b border-border bg-surface px-4 py-3 lg:hidden">
-        <div>
-          <p className="text-base font-bold text-text-primary">JobPilot</p>
-          <p className="text-xs text-text-secondary">Your AI job application copilot</p>
+      <header className="flex items-center justify-between border-b border-border/80 bg-surface/90 px-4 py-3 backdrop-blur lg:hidden">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-white shadow-sm shadow-primary/25">
+            <PaperAirplaneIcon className="h-4.5 w-4.5 -rotate-45" aria-hidden="true" />
+          </span>
+          <div>
+            <p className="jp-display text-base font-extrabold tracking-tight text-text-primary">JobPilot</p>
+            <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-text-tertiary">
+              Pilot desk
+            </p>
+          </div>
         </div>
         <button
           type="button"
           aria-expanded={open}
           aria-controls="mobile-drawer"
           aria-label={open ? 'Close navigation menu' : 'Open navigation menu'}
-          className="inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-lg border border-border transition-colors duration-200 hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface transition-colors duration-200 hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           onClick={() => setOpen((prev) => !prev)}
         >
           {open ? (
@@ -52,7 +59,7 @@ export function MobileNav() {
 
       <div
         id="mobile-drawer"
-        className={`fixed inset-y-0 left-0 z-50 w-60 transform transition-transform duration-200 lg:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-200 lg:hidden ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
         aria-hidden={!open}

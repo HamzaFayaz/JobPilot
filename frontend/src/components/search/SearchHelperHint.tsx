@@ -1,11 +1,14 @@
-import { ArrowTopRightOnSquareIcon, PuzzlePieceIcon } from '@heroicons/react/24/outline'
+import {
+  ArrowTopRightOnSquareIcon,
+  CheckCircleIcon,
+  ComputerDesktopIcon,
+  WrenchScrewdriverIcon,
+} from '@heroicons/react/24/outline'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getWorkerStatus, type BrowserHealth } from '../../api/worker'
 
 const WEBBRIDGE_INSTALL_URL = 'https://www.kimi.com/features/webbridge'
-const WEBBRIDGE_VERSION_NOTE =
-  'Locked: daemon v1.10.0 + extension 1.11.3. Do not auto-upgrade.'
 
 interface SearchHelperHintProps {
   onReadyChange?: (ready: boolean) => void
@@ -24,8 +27,7 @@ export function SearchHelperHint({ onReadyChange }: SearchHelperHintProps) {
         if (!active) return
         setConnected(status.connected)
         setBrowserHealth(status.browserHealth ?? null)
-        const ready = Boolean(status.connected && status.browserHealth === 'ready')
-        onReadyChange?.(ready)
+        onReadyChange?.(Boolean(status.connected && status.browserHealth === 'ready'))
       } catch {
         if (!active) return
         setConnected(false)
@@ -46,71 +48,84 @@ export function SearchHelperHint({ onReadyChange }: SearchHelperHintProps) {
   }, [onReadyChange])
 
   if (connected === null) {
-    return null
+    return (
+      <div className="flex items-center gap-3 rounded-2xl border border-border bg-surface/80 px-4 py-3 text-sm text-text-secondary">
+        <span className="h-4 w-4 animate-spin rounded-full border-2 border-secondary border-t-transparent" />
+        Checking your Search Helper connection...
+      </div>
+    )
   }
 
   if (!connected) {
     return (
-      <div className="rounded-lg border border-border bg-surface px-4 py-3 text-sm text-text-secondary">
-        <p>
-          Connect Search Helper in{' '}
-          <Link to="/settings" className="font-medium text-primary hover:underline">
-            Settings
-          </Link>{' '}
-          to run browser search on this PC.
-        </p>
-        <a
-          href={WEBBRIDGE_INSTALL_URL}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
-        >
-          <PuzzlePieceIcon className="h-4 w-4" aria-hidden="true" />
-          Install Kimi WebBridge first
-          <ArrowTopRightOnSquareIcon className="h-3.5 w-3.5" aria-hidden="true" />
-        </a>
-        <p className="mt-1 text-xs text-text-secondary">{WEBBRIDGE_VERSION_NOTE}</p>
-      </div>
+      <section className="flex flex-col gap-4 rounded-2xl border border-warning/20 bg-warning-soft px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-warning/10 text-warning">
+            <ComputerDesktopIcon className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <div>
+            <p className="text-sm font-semibold text-hitl-text">Your Search Helper needs pairing.</p>
+            <p className="mt-1 text-xs leading-5 text-hitl-text/80">
+              Pair this computer, then connect Chrome with WebBridge before launching a search.
+            </p>
+          </div>
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center gap-3 text-sm font-semibold">
+          <Link to="/settings" className="text-primary hover:text-primary-hover hover:underline">
+            Set up helper
+          </Link>
+          <a
+            href={WEBBRIDGE_INSTALL_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-primary hover:text-primary-hover hover:underline"
+          >
+            WebBridge
+            <ArrowTopRightOnSquareIcon className="h-3.5 w-3.5" aria-hidden="true" />
+          </a>
+        </div>
+      </section>
     )
   }
 
   if (browserHealth !== 'ready') {
-    const needsInstall =
-      browserHealth === 'not_installed' ||
-      browserHealth === 'profile_setup' ||
-      browserHealth === 'daemon_down'
-
+    const detail: Record<Exclude<BrowserHealth, 'ready'>, string> = {
+      busy: 'A browser search is running. Its live status is available in Applications.',
+      not_installed: 'Open Chrome with the Kimi WebBridge extension installed.',
+      daemon_down: 'The local WebBridge daemon is not ready yet.',
+      profile_setup: 'WebBridge needs its first-time setup in Chrome.',
+      error: 'JobPilot could not verify browser readiness.',
+    }
     return (
-      <div className="rounded-lg border border-warning/30 bg-hitl-bg/60 px-4 py-3 text-sm text-hitl-text">
-        <p>
-          Search Helper is connected but WebBridge is not ready
-          {browserHealth === 'not_installed' ? '. Open Chrome with the extension' : ''}.{' '}
-          <Link to="/settings" className="font-medium text-primary hover:underline">
-            Check Settings
-          </Link>
-        </p>
-        {needsInstall ? (
-          <>
-            <a
-              href={WEBBRIDGE_INSTALL_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-2 inline-flex items-center gap-1.5 font-medium text-primary hover:underline"
-            >
-              <PuzzlePieceIcon className="h-4 w-4" aria-hidden="true" />
-              Install or update Kimi WebBridge
-              <ArrowTopRightOnSquareIcon className="h-3.5 w-3.5" aria-hidden="true" />
-            </a>
-            <p className="mt-1 text-xs text-text-secondary">{WEBBRIDGE_VERSION_NOTE}</p>
-          </>
-        ) : null}
-      </div>
+      <section className="flex flex-col gap-4 rounded-2xl border border-warning/20 bg-warning-soft px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-warning/10 text-warning">
+            <WrenchScrewdriverIcon className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <div>
+            <p className="text-sm font-semibold text-hitl-text">Helper paired, browser not ready.</p>
+            <p className="mt-1 text-xs leading-5 text-hitl-text/80">{detail[browserHealth ?? 'error']}</p>
+          </div>
+        </div>
+        <Link
+          to="/settings"
+          className="shrink-0 text-sm font-semibold text-primary hover:text-primary-hover hover:underline"
+        >
+          Check setup
+        </Link>
+      </section>
     )
   }
 
   return (
-    <div className="rounded-lg border border-success/30 bg-success/5 px-4 py-3 text-sm text-success">
-      Search Helper ready. WebBridge connected.
-    </div>
+    <section className="flex items-center gap-3 rounded-2xl border border-success/20 bg-success-soft px-4 py-3.5 text-sm text-success">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-success/10">
+        <CheckCircleIcon className="h-5 w-5" aria-hidden="true" />
+      </span>
+      <div>
+        <p className="font-semibold">Search Helper is ready.</p>
+        <p className="mt-0.5 text-xs text-success/80">Chrome and WebBridge are connected for this computer.</p>
+      </div>
+    </section>
   )
 }
