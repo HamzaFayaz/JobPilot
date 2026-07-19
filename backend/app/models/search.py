@@ -19,6 +19,24 @@ class JobDecisionRequest(BaseModel):
     decision: JobDecisionAction
 
 
+class SuggestedCvGenerateRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    approved_slot_indexes: list[int] = Field(
+        default_factory=list, alias="approvedSlotIndexes"
+    )
+
+
+class SuggestedCvGenerateResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, serialize_by_alias=True)
+
+    draft_id: int = Field(alias="draftId")
+    filename: str
+    auto_shortened: bool = Field(alias="autoShortened")
+    approved_slot_indexes: list[int] = Field(alias="approvedSlotIndexes")
+    download_path: str = Field(alias="downloadPath")
+
+
 class SearchStartResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True, serialize_by_alias=True)
 

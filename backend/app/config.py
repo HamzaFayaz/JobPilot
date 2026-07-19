@@ -173,6 +173,28 @@ class Settings(BaseSettings):
         return int(self.llm_config.get("application", {}).get("fit_threshold", 60))
 
     @property
+    def tailor_cv_model(self) -> str:
+        return self.llm_config.get("tailor_cv", {}).get(
+            "model", self.application_model
+        )
+
+    @property
+    def tailor_cv_temperature(self) -> float:
+        return float(self.llm_config.get("tailor_cv", {}).get("temperature", 0.2))
+
+    @property
+    def tailor_cv_enable_thinking(self) -> bool:
+        return bool(
+            self.llm_config.get("tailor_cv", {}).get("enable_thinking", False)
+        )
+
+    @property
+    def tailor_cv_prompt_version(self) -> str:
+        return self.llm_config.get("tailor_cv", {}).get(
+            "prompt_version", "tailor_cv_v1"
+        )
+
+    @property
     def requirement_extraction_model(self) -> str:
         return self.requirement_extraction_model_override or self.llm_config.get(
             "requirement_extraction", {}

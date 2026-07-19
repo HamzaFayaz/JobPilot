@@ -92,6 +92,19 @@ def list_user_chunks(user_id: int) -> list[dict[str, Any]]:
     return [dict(row) for row in rows]
 
 
+def list_project_chunks(user_id: int, project_id: str) -> list[dict[str, Any]]:
+    with get_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT * FROM project_readme_chunks
+            WHERE user_id = ? AND project_id = ?
+            ORDER BY chunk_index ASC
+            """,
+            (user_id, project_id),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
 def get_chunks_by_ids(user_id: int, chunk_ids: list[str]) -> list[dict[str, Any]]:
     if not chunk_ids:
         return []
