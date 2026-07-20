@@ -266,7 +266,7 @@ The Helper talks to ECS over a device-paired HTTP task API. Review the `worker/`
 - Node.js 18+
 - [Qwen Cloud API key](https://home.qwencloud.com) (`DASHSCOPE_API_KEY`)
 - Kimi WebBridge extension + daemon (locked: daemon **v1.10.0** + extension **1.11.3**)
-- In-app setup video (Settings → Search Helper): [Watch setup video](https://youtu.be/gYTl1co9FKQ)
+- In-app setup video (Settings → Search Helper): [Watch setup video](https://youtu.be/tpfV_0oMgf4)
 - GitHub OAuth app (for repo import)
 
 ### 1. Clone and configure
@@ -375,7 +375,7 @@ JobPilot/
 
 ### Search Helper (worker)
 
-Pairing and setup live under **Settings → Search Helper** (and **View step-by-step setup guide**). Short video: [Search Helper setup](https://youtu.be/gYTl1co9FKQ) (WebBridge → Helper download → pair → Start).
+Pairing and setup live under **Settings → Search Helper** (and **View step-by-step setup guide**). Short video: [Search Helper setup](https://youtu.be/tpfV_0oMgf4) (WebBridge → Helper download → pair → Start).
 
 | Method | Path | Description |
 |--------|------|-------------|

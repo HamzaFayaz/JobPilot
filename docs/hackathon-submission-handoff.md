@@ -77,7 +77,7 @@ Code: `backend/app/config.py` · models: `config/llm.yaml`.
 | Live site | `http://47.237.150.6` (after copying IP from ECS) |
 
 **Before recording (prep)**
-- Helper already installed; WebBridge ready (or use in-app **Watch setup video**: https://youtu.be/gYTl1co9FKQ)
+- Helper already installed; WebBridge ready (or use in-app **Watch setup video**: https://youtu.be/tpfV_0oMgf4)
 - Prefer profile/CV already uploaded so you do not wait forever on GitHub import
 - Can pause recording during long waits; cut dead time in the edit
 - Skip Helper `.exe` download / SmartScreen / install in the **demo** video (setup video covers that separately)

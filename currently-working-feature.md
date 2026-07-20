@@ -29,7 +29,7 @@ That file has: Official Rules summary pointer, what is complete, what to do next
 | Background GitHub import (projects until overview/evidence/index ready) | ✅ |
 | Suggested CV (`tailor_cv`) - approve swaps → generate → download draft | ✅ |
 | Search Helper `.exe` + CV template downloads; Windows SmartScreen note | ✅ |
-| Search Helper setup video in Settings / guide ([YouTube](https://youtu.be/gYTl1co9FKQ)) | ✅ |
+| Search Helper setup video in Settings / guide ([YouTube](https://youtu.be/tpfV_0oMgf4)) | ✅ |
 | Application analysis client timeout 360s (heavy JDs) | ✅ |
 | Alibaba ECS deploy (EIP `47.237.150.6`) | ✅ |
 | MIT LICENSE + README judge links + `docs/architecture.png` | ✅ |
