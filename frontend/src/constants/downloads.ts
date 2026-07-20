@@ -6,7 +6,7 @@ export const DOWNLOADS = {
 } as const
 
 /** Short setup video: WebBridge + Helper download + pairing. */
-export const SEARCH_HELPER_SETUP_VIDEO_URL = 'https://youtu.be/gYTl1co9FKQ'
+export const SEARCH_HELPER_SETUP_VIDEO_URL = 'https://youtu.be/tpfV_0oMgf4'
 
 /** Support contact shown near Search Helper download / Windows SmartScreen help. */
 export const SUPPORT_EMAIL = 'hamza.fayaz.ai@gmail.com'
