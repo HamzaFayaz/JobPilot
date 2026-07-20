@@ -6,40 +6,43 @@ AI job application copilot: LangGraph orchestration, distributed browser automat
 
 <a id="hackathon"></a>
 
-### Hackathon (written once)
+### Hackathon
 
 | | |
 |--|--|
 | **Event** | [Qwen Cloud Global AI Hackathon](https://qwencloud-hackathon.devpost.com/) |
 | **Track** | **Track 4 - Autopilot Agent** |
 | **License** | [MIT](./LICENSE) |
-| **Live demo** | [http://47.237.150.6](http://47.237.150.6) |
-| **Status** | Product complete; packaging for Devpost (demo video ready + optional blog) |
+| **Live URL** | [http://47.237.150.6](http://47.237.150.6) |
+| **Demo video** | [https://www.youtube.com/watch?v=68JRJRgvfm8](https://www.youtube.com/watch?v=68JRJRgvfm8) |
+| **Blog** | [Medium: Building JobPilot on Qwen Cloud](https://medium.com/@hamza.fayaz.ai/building-jobpilot-an-autopilot-job-application-agent-on-qwen-cloud-deb54ca9bc26) |
+| **Status** | Submitted on Devpost |
 | **Contact** | [hamza.fayaz.ai@gmail.com](mailto:hamza.fayaz.ai@gmail.com) |
 
-> ## Live demo capacity (judges — please read)
+> ## Live capacity (judges, please read)
 >
-> ### **The live demo UI only allows up to 8 jobs per search (higher counts cannot be selected).**
+> ### **The live UI only allows up to 8 jobs per search (higher counts cannot be selected).**
 >
-> **Current live server resources:** `ecs.e-c1m2.xlarge` — **4 vCPU · 8 GiB** (kept up through judging).  
-> **That UI cap matches this machine’s capacity so the shared live demo stays stable — it is not a JobPilot product or architecture limit.**  
-> On a larger server the same system can run more jobs in parallel.
+> **Current live server resources: `ecs.e-c1m2.xlarge` · 4 vCPU · 8 GiB (kept up through judging).**  
+> **That UI cap matches this machine’s capacity so the shared live site stays stable. It is not a JobPilot product or architecture limit.**  
+> **On a larger server the same system can run more jobs in parallel.**
 
 **Required judge links**
 
 - **Qwen Cloud API (code):** [`backend/app/config.py`](./backend/app/config.py)  
-  Base URL: `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`  
-  Models: [`config/llm.yaml`](./config/llm.yaml)
+  **Base URL:** `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`  
+  **Models:** [`config/llm.yaml`](./config/llm.yaml)
 
 - **Alibaba Cloud deploy proof (code):**  
-  - ECS notes: [`System Design/alibaba-cloud-trial.md`](./System%20Design/alibaba-cloud-trial.md)  
-  - API image: [`deploy/Dockerfile.api`](./deploy/Dockerfile.api)  
-  - Deploy workflow: [`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml) (SSH/rsync + Docker to Alibaba ECS)  
-  - Recent runs: [github.com/HamzaFayaz/JobPilot/actions](https://github.com/HamzaFayaz/JobPilot/actions)
+  - **ECS notes:** [`System Design/alibaba-cloud-trial.md`](./System%20Design/alibaba-cloud-trial.md)  
+  - **API image:** [`deploy/Dockerfile.api`](./deploy/Dockerfile.api)  
+  - **Deploy workflow:** [`.github/workflows/deploy.yml`](./.github/workflows/deploy.yml) (SSH/rsync + Docker to Alibaba ECS)  
+  - **Recent runs:** [github.com/HamzaFayaz/JobPilot/actions](https://github.com/HamzaFayaz/JobPilot/actions)
 
 - **Architecture:** [Agentic architecture](#agentic-architecture) · [Technical depth](#technical-depth--engineering)
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Alibaba%20ECS-blue?style=flat-square)](http://47.237.150.6)
+[![Live URL](https://img.shields.io/badge/Live%20URL-Alibaba%20ECS-blue?style=flat-square)](http://47.237.150.6)
+[![Demo Video](https://img.shields.io/badge/Demo%20Video-YouTube-red?style=flat-square)](https://www.youtube.com/watch?v=68JRJRgvfm8)
 [![Qwen API](https://img.shields.io/badge/Qwen%20API-config.py-purple?style=flat-square)](./backend/app/config.py)
 [![Alibaba Proof](https://img.shields.io/badge/Alibaba%20Proof-ECS%20deploy-orange?style=flat-square)](./System%20Design/alibaba-cloud-trial.md)
 [![Deploy Workflow](https://img.shields.io/badge/Deploy-Alibaba%20ECS%20Actions-2088FF?style=flat-square)](./.github/workflows/deploy.yml)
@@ -258,7 +261,9 @@ The Helper talks to ECS over a device-paired HTTP task API. Review the `worker/`
 
 ---
 
-## Quick start
+## Local installation (Quick start)
+
+Use this if you want to run JobPilot on your machine (not only the live site).
 
 ### Prerequisites
 
@@ -266,7 +271,7 @@ The Helper talks to ECS over a device-paired HTTP task API. Review the `worker/`
 - Node.js 18+
 - [Qwen Cloud API key](https://home.qwencloud.com) (`DASHSCOPE_API_KEY`)
 - Kimi WebBridge extension + daemon (locked: daemon **v1.10.0** + extension **1.11.3**)
-- In-app setup video (Settings → Search Helper): [Watch setup video](https://youtu.be/tpfV_0oMgf4)
+- Setup guide video (WebBridge + Helper + pair): [https://www.youtube.com/watch?v=tpfV_0oMgf4](https://www.youtube.com/watch?v=tpfV_0oMgf4)
 - GitHub OAuth app (for repo import)
 
 ### 1. Clone and configure
@@ -278,7 +283,7 @@ cp .env.example .env
 # Set DASHSCOPE_API_KEY, JWT_SECRET, DATA_ENCRYPTION_KEY, GITHUB_CLIENT_ID/SECRET (see .env.example)
 ```
 
-### 2. Setup
+### 2. Install packages (backend + frontend)
 
 **Windows:**
 ```bat
@@ -293,7 +298,11 @@ pip install -r requirements.txt
 cd frontend && npm install
 ```
 
-### 3. Run locally
+- Backend deps: `requirements.txt` (FastAPI, LangGraph, Qwen client, …)
+- Frontend deps: `frontend/package.json` (`npm install`)
+- Search Helper code lives in `worker/` (same Python venv, or download the Windows `.exe` from Settings after the API is up)
+
+### 3. Run locally (API + UI + Helper)
 
 **Windows:**
 ```bat
@@ -302,13 +311,13 @@ dev.cmd
 
 **Manual:**
 ```bash
-# Terminal 1 - API
+# Terminal 1 - backend API
 uvicorn backend.app.main:app --reload --port 8000
 
-# Terminal 2 - UI
+# Terminal 2 - frontend
 cd frontend && npm run dev
 
-# Terminal 3 - Search Helper (after pairing in UI)
+# Terminal 3 - Search Helper (after pairing in the web UI)
 cd worker && python main.py
 ```
 
@@ -318,7 +327,7 @@ cd worker && python main.py
 | API | http://localhost:8000 |
 | Health | http://localhost:8000/health |
 
-Search Helper: [`worker/README.md`](./worker/README.md) · WebBridge: [`System Design/kimi-webbridge-provider.md`](./System%20Design/kimi-webbridge-provider.md)
+**Search Helper next steps:** open Settings → Search Helper, create a pairing token, start the Helper (Python or `.exe`), install WebBridge. Details: [`worker/README.md`](./worker/README.md) · WebBridge: [`System Design/kimi-webbridge-provider.md`](./System%20Design/kimi-webbridge-provider.md) · setup video: [Watch](https://www.youtube.com/watch?v=tpfV_0oMgf4)
 
 ---
 
