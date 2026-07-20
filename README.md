@@ -14,8 +14,16 @@ AI job application copilot: LangGraph orchestration, distributed browser automat
 | **Track** | **Track 4 - Autopilot Agent** |
 | **License** | [MIT](./LICENSE) |
 | **Live demo** | [http://47.237.150.6](http://47.237.150.6) |
-| **Status** | Product complete; packaging for Devpost (demo video + optional blog) |
+| **Status** | Product complete; packaging for Devpost (demo video ready + optional blog) |
 | **Contact** | [hamza.fayaz.ai@gmail.com](mailto:hamza.fayaz.ai@gmail.com) |
+
+> ## Live demo capacity (judges — please read)
+>
+> ### **The live demo UI only allows up to 8 jobs per search (higher counts cannot be selected).**
+>
+> **Current live server resources:** `ecs.e-c1m2.xlarge` — **4 vCPU · 8 GiB** (kept up through judging).  
+> **That UI cap matches this machine’s capacity so the shared live demo stays stable — it is not a JobPilot product or architecture limit.**  
+> On a larger server the same system can run more jobs in parallel.
 
 **Required judge links**
 
