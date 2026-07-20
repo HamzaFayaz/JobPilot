@@ -283,7 +283,7 @@ def analyze_job(
     llm = client or OpenAI(
         api_key=settings.dashscope_api_key,
         base_url=settings.qwen_base_url,
-        timeout=120.0,
+        timeout=360.0,
     )
     invalid_raw: str | None = None
     validation_details: str | None = None

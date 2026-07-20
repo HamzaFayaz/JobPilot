@@ -7,6 +7,7 @@ import {
   ComputerDesktopIcon,
   ExclamationTriangleIcon,
   LinkIcon,
+  PlayCircleIcon,
   PuzzlePieceIcon,
 } from '@heroicons/react/24/outline'
 import { useCallback, useEffect, useState } from 'react'
@@ -17,7 +18,7 @@ import {
   unpairWorker,
   type BrowserHealth,
 } from '../../api/worker'
-import { DOWNLOADS } from '../../constants/downloads'
+import { DOWNLOADS, SEARCH_HELPER_SETUP_VIDEO_URL } from '../../constants/downloads'
 import { Button } from '../ui/Button'
 
 const WEBBRIDGE_INSTALL_URL = 'https://www.kimi.com/features/webbridge'
@@ -146,6 +147,16 @@ export function SearchHelperCompactCard() {
             <p className="mt-2 max-w-xl text-sm leading-6 text-text-secondary">
               Connect this PC and your LinkedIn Chrome profile when you are ready to search.
             </p>
+            <a
+              href={SEARCH_HELPER_SETUP_VIDEO_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-flex items-center gap-1.5 text-sm font-bold text-primary hover:text-primary-hover hover:underline"
+            >
+              <PlayCircleIcon className="h-4 w-4" aria-hidden="true" />
+              Watch setup video
+              <ArrowTopRightOnSquareIcon className="h-3.5 w-3.5" aria-hidden="true" />
+            </a>
           </div>
         </div>
         <div className="flex items-center gap-2 self-start">

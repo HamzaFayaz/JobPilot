@@ -7,6 +7,7 @@ import {
   ComputerDesktopIcon,
   ExclamationTriangleIcon,
   LinkIcon,
+  PlayCircleIcon,
   PuzzlePieceIcon,
   UserCircleIcon,
 } from '@heroicons/react/24/outline'
@@ -18,7 +19,7 @@ import {
   unpairWorker,
   type BrowserHealth,
 } from '../../api/worker'
-import { DOWNLOADS, SUPPORT_EMAIL } from '../../constants/downloads'
+import { DOWNLOADS, SEARCH_HELPER_SETUP_VIDEO_URL, SUPPORT_EMAIL } from '../../constants/downloads'
 import { useProfile } from '../../context/ProfileContext'
 import { Button } from '../ui/Button'
 
@@ -203,6 +204,16 @@ export function SearchHelperSetupCard() {
               <p className="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
                 Follow the steps in order. JobPilot uses your normal Chrome session to help you review LinkedIn posts; it never applies on your behalf.
               </p>
+              <a
+                href={SEARCH_HELPER_SETUP_VIDEO_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 inline-flex items-center gap-1.5 text-sm font-bold text-primary hover:text-primary-hover hover:underline"
+              >
+                <PlayCircleIcon className="h-4 w-4" aria-hidden="true" />
+                Watch setup video
+                <ArrowTopRightOnSquareIcon className="h-3.5 w-3.5" aria-hidden="true" />
+              </a>
             </div>
           </div>
           <div className="flex items-center gap-2 self-start">

@@ -77,10 +77,10 @@ Code: `backend/app/config.py` · models: `config/llm.yaml`.
 | Live site | `http://47.237.150.6` (after copying IP from ECS) |
 
 **Before recording (prep)**
-- Helper already installed; WebBridge ready
+- Helper already installed; WebBridge ready (or use in-app **Watch setup video**: https://youtu.be/gYTl1co9FKQ)
 - Prefer profile/CV already uploaded so you do not wait forever on GitHub import
 - Can pause recording during long waits; cut dead time in the edit
-- Skip Helper `.exe` download / SmartScreen / install in the video
+- Skip Helper `.exe` download / SmartScreen / install in the **demo** video (setup video covers that separately)
 
 **Step-by-step shot list (agreed)**
 
@@ -111,7 +111,7 @@ Code: `backend/app/config.py` · models: `config/llm.yaml`.
 
 - [ ] Select **Track 4 — Autopilot Agent**
 - [ ] Repo URL: https://github.com/HamzaFayaz/JobPilot
-- [ ] Written description (features + DashScope `compatible-mode/v1`)
+- [ ] Written description (features + DashScope `compatible-mode/v1`; can reuse points from Medium draft)
 - [ ] Video link
 - [ ] Live demo: http://47.237.150.6 (+ test login if useful)
 - [ ] Architecture image: upload `docs/architecture.png`
@@ -119,6 +119,9 @@ Code: `backend/app/config.py` · models: `config/llm.yaml`.
   `https://github.com/HamzaFayaz/JobPilot/blob/main/System%20Design/alibaba-cloud-trial.md`  
   (also OK: `deploy/Dockerfile.api` or `.github/workflows/deploy.yml`)
 - [ ] Gallery screenshots: ECS Workbench/console (instance + IP), optional UI + Helper paired
+- [ ] Blog URL (Medium) when published
+
+**Medium blog (only draft file):** [`docs/medium-blog-draft.md`](./medium-blog-draft.md)
 
 ### 3. ECS / Workbench screenshot (required by proof docx)
 
@@ -130,7 +133,7 @@ Code: `backend/app/config.py` · models: `config/llm.yaml`.
 - **Platform locked:** Medium (public)
 - **Prize criteria:** thoroughness + potential impact only
 - **Must:** journey building with Qwen Cloud + relevant to JobPilot + URL on Devpost
-- **Draft ready to paste:** [`docs/medium-blog-draft.md`](./medium-blog-draft.md)
+- **Draft ready to paste:** [`docs/medium-blog-draft.md`](./medium-blog-draft.md) (**only** Medium draft file — use this)
 - **Note:** This hackathon’s Blog winners are not announced yet. Peer posts already live on Dev.to — compete on depth + reusable insight.
 - **Title:** *Building JobPilot: an Autopilot Job-Application Agent on Qwen Cloud*
 

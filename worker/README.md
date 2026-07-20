@@ -98,8 +98,8 @@ Use `diagnosis.md` first when Posts returns 0 listings — it says whether the a
 ## Pairing WORKER_TOKEN
 
 1. Log into JobPilot in the browser
-2. Settings → **Connect this computer** — copy pairing code
-3. Paste into `worker/.env` as `WORKER_TOKEN`
+2. Settings → **Connect this computer** — copy pairing code (optional: [Watch setup video](https://youtu.be/gYTl1co9FKQ))
+3. Paste into `worker/.env` as `WORKER_TOKEN` (or Helper Settings if using the `.exe`)
 
 ## Model note
 

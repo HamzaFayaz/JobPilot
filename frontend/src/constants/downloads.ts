@@ -5,5 +5,8 @@ export const DOWNLOADS = {
   cvTemplatePdf: '/downloads/JobPilot-CV-Template.pdf',
 } as const
 
+/** Short setup video: WebBridge + Helper download + pairing. */
+export const SEARCH_HELPER_SETUP_VIDEO_URL = 'https://youtu.be/gYTl1co9FKQ'
+
 /** Support contact shown near Search Helper download / Windows SmartScreen help. */
 export const SUPPORT_EMAIL = 'hamza.fayaz.ai@gmail.com'

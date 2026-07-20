@@ -1,252 +1,165 @@
 # JobPilot — Product Requirements Document (PRD)
 
-> **2026-07-05:** Browser automation uses **Kimi WebBridge** (replaces Browser-Use). See [`System Design/kimi-webbridge-provider.md`](System%20Design/kimi-webbridge-provider.md).
+**Status:** Full product vision (problem + architecture + roadmap).  
+**Shipped hackathon path only:** [`jobpilot_prd_mimimum.md`](./jobpilot_prd_mimimum.md)  
+**Live product snapshot:** [`README.md`](./README.md)
 
-**Version:** 1.0
-**Date:** June 27, 2026
-**Track:** Global AI Hackathon Series with Qwen Cloud — Track 4: Autopilot Agent
-**Deadline:** July 9, 2026
+**Version:** 2.0  
+**Updated:** July 20, 2026  
+**Track:** Global AI Hackathon Series with Qwen Cloud — Track 4: Autopilot Agent  
+**Live demo:** http://47.237.150.6  
+**Repo:** https://github.com/HamzaFayaz/JobPilot
 
 ---
 
-## 1. Project Name
+## 1. Project name
 
 **JobPilot**
 
 ---
 
-## 2. What Is JobPilot?
+## 2. What is JobPilot?
 
-JobPilot is a browser-controlling multi-agent job search autopilot built for developers. It takes over the entire job application process — from searching listings to sending tailored emails — with the user only stepping in to approve before anything is sent.
+JobPilot is a multi-tier Autopilot Agent for people who code (developers, software engineers, AI engineers). It scouts hiring signals using the user’s real browser session, scores fit against their CV and GitHub projects, proposes per-job project keep/swap plans, and generates a tailored CV draft only after human approval.
 
-The user connects their GitHub, uploads their CV, picks their target role and platforms, and JobPilot does the rest: it opens their browser, searches jobs in real time, scores each one against their skills, rewrites the relevant CV section for that specific job, drafts a personalized application email, and sends it — all with a human approval gate before anything goes out.
+It is **not** bulk spam and **not** a chat box with an API key. Cloud **Qwen** reasons on Alibaba ECS; a desktop **Search Helper** drives **Kimi WebBridge** in the user’s Chrome (or Edge) so personal accounts stay on the user’s machine.
+
+**Beachhead vs destination:** The first complete vertical slice is **LinkedIn Posts → score → HITL suggested CV**. The product goal is broader: any hiring surface that needs the user’s personal account (more boards, later Gmail-assisted outreach, Indeed-style personalized feeds), using the same three-tier loop.
 
 ---
 
-## 3. The Problem JobPilot Solves
+## 3. The problem JobPilot solves
 
-Job searching for developers in 2026 is a full-time job on top of a full-time job.
+Job search for people who code is a bad tradeoff on top of learning and shipping work.
 
 A serious search means:
 
-- Scanning multiple platforms (LinkedIn, Indeed, Wellfound, RemoteOK) every day
-- Reading each JD carefully to decide if it is worth applying
-- Checking if your CV is even strong enough for that specific role
-- Rewriting your CV or swapping projects for different JD targets
-- Drafting a unique, personalized cover email — not a template
-- Repeating this 10 to 20 times per day to get any traction
+- Finding roles across messy sources (posts, boards, referrals), not only clean job-board rows  
+- Reading each JD carefully  
+- Checking whether CV + projects are strong enough for that specific role  
+- Rewriting project bullets so real techniques map to the JD (often the project fits, but the write-up does not)  
+- Repeating that surgery for every role  
 
-Most developers either apply with the same generic CV to everything (low conversion) or spend hours tailoring each application manually (unsustainable). There is no middle path that is both high-quality and high-volume.
+Most people either apply with one generic CV (low conversion) or spend hours tailoring by hand (unsustainable).
 
-**JobPilot is that middle path.** It brings the intelligence of a careful manual application to the volume of a bulk spray-and-pray campaign — with a human in the loop before anything is sent.
-
----
-
-## 4. Who Is This For?
-
-- Developers actively job searching who want quality applications at scale
-- Engineers targeting remote-first or international roles across multiple platforms
-- Anyone who has built projects on GitHub but struggles to translate them into tailored applications quickly
+**JobPilot is the middle path:** agentic scout + score + draft, with a human gate before any tailored CV becomes a real document.
 
 ---
 
-## 5. What JobPilot Does — End to End
+## 4. Who is this for?
 
-### Step 1: Onboarding
-
-- User connects GitHub — agent scans repositories and presents a list; user selects which projects to include in their profile
-- User uploads their CV (PDF or DOCX)
-- User selects target role, platforms (LinkedIn, Indeed, Wellfound, etc.), and regions
-
-### Step 2: Browser Takeover
-
-- Agent takes control of the user's existing Chrome browser via Browser-Use
-- Opens tabs, navigates to selected job platforms, searches for the target role in real time
-- Operates inside the user's actual logged-in sessions — no separate login required
-
-### Step 3: Job Scoring
-
-- Scoring sub-agent reads each job listing
-- Evaluates the JD against the user's skills, experience, and selected GitHub projects
-- Returns a match score and flags the strongest fits
-
-### Step 4: CV Optimization Check
-
-- CV optimization sub-agent compares the user's current CV to the JD
-- Decides if the CV is strong enough as-is, or if a project swap would improve the match
-- If a swap is needed, identifies which project to replace and with which alternative (Variant A / Variant B logic, word-count aware)
-
-### Step 5: Human-in-the-Loop Gate
-
-- Agent surfaces the job listing, match score, and proposed CV change to the user
-- User approves or rejects before anything is written or sent
-
-### Step 6: CV Rewrite
-
-- On approval, agent rewrites the relevant CV section for that specific job
-- Keeps tone, structure, and word count consistent with the rest of the document
-
-### Step 7: Email Draft and Send
-
-- Agent drafts a personalized application email tied to the specific JD and company
-- Email is sent via Gmail API — not through Gmail.com in the browser
-- CV is attached programmatically as a base64 attachment
-- User gives final approval before send
+- Developers, software engineers, and AI engineers actively searching  
+- People with GitHub work who struggle to turn projects into per-role CV stories quickly  
+- Users who want quality applications with control, not unsupervised send bots  
 
 ---
 
-## 6. Technical Architecture
+## 5. Product principles
 
-### 6.1 Architecture Overview
+1. **Human-in-the-loop** — user approves swaps before suggested CV generation  
+2. **Personal browser sessions** — LinkedIn (and later other accounts) use the user’s Chrome, not datacenter bots  
+3. **Server-side secrets** — Qwen keys stay on ECS  
+4. **Scoped Search Helper** — paired user only; browser tools only; no model keys on the default cloud path  
+5. **Evidence over fluff** — GitHub projects are chunked/retrieved so swaps are grounded  
+6. **Right Qwen model for the job** — turbo / plus / max / embeddings+rerank by risk (see `config/llm.yaml`)  
+
+---
+
+## 6. End-to-end product (vision)
+
+### 6.1 Shipped now (see minimum PRD)
+
+- Multi-user accounts  
+- CV upload + GitHub import + evidence index  
+- Search Helper + Kimi WebBridge  
+- LinkedIn Posts search (cloud Qwen ReAct)  
+- Prefilter + parallel application analysis  
+- HITL Applications inbox  
+- Suggested CV download (layout-preserving `.docx`, master CV unchanged)  
+- Deploy on Alibaba ECS  
+
+### 6.2 Next surfaces (same architecture)
+
+| Surface | Intent | Status |
+|---------|--------|--------|
+| LinkedIn Posts | Ambiguous hiring posts | **Shipped** |
+| LinkedIn Jobs / Indeed / other boards | Broader inventory + personalized feeds | Deferred |
+| Gmail draft / send | Outreach with user’s mailbox | Cancelled for hackathon submit; future optional |
+| More HITL gates | e.g. before any outbound send | Future when send returns |
+
+Design rule for expansion: anything that needs a **personal account** stays on the user’s PC via Helper + WebBridge; Qwen and orchestration stay on ECS.
+
+---
+
+## 7. Technical architecture (current)
+
+### 7.1 Three tiers
 
 ```
-User's Machine
-├── Chrome Browser (user's real logged-in session)
-│   └── Browser-Use controls this via local CDP
-└── Browser-Use local agent (Python)
+Tier 1 — Alibaba ECS
+  React · FastAPI · LangGraph · SQLite · Qwen Cloud (DashScope)
 
-Alibaba Cloud ECS (mandatory deployment)
-├── JobPilot FastAPI backend
-├── LangGraph multi-agent orchestration
-├── Qwen model via Dashscope API
-└── Gmail API integration
+Tier 2 — User PC
+  Search Helper: pair, poll tasks, execute WebBridge tools
 
-GitHub API
-└── Repository scanner at onboarding
-
-Google Console
-└── Gmail API (OAuth2) for sending emails
+Tier 3 — User browser
+  Kimi WebBridge daemon + extension · real LinkedIn session
 ```
 
-### 6.2 Agent Architecture (LangGraph)
+### 7.2 LangGraph (code-routed)
 
-| Sub-Agent | Role |
-|---|---|
-| Orchestrator Agent | Controls the overall flow, routes tasks between sub-agents |
-| Browser Agent | Drives Browser-Use to navigate and extract job listings |
-| Scoring Agent | Evaluates each JD against user profile and assigns a match score |
-| CV Optimization Agent | Checks CV fit, decides project swap if needed |
-| Email Drafting Agent | Writes a personalized application email per JD |
-| HITL Gate | Surfaces decisions to the user before any action is taken |
+Parent: `init_run` → `search_subgraph` → `prefilter` → parallel `application_subgraph` → persist.  
+Suggested CV is **outside** the parent graph: explicit user approve → `tailor_cv`.
 
-### 6.3 Browser Control Layer
+### 7.3 Browser control
 
-**Tool:** Browser-Use (Python, open source, 95k+ GitHub stars)
+**Tool:** Kimi WebBridge (not Browser-Use).  
+Cloud Qwen ReAct decides tools; Helper executes them locally.
 
-- Native Python SDK — LangGraph calls it directly, no bridge needed
-- CLI 2.0 syncs the user's real Chrome profile including cookies and active sessions
-- Built-in CAPTCHA solving: Cloudflare Turnstile, PerimeterX, reCAPTCHA
-- Operates inside the user's real logged-in LinkedIn and Indeed sessions
-- No headless browser — runs in the user's actual Chrome window on their machine
-- Antibot risk is minimal because LinkedIn sees a real Chrome session from a real residential IP
+### 7.4 LLM layer
 
-### 6.4 Email Sending Layer
+**Qwen Cloud** via `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`  
+Tiered models in [`config/llm.yaml`](./config/llm.yaml): turbo (profile), plus (browser agent / evidence), max (scoring, swaps, tailor_cv), embeddings + rerank (retrieval).
 
-**Tool:** Gmail API via Google Console (OAuth2)
+### 7.5 GitHub integration
 
-- User completes a one-time OAuth2 consent flow at onboarding
-- Refresh token stored securely in backend
-- Agent calls `gmail.users.messages.send` with CV attached as base64
-- No browser automation of Gmail.com — eliminates the risk of tab conflicts, file upload dialog issues, and Gmail antibot triggers
-- CV file is stored in Alibaba OSS after upload at onboarding; agent fetches and attaches per send
-
-### 6.5 LLM Layer
-
-**Model:** Qwen (via Alibaba Dashscope API — required by hackathon)
-
-- API base URL: `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`
-- OpenAI-compatible interface — drop-in with LangChain/LangGraph
-- Powers all sub-agents: scoring, CV optimization, email drafting, orchestration
-
-### 6.6 GitHub Integration
-
-**Tool:** GitHub REST API
-
-- Scans user's public repositories at onboarding
-- Extracts repo name, description, language, and README summary
-- User selects which projects to include in their active profile
-- Agent uses this context in both the scoring and CV optimization steps
+OAuth + import: projects, evidence cards, chunking, FAISS index for per-job retrieval.
 
 ---
 
-## 7. Technology Stack
+## 8. HITL design
 
-| Layer | Technology |
-|---|---|
-| Agent Orchestration | LangGraph |
-| LLM | Qwen (Dashscope, OpenAI-compatible) |
-| Backend Framework | FastAPI |
-| Browser Control | Browser-Use (Python SDK) |
-| Browser Protocol | Chrome DevTools Protocol (CDP) via Browser-Use |
-| Email Sending | Gmail API (Google Console, OAuth2) |
-| File Storage | Alibaba OSS (CV storage) |
-| GitHub Integration | GitHub REST API |
-| Deployment | Alibaba Cloud ECS (mandatory) |
-| Language | Python |
+Consequential CV mutation never happens silently.
+
+1. Analysis proposes keep/swap plans (Qwen)  
+2. User reviews in Applications UI  
+3. User approves selected swaps  
+4. Only then `tailor_cv` builds a suggested `.docx`  
+5. Master CV remains unchanged; user downloads a draft  
+
+Future outbound send (if reintroduced) must add another explicit gate before anything leaves the user’s name.
 
 ---
 
-## 8. Human-in-the-Loop (HITL) Design
-
-JobPilot never takes a consequential action without user approval. The HITL gate fires at two points:
-
-1. **Before CV rewrite** — user sees the job listing, match score, and proposed project swap
-2. **Before email send** — user sees the final email draft and attached CV
-
-The user can approve, reject, or edit at each gate. If rejected, the agent moves to the next job in the queue.
-
-This design means the user stays in control of their reputation. Nothing goes out that they have not read.
-
----
-
-## 9. Key Constraints and Decisions
+## 9. Key decisions (current)
 
 | Decision | Rationale |
-|---|---|
-| Browser-Use over Kimi WebBridge | Browser-Use has a native Python SDK, MCP server, and built-in CAPTCHA solving. WebBridge requires a custom bridge layer to connect to a Python backend — too much build time for a 12-day sprint. |
-| Gmail API over browser-based Gmail | Automating Gmail.com creates tab conflicts, file upload dialog issues, and antibot risk. Gmail API is direct, reliable, and keeps the browser layer focused on job platforms only. |
-| Real Chrome session (not headless) | LinkedIn blocked 23.5M automated sessions in Q1 2026. Headless browsers expose TLS fingerprint mismatches and missing browser attributes. Running inside the user's real Chrome session avoids all detection layers. |
-| Agent logic on Alibaba ECS, browser on local machine | Agent decisions run in the cloud as required by the hackathon. Browser actions run locally so LinkedIn sees a real residential IP and a real Chrome environment. |
-| Qwen via Dashscope | Mandatory for the hackathon. OpenAI-compatible interface means zero friction with LangGraph. |
+|----------|-----------|
+| Kimi WebBridge over Browser-Use | Real Chrome/Edge session; no profile-copy pain; Helper stays thin |
+| Qwen ReAct on ECS, tools on PC | Hackathon/cloud brain + personal IP/session |
+| LinkedIn Posts first | Hardest ambiguous inputs; proves Track 4 |
+| No Gmail in submit path | Complete thin slice: search → score → suggested CV |
+| Tiered Qwen models | Cost/latency vs quality by risk |
+| Layout-preserving suggested CV | Trust: structure matches uploaded CV |
 
 ---
 
-## 10. Hackathon Scope (MVP)
+## 10. Hackathon submit checklist (pointer)
 
-For the July 9 deadline, the MVP covers:
+Use [`jobpilot_prd_mimimum.md`](./jobpilot_prd_mimimum.md) and [`docs/hackathon-submission-handoff.md`](./docs/hackathon-submission-handoff.md) for the exact shipped scope, live demo notes, and Devpost packaging.
 
-- Onboarding: GitHub connect, CV upload, role and platform selection
-- Browser control: LinkedIn and Indeed job search via Browser-Use
-- Scoring sub-agent: match score per JD
-- CV optimization sub-agent: project swap recommendation
-- HITL gate: approval before rewrite and before send
-- CV rewrite: targeted section rewrite per JD
-- Email drafting and sending: personalized email via Gmail API with CV attached
-
-Out of scope for MVP (post-hackathon):
-
-- Multi-user support and authentication
-- Dashboard / application tracking UI
-- Support for platforms beyond LinkedIn and Indeed
-- Resume version history
-- ATS score integration
+Blog prize: Medium journey building with Qwen Cloud (see [`docs/medium-blog-draft.md`](./docs/medium-blog-draft.md)).
 
 ---
 
-## 11. Blog Post Award (Parallel Target)
-
-A dev.to blog post is being written in parallel with the build for the Blog Post Award ($500 cash + $500 credits, 10 winners across all tracks).
-
-The post covers:
-
-- Why browser-controlling agents are the next frontier for job search automation
-- How the multi-agent architecture is designed and why each sub-agent is separate
-- The Browser-Use vs Kimi WebBridge decision and what we learned
-- Why Gmail API beats browser automation for email sending
-- The antibot problem and how running inside a real Chrome session solves it
-
-The post is written as the project is built — not after — so it captures real decisions, real tradeoffs, and real code.
-
----
-
-*Document prepared for internal use during the Global AI Hackathon Series with Qwen Cloud, Track 4: Autopilot Agent.*
+*PRD v2.0 replaces earlier drafts that listed Browser-Use, Gmail send as MVP, and Indeed as current submit scope.*

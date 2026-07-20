@@ -95,8 +95,9 @@ Product rules that stay true across the stack (detail in [Technical depth](#tech
 1. **Human-in-the-loop** - user approves swaps before a suggested CV draft is generated or kept
 2. **Real browser sessions** - LinkedIn automation uses the user's Chrome, not datacenter bots
 3. **Server-side secrets** - Qwen keys stay on ECS; never exposed in the frontend bundle
-4. **Per-user isolation** - profiles, runs, tokens, and job packages scoped by `user_id`
-5. **Production patterns** - deterministic graph routing, typed contracts, tested worker protocol
+4. **Scoped Search Helper** - intentionally thin: acts for the paired user only, executes browser tools; Qwen keys and orchestration stay on ECS
+5. **Per-user isolation** - profiles, runs, tokens, and job packages scoped by `user_id`
+6. **Production patterns** - deterministic graph routing, typed contracts, tested worker protocol
 
 ---
 
@@ -204,6 +205,8 @@ Scannable map of the autopilot stack (Track 4): what each piece does and why it 
 
 LinkedIn automation needs the user's logged-in Chrome and residential network. Running that browser on Alibaba ECS would use a datacenter IP and would not see the user's session. JobPilot keeps **orchestration and Qwen keys on ECS**, and keeps **browser execution on the paired Search Helper**.
 
+The Helper is intentionally thin and scoped: it acts for the paired user only and executes browser tools, while Qwen keys and orchestration stay on ECS.
+
 - Helper code: [`worker/`](./worker/)  
 - WebBridge provider notes: [`System Design/kimi-webbridge-provider.md`](./System%20Design/kimi-webbridge-provider.md)  
 - Pairing and task queue: [`backend/app/services/worker_store.py`](./backend/app/services/worker_store.py)
@@ -262,7 +265,8 @@ The Helper talks to ECS over a device-paired HTTP task API. Review the `worker/`
 - Python 3.11+
 - Node.js 18+
 - [Qwen Cloud API key](https://home.qwencloud.com) (`DASHSCOPE_API_KEY`)
-- Kimi WebBridge extension + daemon
+- Kimi WebBridge extension + daemon (locked: daemon **v1.10.0** + extension **1.11.3**)
+- In-app setup video (Settings → Search Helper): [Watch setup video](https://youtu.be/gYTl1co9FKQ)
 - GitHub OAuth app (for repo import)
 
 ### 1. Clone and configure
@@ -330,10 +334,13 @@ JobPilot/
 ├── frontend/src/              # React SPA (Welcome, Profile, Search, Applications, Settings)
 ├── worker/                    # Search Helper (WebBridge executor + settings UI)
 ├── config/llm.yaml            # Qwen model defaults by call site
+├── docs/                      # Architecture PNG, hackathon handoff, Medium draft
 ├── design-system/             # Design tokens (Stitch overrides)
 ├── System Design/             # Architecture specs and ADRs
 ├── deploy/                    # Docker, Nginx, Alibaba ECS bootstrap
 ├── .github/workflows/         # Deploy to Alibaba ECS, Helper upload, …
+├── jobpilot_prd_mimimum.md    # Shipped hackathon scope
+├── jobpilot_prd.md            # Full product vision PRD
 └── tests/                     # Backend + worker unit tests
 ```
 
@@ -368,6 +375,8 @@ JobPilot/
 
 ### Search Helper (worker)
 
+Pairing and setup live under **Settings → Search Helper** (and **View step-by-step setup guide**). Short video: [Search Helper setup](https://youtu.be/gYTl1co9FKQ) (WebBridge → Helper download → pair → Start).
+
 | Method | Path | Description |
 |--------|------|-------------|
 | `POST` | `/api/worker/pair` | Issue `WORKER_TOKEN` |
@@ -391,6 +400,8 @@ JobPilot/
 
 | Document | Purpose |
 |----------|---------|
+| [`jobpilot_prd_mimimum.md`](./jobpilot_prd_mimimum.md) | Shipped hackathon / minimum scope |
+| [`jobpilot_prd.md`](./jobpilot_prd.md) | Full product vision PRD |
 | [`System Design/JobPilot-System-Design.md`](./System%20Design/JobPilot-System-Design.md) | System topology and state shapes |
 | [`System Design/jobpilot-agent-build-guide.md`](./System%20Design/jobpilot-agent-build-guide.md) | Agent architecture and API contracts |
 | [`System Design/kimi-webbridge-provider.md`](./System%20Design/kimi-webbridge-provider.md) | WebBridge integration |
@@ -398,6 +409,7 @@ JobPilot/
 | [`System Design/alibaba-cloud-trial.md`](./System%20Design/alibaba-cloud-trial.md) | Alibaba ECS deploy proof (hackathon) |
 | [`docs/database-schema.md`](./docs/database-schema.md) | SQLite schema reference |
 | [`docs/hackathon-official-rules-context.md`](./docs/hackathon-official-rules-context.md) | Devpost Official Rules checklist |
+| [`docs/hackathon-submission-handoff.md`](./docs/hackathon-submission-handoff.md) | Submission packaging checklist |
 
 ---
 
