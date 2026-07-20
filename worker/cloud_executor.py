@@ -13,6 +13,14 @@ from worker.providers.webbridge import WebBridgeClient
 logger = logging.getLogger(__name__)
 
 
+def _heartbeat_busy(api: JobPilotWorkerClient) -> None:
+    """Keep /status connected while cloud search runs (stale cutoff is ~60s)."""
+    try:
+        api.send_heartbeat(browser_health="busy")
+    except Exception:
+        logger.warning("Failed to send busy heartbeat during cloud task", exc_info=True)
+
+
 async def run_cloud_tool_executor(
     task: WorkerTask,
     settings: WorkerSettings,
@@ -40,6 +48,9 @@ async def run_cloud_tool_executor(
 
     idle_polls = 0
     while True:
+        # Heartbeat before each long-poll so the website does not flip to
+        # "not connected" while this Helper is actively running a search.
+        _heartbeat_busy(api)
         command = api.poll_agent_command(task.task_id, timeout_seconds=25.0)
         if command is None:
             idle_polls += 1
@@ -83,4 +94,6 @@ async def run_cloud_tool_executor(
             logger.warning("Tool %s failed: %s", name, exc)
             result = {"ok": False, "error": str(exc)}
 
+        # Long tools can exceed the stale window; refresh before posting.
+        _heartbeat_busy(api)
         api.post_agent_tool_result(task.task_id, call_id=call_id, result=result)
