@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import hashlib
+import logging
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -18,6 +19,8 @@ from backend.app.observability import span
 from backend.app.services.application_prompt import ENRICH_JOB_SYSTEM_PROMPT_V1
 from backend.app.services.application_validation import validate_application_contract
 from backend.app.services.retrieve_project_evidence import retrieve_project_evidence
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -317,6 +320,11 @@ def analyze_job(
                     },
                 )
             except Exception as exc:
+                logger.exception(
+                    "Application model call failed (model=%s base=%s)",
+                    settings.application_model,
+                    settings.qwen_base_url,
+                )
                 raise ApplicationAnalysisError(
                     "model_unavailable",
                     "Application analysis model is unavailable.",

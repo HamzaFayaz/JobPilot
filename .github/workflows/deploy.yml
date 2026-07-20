@@ -72,6 +72,11 @@ jobs:
           JWT_EXPIRE_MINUTES: "10080"
           DATA_ENCRYPTION_KEY: ${{ secrets.DATA_ENCRYPTION_KEY }}
           APP_ENV: production
+          LOGFIRE_ENABLED: "true"
+          LOGFIRE_TOKEN: ${{ secrets.LOGFIRE_TOKEN }}
+          LOGFIRE_PROJECT_NAME: ${{ secrets.LOGFIRE_PROJECT_NAME }}
+          LOGFIRE_ENVIRONMENT: production
+          LOGFIRE_CAPTURE_CONTENT: "false"
         run: |
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
             "${EC2_USER}@${EC2_HOST}" \
@@ -91,6 +96,11 @@ jobs:
              JWT_EXPIRE_MINUTES='${JWT_EXPIRE_MINUTES}' \
              DATA_ENCRYPTION_KEY='${DATA_ENCRYPTION_KEY}' \
              APP_ENV='${APP_ENV}' \
+             LOGFIRE_ENABLED='${LOGFIRE_ENABLED}' \
+             LOGFIRE_TOKEN='${LOGFIRE_TOKEN}' \
+             LOGFIRE_PROJECT_NAME='${LOGFIRE_PROJECT_NAME}' \
+             LOGFIRE_ENVIRONMENT='${LOGFIRE_ENVIRONMENT}' \
+             LOGFIRE_CAPTURE_CONTENT='${LOGFIRE_CAPTURE_CONTENT}' \
              bash -s" < deploy/write-env.sh
 
       - name: Build and restart Docker containers
