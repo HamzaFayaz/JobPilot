@@ -10,11 +10,23 @@ import { getWorkerStatus, type BrowserHealth } from '../../api/worker'
 
 const WEBBRIDGE_INSTALL_URL = 'https://www.kimi.com/features/webbridge'
 
-interface SearchHelperHintProps {
-  onReadyChange?: (ready: boolean) => void
+export type SearchHelperAvailability = {
+  /** Paired + recent heartbeat (includes mid-search `busy`). */
+  connected: boolean
+  /** Safe to start a new search (`ready` only — not `busy`). */
+  canStart: boolean
+  browserHealth: BrowserHealth | null
 }
 
-export function SearchHelperHint({ onReadyChange }: SearchHelperHintProps) {
+interface SearchHelperHintProps {
+  onReadyChange?: (ready: boolean) => void
+  onAvailabilityChange?: (availability: SearchHelperAvailability) => void
+}
+
+export function SearchHelperHint({
+  onReadyChange,
+  onAvailabilityChange,
+}: SearchHelperHintProps) {
   const [connected, setConnected] = useState<boolean | null>(null)
   const [browserHealth, setBrowserHealth] = useState<BrowserHealth | null>(null)
 
@@ -25,13 +37,28 @@ export function SearchHelperHint({ onReadyChange }: SearchHelperHintProps) {
       try {
         const status = await getWorkerStatus()
         if (!active) return
-        setConnected(status.connected)
-        setBrowserHealth(status.browserHealth ?? null)
-        onReadyChange?.(Boolean(status.connected && status.browserHealth === 'ready'))
+        const health = status.browserHealth ?? null
+        // Heartbeat stays alive during search with health=busy. That is still connected.
+        const isConnected = Boolean(status.connected)
+        const canStart = Boolean(status.connected && health === 'ready')
+        setConnected(isConnected)
+        setBrowserHealth(health)
+        onAvailabilityChange?.({
+          connected: isConnected,
+          canStart,
+          browserHealth: health,
+        })
+        // Legacy: keep Start enabled only when truly ready (not busy).
+        onReadyChange?.(canStart)
       } catch {
         if (!active) return
         setConnected(false)
         setBrowserHealth(null)
+        onAvailabilityChange?.({
+          connected: false,
+          canStart: false,
+          browserHealth: null,
+        })
         onReadyChange?.(false)
       }
     }
@@ -45,7 +72,7 @@ export function SearchHelperHint({ onReadyChange }: SearchHelperHintProps) {
       active = false
       window.clearInterval(timer)
     }
-  }, [onReadyChange])
+  }, [onReadyChange, onAvailabilityChange])
 
   if (connected === null) {
     return (
@@ -88,9 +115,25 @@ export function SearchHelperHint({ onReadyChange }: SearchHelperHintProps) {
     )
   }
 
+  // Mid-search: worker is connected and actively heartbeating as "busy".
+  if (browserHealth === 'busy') {
+    return (
+      <section className="flex items-center gap-3 rounded-2xl border border-success/20 bg-success-soft px-4 py-3.5 text-sm text-success">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-success/10">
+          <CheckCircleIcon className="h-5 w-5" aria-hidden="true" />
+        </span>
+        <div>
+          <p className="font-semibold">Search Helper is connected and searching.</p>
+          <p className="mt-0.5 text-xs text-success/80">
+            A browser search is running on this PC. Follow progress in Applications.
+          </p>
+        </div>
+      </section>
+    )
+  }
+
   if (browserHealth !== 'ready') {
-    const detail: Record<Exclude<BrowserHealth, 'ready'>, string> = {
-      busy: 'A browser search is running. Its live status is available in Applications.',
+    const detail: Record<Exclude<BrowserHealth, 'ready' | 'busy'>, string> = {
       not_installed: 'Open Chrome with the Kimi WebBridge extension installed.',
       daemon_down: 'The local WebBridge daemon is not ready yet.',
       profile_setup: 'WebBridge needs its first-time setup in Chrome.',

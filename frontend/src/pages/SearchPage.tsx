@@ -23,7 +23,7 @@ import {
   type SearchRunStatusResponse,
 } from '../api/search'
 import { Button } from '../components/ui/Button'
-import { SearchHelperHint } from '../components/search/SearchHelperHint'
+import { SearchHelperHint, type SearchHelperAvailability } from '../components/search/SearchHelperHint'
 import { SearchPreferencesFields } from '../components/search/SearchPreferencesFields'
 import { useProfile } from '../context/ProfileContext'
 import type { SearchPlatform } from '../types/profile'
@@ -40,7 +40,15 @@ export function SearchPage() {
   const [submitting, setSubmitting] = useState(false)
   const [pollError, setPollError] = useState<string | null>(null)
   const [helperReady, setHelperReady] = useState(false)
+  const [helperConnected, setHelperConnected] = useState(false)
+  const [helperBusy, setHelperBusy] = useState(false)
   const [restoringRun, setRestoringRun] = useState(true)
+
+  const onHelperAvailability = useCallback((availability: SearchHelperAvailability) => {
+    setHelperConnected(availability.connected)
+    setHelperReady(availability.canStart)
+    setHelperBusy(availability.browserHealth === 'busy')
+  }, [])
 
   const showToast = useCallback((message: string) => {
     setToast(message)
@@ -199,8 +207,10 @@ export function SearchPage() {
   if (!profile.searchCountry) {
     searchBlockers.push('Select a country in search preferences below.')
   }
-  if (!helperReady) {
+  if (!helperConnected) {
     searchBlockers.push('Connect Search Helper and open Chrome with WebBridge.')
+  } else if (!helperReady && !runActive) {
+    searchBlockers.push('Search Helper is connected but the browser is not ready yet.')
   }
   if (runActive) {
     searchBlockers.push('A search or analysis is already running. Open Applications to follow it.')
@@ -242,7 +252,7 @@ export function SearchPage() {
         </div>
       </header>
 
-      <SearchHelperHint onReadyChange={setHelperReady} />
+      <SearchHelperHint onAvailabilityChange={onHelperAvailability} />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(300px,0.85fr)]">
         <section className="jp-surface rounded-[1.5rem] p-5 sm:p-7">
@@ -404,9 +414,11 @@ export function SearchPage() {
                   ? 'Search already in progress'
                   : !profile.searchCountry
                     ? 'Select a country to search'
-                    : !helperReady
+                    : !helperConnected
                       ? 'Set up Search Helper to continue'
-                      : 'Start focused search'}
+                      : !helperReady
+                        ? 'Wait for browser ready'
+                        : 'Start focused search'}
               {!submitting && !runActive && helperReady ? (
                 <ArrowRightIcon className="ml-2 h-4 w-4" aria-hidden="true" />
               ) : null}
@@ -436,8 +448,14 @@ export function SearchPage() {
                 {
                   icon: ComputerDesktopIcon,
                   title: 'Search Helper',
-                  detail: helperReady ? 'Connected and browser-ready' : 'Needs connection in Settings',
-                  ready: helperReady,
+                  detail: helperBusy
+                    ? 'Connected — search running on this PC'
+                    : helperReady
+                      ? 'Connected and browser-ready'
+                      : helperConnected
+                        ? 'Connected — waiting for browser'
+                        : 'Needs connection in Settings',
+                  ready: helperConnected,
                 },
                 {
                   icon: MapPinIcon,
