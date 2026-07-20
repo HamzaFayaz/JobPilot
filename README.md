@@ -19,6 +19,8 @@ AI job application copilot: LangGraph orchestration, distributed browser automat
 | **Status** | Submitted on Devpost |
 | **Contact** | [hamza.fayaz.ai@gmail.com](mailto:hamza.fayaz.ai@gmail.com) |
 
+
+
 > ## Live capacity (judges, please read)
 >
 > ### **The live UI only allows up to 8 jobs per search (higher counts cannot be selected).**
